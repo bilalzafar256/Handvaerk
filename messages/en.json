@@ -1,0 +1,21 @@
+{
+  "Overview": {
+    "title": "Overview",
+    "pageTitle": "Overview | Håndværk Pro"
+  },
+  "Auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out"
+  },
+  "Common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading...",
+    "error": "Something went wrong. Please try again.",
+    "success": "Saved successfully."
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "Overview": {
+    "title": "",
+    "pageTitle": ""
+  },
+  "Auth": {
+    "signIn": "",
+    "signUp": "",
+    "signOut": ""
+  },
+  "Common": {
+    "save": "",
+    "cancel": "",
+    "delete": "",
+    "edit": "",
+    "create": "",
+    "loading": "",
+    "error": "",
+    "success": ""
+  }
+}

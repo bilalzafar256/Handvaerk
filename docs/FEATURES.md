@@ -1,0 +1,378 @@
+# Håndværk Pro — Feature Specification & Tracking
+> All features, statuses, and detailed specs. Update status as development progresses.
+
+---
+
+## DEVELOPMENT CONVENTIONS
+
+> **Full-stack per feature:** Every feature in progress must ship frontend (page, component, form) AND backend (schema, query, Server Action) together. Never mark a feature `[x]` with only one side done.
+
+---
+
+## STATUS KEY
+- `[ ]` Not started
+- `[~]` In progress
+- `[x]` Complete
+- `[-]` Deferred / Future phase
+- `[!]` Blocked
+- `N/A` Not applicable to this side
+
+> **BE** = Backend (schema, server action, API, config, env)
+> **FE** = Frontend (page, component, form, style, animation)
+
+---
+
+## PHASE 0 — Foundation
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-000 | Next.js 15 project init | `[x]` | `[x]` | App Router, TypeScript strict |
+| F-001 | Vercel deployment pipeline | `[ ]` | `[ ]` | main → prod, feature branches → preview |
+| F-002 | Neon DB provisioned (EU Frankfurt) | `[x]` | `N/A` | |
+| F-003 | Drizzle ORM connected + first migration | `[x]` | `N/A` | `0000_dapper_exodus.sql` applied |
+| F-004 | Clerk auth configured | `[x]` | `[x]` | Middleware, layout, sign-in/sign-up pages |
+| F-005 | Upstash Redis connected | `[x]` | `N/A` | rateLimiter + strictRateLimiter exported |
+| F-006 | Inngest connected | `[x]` | `N/A` | Client + test function + route handler |
+| F-007 | next-intl configured | `[x]` | `[x]` | routing, request, navigation, en+da |
+| F-008 | Motion (Framer Motion v11) | `N/A` | `[x]` | Installed, used in Phase 1+ |
+| F-009 | shadcn/ui initialized | `N/A` | `[x]` | components.json, button/form/card/etc. |
+| F-010 | Aceternity UI components | `N/A` | `[ ]` | Copy when needed in Phase 1+ |
+| F-011 | Tailwind CSS v4 + design system | `N/A` | `[x]` | CSS vars, dark mode, design tokens |
+| F-012 | Zustand UI store | `N/A` | `[x]` | Modal, sidebar state in stores/ui-store.ts |
+| F-013 | React Hook Form + Zod setup | `N/A` | `[x]` | form.tsx base component, resolvers installed |
+| F-014 | Sentry error tracking | `[ ]` | `[ ]` | Install `@sentry/nextjs` when DSN is ready |
+| F-015 | Vercel Analytics + PostHog | `[x]` | `[x]` | Analytics + PostHogProvider wired in layout |
+| F-016 | Resend email connected | `[x]` | `N/A` | lib/email/client.ts ready |
+| F-017 | .env.example documented | `[x]` | `[x]` | All keys documented |
+| F-018 | Tier gate component | `[x]` | `[x]` | components/shared/tier-gate.tsx |
+| F-019 | da.json placeholder | `N/A` | `[x]` | All current i18n keys present, values "" |
+
+---
+
+## PHASE 1 — Authentication & User Profile
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-100 | Sign-up: phone OTP | `[ ]` | `[ ]` | Clerk |
+| F-101 | Sign-up: email OTP | `[ ]` | `[ ]` | Clerk |
+| F-102 | Sign-in: phone OTP | `[ ]` | `[ ]` | |
+| F-103 | Sign-in: email OTP | `[ ]` | `[ ]` | |
+| F-104 | Clerk webhook → users table sync | `[ ]` | `N/A` | On first sign-up |
+| F-105 | Company profile form | `[ ]` | `[ ]` | Name, CVR, address, hourly rate |
+| F-106 | Logo upload | `[ ]` | `[ ]` | Vercel Blob → file ref in DB |
+| F-107 | Profile completion gate | `[ ]` | `[ ]` | Redirect if incomplete |
+| F-108 | Default tier: free | `[ ]` | `N/A` | Set on user creation |
+| F-109 | Session management | `[ ]` | `[ ]` | Clerk handles, test refresh |
+
+### DB Schema: users
+```sql
+users (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clerk_id        text UNIQUE NOT NULL,         -- Clerk's user ID
+  email           text,
+  phone           text,
+  company_name    text,
+  cvr_number      text,
+  address_line1   text,
+  address_city    text,
+  address_zip     text,
+  hourly_rate     numeric(10,2),
+  logo_url        text,
+  tier            text DEFAULT 'free',          -- 'free' | 'solo' | 'hold'
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now()
+)
+```
+
+---
+
+## PHASE 2 — Customer Management
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-200 | Customer DB schema | `[ ]` | `N/A` | See below |
+| F-201 | Customer list page | `[ ]` | `[ ]` | Search + filter |
+| F-202 | Customer detail page | `[ ]` | `[ ]` | Info + linked records |
+| F-203 | Create customer form | `[ ]` | `[ ]` | Validation via Zod |
+| F-204 | Edit customer form | `[ ]` | `[ ]` | |
+| F-205 | Delete customer (soft) | `[ ]` | `[ ]` | `deleted_at` timestamp |
+| F-206 | Quick-dial from app | `N/A` | `[ ]` | `tel:` link on phone number |
+| F-207 | "Owes money" badge | `[ ]` | `[ ]` | Unpaid invoices count |
+| F-208 | CVR number field | `[ ]` | `[ ]` | For business customers / EAN future |
+| F-209 | Notes field per customer | `[ ]` | `[ ]` | Internal notes |
+
+### DB Schema: customers
+```sql
+customers (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  name            text NOT NULL,
+  phone           text,
+  email           text,
+  address_line1   text,
+  address_city    text,
+  address_zip     text,
+  cvr_number      text,                         -- business customers
+  ean_number      text,                         -- NemHandel/PEPPOL (Phase 7)
+  notes           text,
+  is_favorite     boolean DEFAULT false,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now(),
+  deleted_at      timestamptz                   -- soft delete
+)
+```
+
+---
+
+## PHASE 3 — Job Management
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-300 | Job DB schema | `[ ]` | `N/A` | See below |
+| F-301 | Create job form | `[ ]` | `[ ]` | Customer picker, description, date |
+| F-302 | Voice input for description | `N/A` | `[ ]` | Web Speech API |
+| F-303 | Job detail page | `[ ]` | `[ ]` | Full info, status changer |
+| F-304 | Status change | `[ ]` | `[ ]` | new→scheduled→in_progress→done→invoiced→paid |
+| F-305 | Job notes | `[ ]` | `[ ]` | Internal, not shown to customer |
+| F-306 | Photo upload per job | `[ ]` | `[ ]` | Before/after, stored in Vercel Blob |
+| F-307 | Free tier gate: 3 active jobs | `[ ]` | `[ ]` | Status not 'paid' or 'invoiced' |
+| F-308 | Edit job | `[ ]` | `[ ]` | |
+| F-309 | Delete job (soft) | `[ ]` | `[ ]` | |
+| F-310 | Job type field | `[ ]` | `[ ]` | service / project / recurring |
+
+### DB Schema: jobs
+```sql
+jobs (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  customer_id     uuid NOT NULL REFERENCES customers(id),
+  job_number      text NOT NULL,                -- Auto-generated: #1042
+  title           text NOT NULL,
+  description     text,
+  job_type        text DEFAULT 'service',       -- 'service' | 'project' | 'recurring'
+  status          text DEFAULT 'new',           -- see flow above
+  scheduled_date  date,
+  completed_date  date,
+  notes           text,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now(),
+  deleted_at      timestamptz
+)
+
+job_photos (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id          uuid NOT NULL REFERENCES jobs(id),
+  file_url        text NOT NULL,
+  caption         text,
+  created_at      timestamptz DEFAULT now()
+)
+```
+
+---
+
+## PHASE 4 — Quote Builder
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-400 | Quote DB schema | `[ ]` | `N/A` | See below |
+| F-401 | Quote line items: labour | `[ ]` | `[ ]` | hours × rate |
+| F-402 | Quote line items: materials | `[ ]` | `[ ]` | qty × unit price × markup% |
+| F-403 | Quote line items: fixed price | `[ ]` | `[ ]` | Flat fee for a task |
+| F-404 | Quote line items: travel fee | `[ ]` | `[ ]` | Optional toggle |
+| F-405 | VAT (25% moms) auto-calc | `[ ]` | `[ ]` | On all items |
+| F-406 | Customer discount field | `[ ]` | `[ ]` | % or fixed amount |
+| F-407 | Validity date field | `[ ]` | `[ ]` | "Valid for 14 days" |
+| F-408 | Quote PDF generation | `[ ]` | `[ ]` | @react-pdf/renderer |
+| F-409 | Send quote by email | `[ ]` | `[ ]` | Resend + PDF attachment |
+| F-410 | Shareable quote link | `[ ]` | `[ ]` | Customer accepts in browser |
+| F-411 | Customer accept/reject | `[ ]` | `[ ]` | Status update + job auto-created |
+| F-412 | Save as template | `[ ]` | `[ ]` | Reusable quote templates |
+| F-413 | Materials autocomplete | `[ ]` | `[ ]` | From user's saved materials list |
+| F-414 | Quote status flow | `[ ]` | `[ ]` | draft→sent→accepted→rejected→expired |
+
+### DB Schema: quotes + quote_items
+```sql
+quotes (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  job_id          uuid REFERENCES jobs(id),
+  customer_id     uuid NOT NULL REFERENCES customers(id),
+  quote_number    text NOT NULL,
+  status          text DEFAULT 'draft',
+  valid_until     date,
+  discount_type   text,                         -- 'percent' | 'fixed'
+  discount_value  numeric(10,2),
+  notes           text,                         -- shown to customer
+  internal_notes  text,
+  accepted_at     timestamptz,
+  rejected_at     timestamptz,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now()
+)
+
+quote_items (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  quote_id        uuid NOT NULL REFERENCES quotes(id),
+  item_type       text NOT NULL,                -- 'labour' | 'material' | 'fixed' | 'travel'
+  description     text NOT NULL,
+  quantity        numeric(10,2),
+  unit_price      numeric(10,2),
+  markup_percent  numeric(5,2),
+  vat_rate        numeric(5,2) DEFAULT 25.00,
+  sort_order      int DEFAULT 0,
+  created_at      timestamptz DEFAULT now()
+)
+
+quote_templates (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  name            text NOT NULL,
+  items           jsonb,                        -- snapshot of line items
+  created_at      timestamptz DEFAULT now()
+)
+
+materials_catalog (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  name            text NOT NULL,
+  default_unit    text,
+  default_price   numeric(10,2),
+  default_markup  numeric(5,2),
+  created_at      timestamptz DEFAULT now()
+)
+```
+
+---
+
+## PHASE 5 — Invoice Engine
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-500 | Invoice DB schema | `[ ]` | `N/A` | NemHandel fields included |
+| F-501 | One-tap: job → invoice | `[ ]` | `[ ]` | Pre-filled from quote |
+| F-502 | Invoice number (sequential) | `[ ]` | `N/A` | Per user, legally required |
+| F-503 | Moms layout (legal DK format) | `[ ]` | `[ ]` | ex.moms + moms + incl.moms |
+| F-504 | Invoice PDF (branded) | `[ ]` | `[ ]` | @react-pdf/renderer |
+| F-505 | Send by email (Resend) | `[ ]` | `[ ]` | PDF + HTML email |
+| F-506 | Payment info on invoice | `[ ]` | `[ ]` | Bank account OR MobilePay ref (static) |
+| F-507 | MobilePay payment link field | `[ ]` | `[ ]` | Stubbed — shows "coming soon" |
+| F-508 | Invoice status tracking | `[ ]` | `[ ]` | draft→sent→viewed→paid→overdue |
+| F-509 | Inngest: reminder email +8 days | `[ ]` | `N/A` | If unpaid |
+| F-510 | Inngest: reminder email +15 days | `[ ]` | `N/A` | Second reminder |
+| F-511 | Credit note (Kreditnota) | `[ ]` | `[ ]` | One-click from sent invoice |
+| F-512 | Mark as paid (manual) | `[ ]` | `[ ]` | User confirms payment received |
+| F-513 | Overdue flag | `[ ]` | `[ ]` | Auto-set after due date passes |
+
+### DB Schema: invoices + invoice_items
+```sql
+invoices (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             uuid NOT NULL REFERENCES users(id),
+  job_id              uuid REFERENCES jobs(id),
+  customer_id         uuid NOT NULL REFERENCES customers(id),
+  quote_id            uuid REFERENCES quotes(id),
+  invoice_number      text NOT NULL,
+  status              text DEFAULT 'draft',
+  issue_date          date NOT NULL DEFAULT CURRENT_DATE,
+  due_date            date NOT NULL,
+  payment_terms_days  int DEFAULT 14,
+
+  -- Financial
+  subtotal_ex_vat     numeric(12,2),
+  vat_amount          numeric(12,2),
+  total_incl_vat      numeric(12,2),
+  discount_amount     numeric(12,2) DEFAULT 0,
+
+  -- Payment info
+  bank_account        text,
+  mobilepay_number    text,                     -- static reference, not a payment link
+  mobilepay_link      text,                     -- future: MobilePay Erhverv payment link
+
+  -- NemHandel / PEPPOL fields (Phase 7 UI, but stored from Phase 5)
+  ean_number          text,                     -- from customer.ean_number
+  oioubl_format       boolean DEFAULT false,    -- flag for PEPPOL export
+  peppol_id           text,
+
+  -- Meta
+  notes               text,
+  paid_at             timestamptz,
+  sent_at             timestamptz,
+  viewed_at           timestamptz,
+  reminder_1_sent_at  timestamptz,
+  reminder_2_sent_at  timestamptz,
+  created_at          timestamptz DEFAULT now(),
+  updated_at          timestamptz DEFAULT now(),
+  deleted_at          timestamptz
+)
+
+invoice_items (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id      uuid NOT NULL REFERENCES invoices(id),
+  item_type       text NOT NULL,
+  description     text NOT NULL,
+  quantity        numeric(10,2),
+  unit_price      numeric(10,2),
+  vat_rate        numeric(5,2) DEFAULT 25.00,
+  line_total      numeric(12,2),
+  sort_order      int DEFAULT 0
+)
+```
+
+---
+
+## PHASE 6 — Dashboard, Free Tier Launch & Tier Gates
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-600 | Dashboard: outstanding amount | `[ ]` | `[ ]` | Sum of unpaid invoices |
+| F-601 | Dashboard: active jobs count | `[ ]` | `[ ]` | |
+| F-602 | Dashboard: overdue invoices | `[ ]` | `[ ]` | Count + total amount |
+| F-603 | Dashboard: this month billed | `[ ]` | `[ ]` | |
+| F-604 | Free tier: 3 active jobs gate | `[ ]` | `[ ]` | Hard limit enforced |
+| F-605 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |
+| F-606 | Beta launch: 20 users | `N/A` | `N/A` | Network outreach |
+| F-607 | Reporting DB queries ready | `[ ]` | `N/A` | See REPORTING.md |
+
+---
+
+## PHASE 7 — Compliance Pre-GoLive
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-700 | SKAT moms summary page | `[ ]` | `[ ]` | Quarterly export, not API yet |
+| F-701 | Moms period calculation | `[ ]` | `[ ]` | Q1/Q2/Q3/Q4 totals |
+| F-702 | EAN number on customer form | `[ ]` | `[ ]` | NemHandel field exposed |
+| F-703 | OIOUBL invoice export | `[ ]` | `[ ]` | XML format for public sector |
+| F-704 | GDPR: user data export | `[ ]` | `[ ]` | JSON download of all user data |
+| F-705 | GDPR: account deletion | `[ ]` | `[ ]` | Soft delete → hard delete 30 days |
+| F-706 | Privacy policy page | `N/A` | `[ ]` | Static legal page |
+| F-707 | Cookie consent | `N/A` | `[ ]` | For analytics cookies |
+| F-708 | Terms of service page | `N/A` | `[ ]` | Static |
+| F-709 | Rate limiting: all API routes | `[ ]` | `N/A` | Upstash |
+| F-710 | Security: Zod on all endpoints | `[ ]` | `N/A` | Audit all routes |
+
+---
+
+## FEATURES DELIBERATELY EXCLUDED FROM MVP
+
+These features were evaluated and explicitly deferred. Do not build these until the specified phase.
+
+| Feature | Why Excluded | When | Risk of premature build |
+|---|---|---|---|
+| **MobilePay Erhverv payment links** | Requires MobilePay Erhverv API approval (business process, not just code). Payments require Finanstilsynet awareness. | Phase 8+ | Regulatory exposure if mishandled |
+| **Bank sync / Open Banking** | Requires PSD2 license or partnership with a licensed provider (Aiia, Nordigen). Multi-week integration. | Phase 8+ | High complexity, license dependency |
+| **SKAT moms API filing** | Direct TastSelv API integration requires SKAT developer access approval. Structural export covers pre-launch need. | Phase 8+ | Wrong moms filing = legal liability for users |
+| **Native iOS app** | PWA covers mobile use case. Native adds 3–4 months, separate build pipeline, App Store approval. | Phase 9+ | Wasted effort if web PWA is sufficient |
+| **Native Android app** | Same as iOS. | Phase 9+ | Same |
+| **Payroll (løn)** | Entirely separate compliance layer (ATP, holiday pay, pension). Would require Finanstilsynet consideration. | Phase 10+ | Accidental compliance violation |
+| **Annual report generation** | Accountant's legal responsibility. Not a software feature, a liability. | Never (core) | Legal exposure |
+| **GPS / location tracking** | Solo tradespeople feel surveilled. Team version possible but trust-destroys for solo users. | Phase 9 (team only) | Churn trigger |
+| **Inventory management** | Full stock management requires warehouse logic, supplier integration, reorder alerts. Not a job-management need. | Phase 8+ | Scope creep |
+| **AI auto-categorization** | Requires enough user data to train on. Premature without usage patterns. | Phase 8+ | Bad AI = distrust |
+| **Multi-currency** | Denmark uses DKK. EUR occasionally on export jobs. No demand in MVP market. | Phase 9+ | Unnecessary complexity |
+| **Supplier price list integration** | KlarPris-style integration requires supplier API agreements. | Phase 8+ | Business development dependency |
+| **Customer portal** | Customers viewing their own history. Nice-to-have, not a pain point for Klaus. | Phase 8+ | Build for Klaus, not his customers |
+| **Recurring job automation** | Automatically creates jobs on a schedule. Useful for service contracts but not MVP scope. | Phase 7+ | Scheduling complexity |
+| **Multi-language (Danish)** | Infrastructure ready from Phase 0. Danish strings written when product is stable. | Phase 8 | Translating a moving target |
+| **Accountant portal** | Shared read-only view for accountants. High-value retention feature but requires separate auth flow. | Phase 8+ | Auth complexity |
+| **Team features (Hold tier)** | Multi-user, job assignment, team dashboard. Requires significant additional logic. | Phase 8+ | Build single-user right first |
