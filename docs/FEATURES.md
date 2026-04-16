@@ -146,7 +146,7 @@ jobs (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         uuid NOT NULL REFERENCES users(id),
   customer_id     uuid NOT NULL REFERENCES customers(id),
-  job_number      text NOT NULL,                -- Auto-generated: #1042
+  job_number      text NOT NULL,                -- Auto-generated: #1042 Should be starting as JOB-0001 for every new customer means each customer should have a seperate starting point for job number.
   title           text NOT NULL,
   description     text,
   job_type        text DEFAULT 'service',       -- 'service' | 'project' | 'recurring'
