@@ -13,8 +13,12 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, request) => {
-  const intlResponse = intlMiddleware(request)
-  if (intlResponse) return intlResponse
+  // API routes must not go through intl middleware — it would redirect
+  // /api/upload → /en/api/upload which has no handler
+  if (!request.nextUrl.pathname.startsWith("/api/")) {
+    const intlResponse = intlMiddleware(request)
+    if (intlResponse) return intlResponse
+  }
 
   if (!isPublicRoute(request)) {
     await auth.protect()
