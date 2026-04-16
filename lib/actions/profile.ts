@@ -64,3 +64,15 @@ export async function updateProfile(data: ProfileFormData) {
   revalidatePath("/profile")
   revalidatePath("/overview")
 }
+
+export async function saveLogoUrl(logoUrl: string) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await db
+    .update(users)
+    .set({ logoUrl, updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkId))
+
+  revalidatePath("/profile")
+}

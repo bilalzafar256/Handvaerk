@@ -71,6 +71,12 @@
     "signUp": "",
     "signOut": ""
   },
+  "Sidebar": {
+    "overview": "",
+    "profile": "",
+    "settingsSection": "",
+    "signOut": ""
+  },
   "Profile": {
     "title": "",
     "pageTitle": "",

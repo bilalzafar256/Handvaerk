@@ -71,6 +71,12 @@
     "signUp": "Sign up",
     "signOut": "Sign out"
   },
+  "Sidebar": {
+    "overview": "Overview",
+    "profile": "Profile",
+    "settingsSection": "Settings",
+    "signOut": "Sign out"
+  },
   "Profile": {
     "title": "Company profile",
     "pageTitle": "Profile | Håndværk Pro",

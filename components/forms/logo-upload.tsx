@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useTranslations } from "next-intl"
 import { useRouter } from "@/i18n/navigation"
 import { toast } from "sonner"
+import { saveLogoUrl } from "@/lib/actions/profile"
 
 interface LogoUploadProps {
   currentLogoUrl?: string | null
@@ -28,6 +29,7 @@ export function LogoUpload({ currentLogoUrl }: LogoUploadProps) {
         access: "public",
         handleUploadUrl: "/api/upload",
       })
+      await saveLogoUrl(blob.url)
       setPreviewUrl(blob.url)
       router.refresh()
       toast.success(t("uploadSuccess"))

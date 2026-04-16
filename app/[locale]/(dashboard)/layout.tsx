@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server"
 import { getLocale } from "next-intl/server"
 import { redirect } from "@/i18n/navigation"
 import { getDbUser } from "@/lib/auth"
+import { Sidebar } from "@/components/shared/sidebar"
+import { DashboardShell } from "@/components/shared/dashboard-shell"
 
 export default async function DashboardLayout({
   children,
@@ -21,9 +23,9 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Bottom nav and sidebar added in Phase 1 */}
-      <main className="pb-20">{children}</main>
+    <div className="min-h-screen" style={{ backgroundColor: "var(--background)" }}>
+      <Sidebar />
+      <DashboardShell>{children}</DashboardShell>
     </div>
   )
 }
