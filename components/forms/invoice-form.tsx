@@ -82,15 +82,17 @@ export function InvoiceForm({
         bankAccount:      bankAccount || undefined,
         mobilepayNumber:  mobilepayNumber || undefined,
         notes:            notes || undefined,
-        items: items.map((item, i) => ({
-          itemType:    item.itemType,
-          description: item.description,
-          quantity:    item.quantity || undefined,
-          unitPrice:   item.unitPrice || undefined,
-          vatRate:     item.vatRate,
-          lineTotal:   undefined,
-          sortOrder:   i,
-        })),
+        items: items
+          .filter(item => item.description.trim().length > 0)
+          .map((item, i) => ({
+            itemType:    item.itemType,
+            description: item.description,
+            quantity:    item.quantity || undefined,
+            unitPrice:   item.unitPrice || undefined,
+            vatRate:     item.vatRate,
+            lineTotal:   undefined,
+            sortOrder:   i,
+          })),
       }
 
       if (invoice) {

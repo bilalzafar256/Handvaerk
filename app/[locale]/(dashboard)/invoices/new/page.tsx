@@ -10,13 +10,16 @@ import { InvoiceForm } from "@/components/forms/invoice-form"
 import { Link } from "@/i18n/navigation"
 import { ChevronLeft } from "lucide-react"
 
-type Props = { params: Promise<{ locale: string }> }
+type Props = {
+  params: Promise<{ locale: string }>
+  searchParams?: Promise<Record<string, string>>
+}
 
 export async function generateMetadata() {
   return { title: "New Invoice | Håndværk Pro" }
 }
 
-export default async function NewInvoicePage({ params }: Props) {
+export default async function NewInvoicePage({ params, searchParams }: Props) {
   const { locale } = await params
   setRequestLocale(locale)
 
@@ -26,6 +29,10 @@ export default async function NewInvoicePage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
+  const sp = await searchParams
+  const defaultJobId      = sp?.jobId
+  const defaultCustomerId = sp?.customerId
+
   const customers = await getCustomersByUser(user.id)
 
   return (
@@ -34,7 +41,7 @@ export default async function NewInvoicePage({ params }: Props) {
         title="New Invoice"
         action={
           <Link
-            href="/invoices"
+            href={defaultJobId ? `/jobs/${defaultJobId}` : "/invoices"}
             className="flex items-center gap-1 text-sm h-9 px-2 rounded-[--radius-sm] transition-colors duration-150 cursor-pointer"
             style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
           >
@@ -44,7 +51,11 @@ export default async function NewInvoicePage({ params }: Props) {
       />
       <div className="pt-14">
         <div className="pt-6">
-          <InvoiceForm customers={customers} />
+          <InvoiceForm
+            customers={customers}
+            defaultJobId={defaultJobId}
+            defaultCustomerId={defaultCustomerId}
+          />
         </div>
       </div>
     </>

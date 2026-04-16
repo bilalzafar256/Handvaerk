@@ -169,7 +169,8 @@ export async function deleteQuoteAction(id: string) {
 // Public: customer accept/reject via share token
 export async function acceptQuoteByTokenAction(token: string) {
   const quote = await getQuoteByToken(token)
-  if (!quote || quote.status !== "sent") throw new Error("Quote not available")
+  if (!quote || !["sent", "draft"].includes(quote.status ?? "")) throw new Error("Quote not available")
+  if (quote.validUntil && new Date(quote.validUntil) < new Date(new Date().toDateString())) throw new Error("This quote has expired")
 
   await updateQuote(quote.id, quote.userId, {
     status: "accepted",
@@ -180,7 +181,8 @@ export async function acceptQuoteByTokenAction(token: string) {
 
 export async function rejectQuoteByTokenAction(token: string) {
   const quote = await getQuoteByToken(token)
-  if (!quote || quote.status !== "sent") throw new Error("Quote not available")
+  if (!quote || !["sent", "draft"].includes(quote.status ?? "")) throw new Error("Quote not available")
+  if (quote.validUntil && new Date(quote.validUntil) < new Date(new Date().toDateString())) throw new Error("This quote has expired")
 
   await updateQuote(quote.id, quote.userId, {
     status: "rejected",

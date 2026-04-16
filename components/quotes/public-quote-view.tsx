@@ -15,8 +15,17 @@ type QuoteWithRelations = Quote & {
   user?: User | null
 }
 
+function isExpired(quote: QuoteWithRelations): boolean {
+  if (!quote.validUntil) return false
+  return new Date(quote.validUntil) < new Date(new Date().toDateString())
+}
+
 export function PublicQuoteView({ quote }: { quote: QuoteWithRelations }) {
-  const [status, setStatus] = useState(quote.status ?? "sent")
+  // Treat draft as viewable (tradesperson may share link manually without sending email)
+  const initialStatus = (quote.status === "draft" || quote.status === "sent")
+    ? (isExpired(quote) ? "expired" : "sent")
+    : (quote.status ?? "sent")
+  const [status, setStatus] = useState(initialStatus)
   const [busy, setBusy]     = useState(false)
 
   const subtotal = quote.items.reduce((s, item) => {

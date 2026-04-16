@@ -28,7 +28,7 @@ export function ViewToggle({ mode, onChange }: ViewToggleProps) {
             key={m}
             onClick={() => onChange(m)}
             aria-label={label}
-            className="h-8 w-8 flex items-center justify-center transition-colors duration-150 cursor-pointer"
+            className="h-11 w-11 flex items-center justify-center transition-colors duration-150 cursor-pointer"
             style={{
               backgroundColor: active ? "var(--primary)" : "transparent",
               color: active ? "var(--primary-foreground)" : "var(--text-tertiary)",

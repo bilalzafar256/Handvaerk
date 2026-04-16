@@ -3,16 +3,26 @@
 import { useState } from "react"
 import { useRouter } from "@/i18n/navigation"
 import { toast } from "sonner"
+import { LayoutTemplate, ChevronDown } from "lucide-react"
 import { createQuoteAction, updateQuoteAction } from "@/lib/actions/quotes"
 import { LineItemBuilder, type LineItem } from "@/components/shared/line-item-builder"
-import type { Quote, QuoteItem } from "@/lib/db/schema/quotes"
+import type { Quote, QuoteItem, QuoteTemplate } from "@/lib/db/schema/quotes"
 import type { Customer } from "@/lib/db/schema/customers"
 import type { Job } from "@/lib/db/schema/jobs"
+
+function defaultValidUntil(days = 14): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split("T")[0]
+}
 
 interface QuoteFormProps {
   quote?: Quote & { items: QuoteItem[] }
   customers: Pick<Customer, "id" | "name">[]
   jobs?: Pick<Job, "id" | "title" | "jobNumber">[]
+  templates?: Pick<QuoteTemplate, "id" | "name" | "items">[]
+  defaultJobId?: string
+  defaultCustomerId?: string
 }
 
 const inputCls = `
@@ -40,22 +50,66 @@ function toLineItems(items: QuoteItem[]): LineItem[] {
   }))
 }
 
-export function QuoteForm({ quote, customers, jobs }: QuoteFormProps) {
+// Template items are stored as JSONB — same shape as QuoteItem[]
+type TemplateItem = {
+  itemType: string
+  description: string
+  quantity?: string | null
+  unitPrice?: string | null
+  markupPercent?: string | null
+  vatRate?: string | null
+  sortOrder?: number | null
+}
+
+function templateItemsToLineItems(raw: unknown): LineItem[] {
+  if (!Array.isArray(raw)) return []
+  return (raw as TemplateItem[]).map((item, i) => ({
+    id:            crypto.randomUUID(),
+    itemType:      (item.itemType ?? "labour") as LineItem["itemType"],
+    description:   item.description ?? "",
+    quantity:      item.quantity ?? "",
+    unitPrice:     item.unitPrice ?? "",
+    markupPercent: item.markupPercent ?? "",
+    vatRate:       item.vatRate ?? "25.00",
+    sortOrder:     item.sortOrder ?? i,
+  }))
+}
+
+export function QuoteForm({
+  quote,
+  customers,
+  jobs,
+  templates,
+  defaultJobId,
+  defaultCustomerId,
+}: QuoteFormProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
 
-  const [customerId, setCustomerId]     = useState(quote?.customerId ?? "")
-  const [jobId, setJobId]               = useState(quote?.jobId ?? "")
-  const [validUntil, setValidUntil]     = useState(quote?.validUntil ?? "")
-  const [discountType, setDiscountType] = useState<"percent" | "fixed" | "">(
+  const [customerId, setCustomerId]       = useState(quote?.customerId ?? defaultCustomerId ?? "")
+  const [jobId, setJobId]                 = useState(quote?.jobId ?? defaultJobId ?? "")
+  // Always default to +14 days for new quotes; keep existing value when editing
+  const [validUntil, setValidUntil]       = useState(quote?.validUntil ?? defaultValidUntil(14))
+  const [discountType, setDiscountType]   = useState<"percent" | "fixed" | "">(
     (quote?.discountType as "percent" | "fixed") ?? ""
   )
   const [discountValue, setDiscountValue] = useState(quote?.discountValue ?? "")
-  const [notes, setNotes]               = useState(quote?.notes ?? "")
+  const [notes, setNotes]                 = useState(quote?.notes ?? "")
   const [internalNotes, setInternalNotes] = useState(quote?.internalNotes ?? "")
-  const [items, setItems]               = useState<LineItem[]>(
+  const [items, setItems]                 = useState<LineItem[]>(
     quote ? toLineItems(quote.items) : []
   )
+
+  function applyTemplate(template: Pick<QuoteTemplate, "id" | "name" | "items">) {
+    setItems(templateItemsToLineItems(template.items))
+    // Clear contextual fields — user picks these fresh per-quote
+    setCustomerId(defaultCustomerId ?? "")
+    setJobId(defaultJobId ?? "")
+    setValidUntil(defaultValidUntil(14))
+    setShowTemplates(false)
+    toast.success(`Template "${template.name}" loaded`)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -71,15 +125,17 @@ export function QuoteForm({ quote, customers, jobs }: QuoteFormProps) {
         discountValue: discountValue || undefined,
         notes:         notes || undefined,
         internalNotes: internalNotes || undefined,
-        items: items.map((item, i) => ({
-          itemType:      item.itemType,
-          description:   item.description,
-          quantity:      item.quantity || undefined,
-          unitPrice:     item.unitPrice || undefined,
-          markupPercent: item.markupPercent || undefined,
-          vatRate:       item.vatRate,
-          sortOrder:     i,
-        })),
+        items: items
+          .filter(item => item.description.trim().length > 0)
+          .map((item, i) => ({
+            itemType:      item.itemType,
+            description:   item.description,
+            quantity:      item.quantity || undefined,
+            unitPrice:     item.unitPrice || undefined,
+            markupPercent: item.markupPercent || undefined,
+            vatRate:       item.vatRate,
+            sortOrder:     i,
+          })),
       }
 
       if (quote) {
@@ -99,6 +155,52 @@ export function QuoteForm({ quote, customers, jobs }: QuoteFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 px-4 pb-10">
+
+      {/* Template picker — only on new quotes if templates exist */}
+      {!quote && templates && templates.length > 0 && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowTemplates(v => !v)}
+            className="w-full h-11 px-4 flex items-center justify-between rounded-[--radius-sm] border text-sm font-medium transition-colors duration-150 cursor-pointer"
+            style={{
+              backgroundColor: "var(--accent-light)",
+              borderColor: "var(--primary)",
+              color: "var(--primary)",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            <span className="flex items-center gap-2">
+              <LayoutTemplate className="w-4 h-4" />
+              Use a template
+            </span>
+            <ChevronDown
+              className="w-4 h-4 transition-transform duration-150"
+              style={{ transform: showTemplates ? "rotate(180deg)" : "rotate(0deg)" }}
+            />
+          </button>
+          {showTemplates && (
+            <div
+              className="absolute z-20 left-0 right-0 mt-1 rounded-[--radius-md] border shadow-lg overflow-hidden"
+              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
+            >
+              {templates.map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => applyTemplate(t)}
+                  className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 transition-colors duration-100 hover:bg-[--background-subtle] cursor-pointer"
+                  style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+                >
+                  <LayoutTemplate className="w-4 h-4 flex-shrink-0" style={{ color: "var(--primary)" }} />
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Customer */}
       <div>
         <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>

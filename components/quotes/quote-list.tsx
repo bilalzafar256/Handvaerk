@@ -3,8 +3,10 @@
 import { useState } from "react"
 import { Link } from "@/i18n/navigation"
 import { motion } from "motion/react"
-import { ChevronRight, ChevronLeft, Search, Plus, FileText, Calendar } from "lucide-react"
+import { ChevronRight, ChevronLeft, Search, Plus, FileText, Calendar, Receipt } from "lucide-react"
 import { formatDKK } from "@/lib/utils/currency"
+import { ViewToggle } from "@/components/shared/view-toggle"
+import { useViewPreference } from "@/hooks/use-view-preference"
 import type { Quote, QuoteItem } from "@/lib/db/schema/quotes"
 import type { Customer } from "@/lib/db/schema/customers"
 
@@ -44,6 +46,7 @@ const PER_PAGE = 15
 export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
   const [query, setQuery] = useState("")
   const [page, setPage]   = useState(1)
+  const [view, setView]   = useViewPreference("quotes", "list")
 
   const filtered = query.trim()
     ? quotes.filter(q => {
@@ -56,77 +59,37 @@ export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
   const safePage   = Math.min(page, totalPages)
   const paged      = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE)
 
+  function handleQueryChange(q: string) {
+    setQuery(q)
+    setPage(1)
+  }
+
   return (
     <div>
-      {/* Search */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="relative">
+      {/* Toolbar */}
+      <div className="px-4 pt-4 pb-3 flex items-center gap-2">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
           <input
             type="search"
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+            onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search quotes…"
             className="w-full h-11 pl-10 pr-4 rounded-[--radius-sm] border text-sm bg-[--surface] placeholder:text-[--text-tertiary] focus:outline-none focus:border-[--primary] focus:ring-2 focus:ring-[--primary]/20 transition-colors"
             style={{ fontFamily: "var(--font-body)", borderColor: "var(--border)", color: "var(--text-primary)" }}
           />
         </div>
+        <ViewToggle mode={view} onChange={setView} />
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState searching={query.trim().length > 0} />
       ) : (
         <>
-          <ul className="px-4 space-y-2 pb-4">
-            {paged.map((quote, i) => {
-              const subtotal = calcTotal(quote.items)
-              return (
-                <motion.li
-                  key={quote.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
-                >
-                  <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}>
-                    <Link
-                      href={`/quotes/${quote.id}`}
-                      className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
-                      style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
-                    >
-                      <div className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--accent-light)" }}>
-                        <FileText className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                            {quote.quoteNumber}
-                          </p>
-                        </div>
-                        <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                          {quote.customer.name}
-                        </p>
-                        {quote.validUntil && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <Calendar className="w-3 h-3" style={{ color: "var(--text-tertiary)" }} />
-                            <span className="text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
-                              Valid until {new Date(quote.validUntil).toLocaleDateString("da-DK")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                        <QuoteStatusBadge status={quote.status ?? "draft"} />
-                        <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                          {formatDKK(subtotal)}
-                        </span>
-                        <ChevronRight className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
-                      </div>
-                    </Link>
-                  </motion.div>
-                </motion.li>
-              )
-            })}
-          </ul>
+          {view === "list"  && <ListView  quotes={paged} />}
+          {view === "card"  && <CardView  quotes={paged} />}
+          {view === "table" && <TableView quotes={paged} />}
+
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 pb-24 pt-2">
               <button
@@ -152,6 +115,171 @@ export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+/* ── List view ── */
+function ListView({ quotes }: { quotes: QuoteWithRelations[] }) {
+  return (
+    <ul className="px-4 space-y-2 pb-4">
+      {quotes.map((quote, i) => {
+        const subtotal = calcTotal(quote.items)
+        return (
+          <motion.li
+            key={quote.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
+          >
+            <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}>
+              <Link
+                href={`/quotes/${quote.id}`}
+                className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
+                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
+              >
+                <div className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--accent-light)" }}>
+                  <FileText className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                    {quote.quoteNumber}
+                  </p>
+                  <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
+                    {quote.customer.name}
+                  </p>
+                  {quote.validUntil && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Calendar className="w-3 h-3" style={{ color: "var(--text-tertiary)" }} />
+                      <span className="text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
+                        Valid until {new Date(quote.validUntil).toLocaleDateString("da-DK")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <QuoteStatusBadge status={quote.status ?? "draft"} />
+                  <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                    {formatDKK(subtotal)}
+                  </span>
+                  <ChevronRight className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+                </div>
+              </Link>
+            </motion.div>
+          </motion.li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/* ── Card view ── */
+function CardView({ quotes }: { quotes: QuoteWithRelations[] }) {
+  return (
+    <div className="px-4 grid grid-cols-2 gap-3 pb-4">
+      {quotes.map((quote, i) => {
+        const subtotal = calcTotal(quote.items)
+        return (
+          <motion.div
+            key={quote.id}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <Link
+              href={`/quotes/${quote.id}`}
+              className="flex flex-col gap-3 p-4 rounded-[--radius-lg] border h-full transition-colors duration-150"
+              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
+            >
+              <div className="w-10 h-10 rounded-[--radius-sm] flex items-center justify-center" style={{ backgroundColor: "var(--accent-light)" }}>
+                <FileText className="w-5 h-5" style={{ color: "var(--primary)" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                  {quote.quoteNumber}
+                </p>
+                <p className="text-xs truncate mt-0.5" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
+                  {quote.customer.name}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <QuoteStatusBadge status={quote.status ?? "draft"} />
+                <span className="text-xs font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                  {formatDKK(subtotal)}
+                </span>
+              </div>
+            </Link>
+          </motion.div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ── Table view ── */
+function TableView({ quotes }: { quotes: QuoteWithRelations[] }) {
+  return (
+    <div className="px-4 pb-4 overflow-x-auto">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr style={{ borderBottom: "1px solid var(--border)" }}>
+            {["Number", "Customer", "Valid until", "Amount", "Status", ""].map((h, i) => (
+              <th
+                key={i}
+                className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wider first:pl-0"
+                style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {quotes.map((quote) => {
+            const subtotal = calcTotal(quote.items)
+            return (
+              <tr
+                key={quote.id}
+                className="transition-colors duration-100 hover:bg-[--background-subtle]"
+                style={{ borderBottom: "1px solid var(--border)" }}
+              >
+                <td className="py-3 px-3 first:pl-0">
+                  <Link href={`/quotes/${quote.id}`} className="flex items-center gap-2">
+                    <Receipt className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
+                    <span className="font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                      {quote.quoteNumber}
+                    </span>
+                  </Link>
+                </td>
+                <td className="py-3 px-3">
+                  <span className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
+                    {quote.customer.name}
+                  </span>
+                </td>
+                <td className="py-3 px-3">
+                  <span className="text-xs" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
+                    {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString("da-DK") : "—"}
+                  </span>
+                </td>
+                <td className="py-3 px-3">
+                  <span className="text-xs font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                    {formatDKK(subtotal)}
+                  </span>
+                </td>
+                <td className="py-3 px-3">
+                  <QuoteStatusBadge status={quote.status ?? "draft"} />
+                </td>
+                <td className="py-3 px-3">
+                  <Link href={`/quotes/${quote.id}`} style={{ color: "var(--text-tertiary)" }}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }

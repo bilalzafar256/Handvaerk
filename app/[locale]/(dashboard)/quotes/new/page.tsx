@@ -6,18 +6,22 @@ import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getCustomersByUser } from "@/lib/db/queries/customers"
 import { getJobsByUser } from "@/lib/db/queries/jobs"
+import { getTemplatesByUser } from "@/lib/db/queries/quotes"
 import { Topbar } from "@/components/shared/topbar"
 import { QuoteForm } from "@/components/forms/quote-form"
 import { Link } from "@/i18n/navigation"
 import { ChevronLeft } from "lucide-react"
 
-type Props = { params: Promise<{ locale: string }> }
+type Props = {
+  params: Promise<{ locale: string }>
+  searchParams?: Promise<Record<string, string>>
+}
 
 export async function generateMetadata() {
   return { title: "New Quote | Håndværk Pro" }
 }
 
-export default async function NewQuotePage({ params }: Props) {
+export default async function NewQuotePage({ params, searchParams }: Props) {
   const { locale } = await params
   setRequestLocale(locale)
 
@@ -27,9 +31,14 @@ export default async function NewQuotePage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [customers, jobs] = await Promise.all([
+  const sp = await searchParams
+  const defaultJobId      = sp?.jobId
+  const defaultCustomerId = sp?.customerId
+
+  const [customers, jobs, templates] = await Promise.all([
     getCustomersByUser(user.id),
     getJobsByUser(user.id),
+    getTemplatesByUser(user.id),
   ])
 
   return (
@@ -38,7 +47,7 @@ export default async function NewQuotePage({ params }: Props) {
         title="New Quote"
         action={
           <Link
-            href="/quotes"
+            href={defaultJobId ? `/jobs/${defaultJobId}` : "/quotes"}
             className="flex items-center gap-1 text-sm h-9 px-2 rounded-[--radius-sm] transition-colors duration-150 cursor-pointer"
             style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
           >
@@ -48,7 +57,13 @@ export default async function NewQuotePage({ params }: Props) {
       />
       <div className="pt-14">
         <div className="pt-6">
-          <QuoteForm customers={customers} jobs={jobs} />
+          <QuoteForm
+            customers={customers}
+            jobs={jobs}
+            templates={templates}
+            defaultJobId={defaultJobId}
+            defaultCustomerId={defaultCustomerId}
+          />
         </div>
       </div>
     </>
