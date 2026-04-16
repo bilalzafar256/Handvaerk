@@ -71,6 +71,46 @@
     "signUp": "Sign up",
     "signOut": "Sign out"
   },
+  "Profile": {
+    "title": "Company profile",
+    "pageTitle": "Profile | Håndværk Pro",
+    "companyDetails": "Company details"
+  },
+  "ProfileForm": {
+    "companyNameLabel": "Company name",
+    "companyNamePlaceholder": "e.g. Hansen El & VVS",
+    "companyNameRequired": "Company name is required",
+    "cvrLabel": "CVR number",
+    "cvrPlaceholder": "e.g. 12345678",
+    "addressLabel": "Address",
+    "addressPlaceholder": "e.g. Vesterbrogade 42",
+    "cityLabel": "City",
+    "cityPlaceholder": "e.g. Copenhagen",
+    "zipLabel": "ZIP code",
+    "zipPlaceholder": "e.g. 2100",
+    "hourlyRateLabel": "Default hourly rate",
+    "hourlyRatePlaceholder": "e.g. 650",
+    "saveButton": "Save changes",
+    "continueButton": "Get started",
+    "saving": "Saving...",
+    "saveSuccess": "Profile saved",
+    "saveError": "Something went wrong. Please try again."
+  },
+  "ProfileSetup": {
+    "title": "Set up your company",
+    "subtitle": "A few details to get you started. You can add more later.",
+    "pageTitle": "Set up your company | Håndværk Pro",
+    "logoTitle": "Company logo",
+    "logoDescription": "Add your logo to personalize your invoices and quotes."
+  },
+  "LogoUpload": {
+    "uploadButton": "Upload logo",
+    "changeButton": "Change logo",
+    "uploading": "Uploading...",
+    "hint": "JPG, PNG or WebP. Max 5 MB.",
+    "uploadSuccess": "Logo updated",
+    "uploadError": "Upload failed. Please try again."
+  },
   "Common": {
     "save": "Save",
     "cancel": "Cancel",

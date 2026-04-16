@@ -29,6 +29,10 @@ Full context in `/docs/CONTEXT.md`. Specs in `/docs/`. Skills in `/docs/skills/`
 Active: F-001 (Vercel deployment), F-002 (Neon DB), F-014 (Sentry) — require external service setup.
 All code-side Phase 0 work is complete. Proceed to Phase 1 once services are provisioned.
 
+**Phase 1 — Authentication & User Profile** `[~]` in progress
+Complete: F-104, F-105, F-106, F-107, F-108, F-109.
+Remaining: F-100, F-101, F-102, F-103 (Clerk phone/email OTP pages — pending Clerk dashboard config).
+
 Update this when a phase completes.
 
 ---

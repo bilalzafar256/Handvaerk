@@ -71,6 +71,46 @@
     "signUp": "",
     "signOut": ""
   },
+  "Profile": {
+    "title": "",
+    "pageTitle": "",
+    "companyDetails": ""
+  },
+  "ProfileForm": {
+    "companyNameLabel": "",
+    "companyNamePlaceholder": "",
+    "companyNameRequired": "",
+    "cvrLabel": "",
+    "cvrPlaceholder": "",
+    "addressLabel": "",
+    "addressPlaceholder": "",
+    "cityLabel": "",
+    "cityPlaceholder": "",
+    "zipLabel": "",
+    "zipPlaceholder": "",
+    "hourlyRateLabel": "",
+    "hourlyRatePlaceholder": "",
+    "saveButton": "",
+    "continueButton": "",
+    "saving": "",
+    "saveSuccess": "",
+    "saveError": ""
+  },
+  "ProfileSetup": {
+    "title": "",
+    "subtitle": "",
+    "pageTitle": "",
+    "logoTitle": "",
+    "logoDescription": ""
+  },
+  "LogoUpload": {
+    "uploadButton": "",
+    "changeButton": "",
+    "uploading": "",
+    "hint": "",
+    "uploadSuccess": "",
+    "uploadError": ""
+  },
   "Common": {
     "save": "",
     "cancel": "",

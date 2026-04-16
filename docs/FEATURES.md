@@ -57,12 +57,12 @@
 | F-101 | Sign-up: email OTP | `[ ]` | `[ ]` | Clerk |
 | F-102 | Sign-in: phone OTP | `[ ]` | `[ ]` | |
 | F-103 | Sign-in: email OTP | `[ ]` | `[ ]` | |
-| F-104 | Clerk webhook → users table sync | `[ ]` | `N/A` | On first sign-up |
-| F-105 | Company profile form | `[ ]` | `[ ]` | Name, CVR, address, hourly rate |
-| F-106 | Logo upload | `[ ]` | `[ ]` | Vercel Blob → file ref in DB |
-| F-107 | Profile completion gate | `[ ]` | `[ ]` | Redirect if incomplete |
-| F-108 | Default tier: free | `[ ]` | `N/A` | Set on user creation |
-| F-109 | Session management | `[ ]` | `[ ]` | Clerk handles, test refresh |
+| F-104 | Clerk webhook → users table sync | `[x]` | `N/A` | On first sign-up |
+| F-105 | Company profile form | `[x]` | `[x]` | Name, CVR, address, hourly rate |
+| F-106 | Logo upload | `[x]` | `[x]` | Vercel Blob → file ref in DB |
+| F-107 | Profile completion gate | `[x]` | `[x]` | Redirect if incomplete |
+| F-108 | Default tier: free | `[x]` | `N/A` | Set on user creation |
+| F-109 | Session management | `[x]` | `[x]` | Clerk handles, test refresh |
 
 ### DB Schema: users
 ```sql
