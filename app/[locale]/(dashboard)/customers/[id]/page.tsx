@@ -5,10 +5,11 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getCustomerById } from "@/lib/db/queries/customers"
+import { getJobsByCustomer } from "@/lib/db/queries/jobs"
 import { Topbar } from "@/components/shared/topbar"
 import { DeleteCustomerButton } from "@/components/customers/customer-detail-actions"
 import { Link } from "@/i18n/navigation"
-import { ChevronLeft, Phone, Mail, MapPin, FileText, Building2, Pencil } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, FileText, Building2, Pencil, Briefcase, Plus, ChevronRight } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -32,7 +33,10 @@ export default async function CustomerDetailPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const customer = await getCustomerById(id, user.id)
+  const [customer, customerJobs] = await Promise.all([
+    getCustomerById(id, user.id),
+    getJobsByCustomer(id, user.id),
+  ])
   if (!customer) notFound()
 
   const addressLine = [customer.addressLine1, customer.addressZip, customer.addressCity]
@@ -63,7 +67,7 @@ export default async function CustomerDetailPage({ params }: Props) {
         }
       />
 
-      <div className="pt-14 max-w-lg mx-auto px-4 pb-10">
+      <div className="pt-14 px-4 pb-10">
         {/* Back link */}
         <div className="pt-4 pb-2">
           <Link
@@ -188,6 +192,58 @@ export default async function CustomerDetailPage({ params }: Props) {
             </div>
           </Section>
         )}
+
+        {/* Jobs */}
+        <div
+          className="mt-4 rounded-[--radius-md] border overflow-hidden"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <div
+            className="px-4 py-2 border-b flex items-center justify-between"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}>
+              Jobs {customerJobs.length > 0 && `(${customerJobs.length})`}
+            </p>
+            <Link
+              href={`/jobs/new?customerId=${id}`}
+              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-colors duration-150"
+              style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New job
+            </Link>
+          </div>
+          <div className="px-4 py-3">
+            {customerJobs.length === 0 ? (
+              <p className="text-sm py-1" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
+                No jobs yet
+              </p>
+            ) : (
+              <ul className="space-y-0 divide-y" style={{ borderColor: "var(--border)" }}>
+                {customerJobs.map(job => (
+                  <li key={job.id}>
+                    <Link
+                      href={`/jobs/${job.id}`}
+                      className="flex items-center gap-3 py-3 transition-colors duration-150 hover:opacity-80"
+                    >
+                      <Briefcase className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+                          {job.title}
+                        </p>
+                        <p className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                          #{job.jobNumber} · {job.status}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
     </>
   )

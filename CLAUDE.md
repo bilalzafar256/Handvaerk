@@ -36,6 +36,15 @@ Remaining: F-100, F-101, F-102, F-103 (Clerk phone/email OTP pages — pending C
 **Phase 2 — Customer Management** `[x]` complete
 Complete: F-200 through F-209. F-207 "owes money" badge is stubbed at 0 — will be wired to real invoice data in Phase 5.
 
+**Phase 3 — Job Management** `[x]` complete
+Complete: F-300 through F-310. Free tier gate enforced at 10 active jobs (F-307). F-307/F-604 limit updated from 3 → 10.
+
+**Phase 4 — Quote Builder** `[x]` complete
+Complete: F-400 through F-414. Schemas + migration applied (0004). Quote PDF (TILBUD), email via Resend, shareable link at /en/q/[token], customer accept/reject, save as template, materials catalog. Public quote route: /[locale]/q/[token].
+
+**Phase 5 — Invoice Engine** `[x]` complete
+Complete: F-500 through F-513. Schemas + migration applied (0004). Invoice PDF (FAKTURA), email via Resend with PDF attachment, Inngest payment reminders (+8d, +15d), credit notes (KRE-XXXX), mark as paid, overdue auto-flag. PDF download routes at /api/invoices/[id]/pdf and /api/quotes/[id]/pdf.
+
 Update this when a phase completes.
 
 ---
