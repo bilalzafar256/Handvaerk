@@ -74,7 +74,7 @@ export function LogoUpload({ currentLogoUrl }: LogoUploadProps) {
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="h-9 px-4 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 border disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-9 px-4 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[--background-subtle]"
           style={{
             fontFamily: "var(--font-body)",
             backgroundColor: "var(--surface)",

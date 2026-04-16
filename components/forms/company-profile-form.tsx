@@ -228,11 +228,11 @@ export function CompanyProfileForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full h-12 px-6 rounded-[--radius-md] font-medium text-base transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        className="w-full h-12 px-6 rounded-[--radius-md] font-medium text-base transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
         style={{
           fontFamily: "var(--font-body)",
-          backgroundColor: "var(--accent)",
-          color: "var(--accent-foreground)",
+          backgroundColor: "var(--amber-500)",
+          color: "var(--accent-foreground-brand)",
           boxShadow: "var(--shadow-accent)",
         }}
       >

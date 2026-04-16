@@ -11,7 +11,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Settings,
   Wrench,
 } from "lucide-react"
 
@@ -51,7 +50,7 @@ export function Sidebar() {
 
       {/* Sidebar panel */}
       <motion.aside
-        className="fixed top-0 left-0 h-full z-50 flex flex-col border-r"
+        className="fixed top-0 left-0 h-full z-50 flex flex-col border-r overflow-hidden"
         style={{
           backgroundColor: "var(--surface)",
           borderColor: "var(--border)",
@@ -65,35 +64,38 @@ export function Sidebar() {
           className="h-14 flex items-center justify-between px-3 border-b flex-shrink-0"
           style={{ borderColor: "var(--border)" }}
         >
-          <AnimatePresence>
-            {sidebarOpen && (
-              <motion.div
-                className="flex items-center gap-2 overflow-hidden"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.18 }}
-              >
-                <div
-                  className="w-7 h-7 rounded-[--radius-xs] flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: "var(--accent)" }}
-                >
-                  <Wrench className="w-4 h-4" style={{ color: "var(--accent-foreground)" }} />
-                </div>
-                <span
-                  className="text-[15px] font-bold whitespace-nowrap"
+          {/* Brand — links to overview */}
+          <Link
+            href="/overview"
+            className="flex items-center gap-2 overflow-hidden min-w-0 flex-1"
+          >
+            <div
+              className="w-7 h-7 rounded-[4px] flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "var(--amber-500)" }}
+            >
+              <Wrench className="w-4 h-4" style={{ color: "oklch(0.12 0.005 55)" }} />
+            </div>
+            <AnimatePresence>
+              {sidebarOpen && (
+                <motion.span
+                  className="text-[15px] font-bold whitespace-nowrap overflow-hidden"
                   style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.18 }}
                 >
                   Håndværk Pro
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Link>
 
+          {/* Collapse toggle */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-8 h-8 rounded-[--radius-xs] flex items-center justify-center transition-colors duration-150 flex-shrink-0"
-            style={{ color: "var(--text-secondary)" }}
+            className="w-8 h-8 rounded-[4px] flex items-center justify-center transition-colors duration-150 flex-shrink-0 cursor-pointer hover:bg-[--background]"
+            style={{ color: "var(--text-tertiary)" }}
           >
             {sidebarOpen
               ? <ChevronLeft className="w-4 h-4" />
@@ -103,7 +105,7 @@ export function Sidebar() {
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto py-3 flex flex-col gap-1 px-2">
+        <nav className="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5 px-2">
           {navItems.map(({ icon: Icon, labelKey, href }) => (
             <NavItem
               key={href}
@@ -149,7 +151,7 @@ export function Sidebar() {
         <div className="px-2 pb-4 border-t pt-3" style={{ borderColor: "var(--border)" }}>
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
-            className="w-full h-10 flex items-center gap-3 px-3 rounded-[--radius-sm] transition-colors duration-150"
+            className="w-full h-10 flex items-center gap-3 px-3 rounded-[6px] transition-colors duration-150 cursor-pointer hover:bg-[--background]"
             style={{ color: "var(--text-secondary)" }}
           >
             <LogOut className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.75} />
@@ -190,16 +192,16 @@ function NavItem({
   return (
     <Link
       href={href}
-      className="h-10 flex items-center gap-3 px-3 rounded-[--radius-sm] transition-colors duration-150 relative group"
+      className="h-10 flex items-center gap-3 px-3 rounded-[6px] transition-colors duration-150 relative cursor-pointer"
       style={{
-        backgroundColor: active ? "var(--accent-light)" : "transparent",
-        color: active ? "var(--accent)" : "var(--text-secondary)",
+        backgroundColor: active ? "var(--amber-100)" : "transparent",
+        color: active ? "var(--amber-800)" : "var(--text-secondary)",
       }}
     >
       {active && (
         <span
           className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full"
-          style={{ backgroundColor: "var(--accent)" }}
+          style={{ backgroundColor: "var(--amber-500)" }}
         />
       )}
       <Icon
