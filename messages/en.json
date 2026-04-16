@@ -1,7 +1,70 @@
 {
+  "Landing": {
+    "nav": {
+      "signIn": "Sign in"
+    },
+    "hero": {
+      "eyebrow": "For Danish tradespeople",
+      "headline": "Run your trade business from your phone",
+      "sub": "Quotes, jobs, and invoices in one place. Built for Danish electricians, plumbers, and carpenters.",
+      "cta": "Create free account",
+      "ctaSecondary": "Sign in"
+    },
+    "features": {
+      "headline": "Everything you need. Nothing you don't.",
+      "jobs": {
+        "title": "Track every job",
+        "desc": "From first site visit to final invoice. Never lose track of work in progress."
+      },
+      "quotes": {
+        "title": "Professional quotes",
+        "desc": "Generate PDF quotes on the spot. Send them directly from the job site."
+      },
+      "invoices": {
+        "title": "Get paid faster",
+        "desc": "Send invoices and track what's owed. Danish VAT handled automatically."
+      }
+    },
+    "pricing": {
+      "headline": "Simple, transparent pricing",
+      "sub": "Start free. Upgrade when you're ready.",
+      "perMonth": "kr./month",
+      "free": {
+        "name": "Gratis",
+        "price": "0",
+        "desc": "Try it free",
+        "f1": "1 user",
+        "f2": "3 active jobs",
+        "f3": "Basic invoicing",
+        "cta": "Get started free"
+      },
+      "solo": {
+        "name": "Solo",
+        "price": "149",
+        "desc": "For the solo operator",
+        "f1": "1 user",
+        "f2": "Unlimited jobs",
+        "f3": "PDF quotes & invoices",
+        "cta": "Start Solo"
+      },
+      "hold": {
+        "name": "Hold",
+        "price": "299",
+        "desc": "For small teams",
+        "f1": "Up to 5 users",
+        "f2": "Unlimited jobs",
+        "f3": "Everything in Solo",
+        "cta": "Start Hold"
+      }
+    },
+    "footer": {
+      "tagline": "Built for Danish tradespeople"
+    }
+  },
   "Overview": {
     "title": "Overview",
-    "pageTitle": "Overview | Håndværk Pro"
+    "pageTitle": "Overview | Håndværk Pro",
+    "signOut": "Sign out"
   },
   "Auth": {
     "signIn": "Sign in",

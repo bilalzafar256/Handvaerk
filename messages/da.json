@@ -1,7 +1,70 @@
 {
+  "Landing": {
+    "nav": {
+      "signIn": ""
+    },
+    "hero": {
+      "eyebrow": "",
+      "headline": "",
+      "sub": "",
+      "cta": "",
+      "ctaSecondary": ""
+    },
+    "features": {
+      "headline": "",
+      "jobs": {
+        "title": "",
+        "desc": ""
+      },
+      "quotes": {
+        "title": "",
+        "desc": ""
+      },
+      "invoices": {
+        "title": "",
+        "desc": ""
+      }
+    },
+    "pricing": {
+      "headline": "",
+      "sub": "",
+      "perMonth": "",
+      "free": {
+        "name": "",
+        "price": "",
+        "desc": "",
+        "f1": "",
+        "f2": "",
+        "f3": "",
+        "cta": ""
+      },
+      "solo": {
+        "name": "",
+        "price": "",
+        "desc": "",
+        "f1": "",
+        "f2": "",
+        "f3": "",
+        "cta": ""
+      },
+      "hold": {
+        "name": "",
+        "price": "",
+        "desc": "",
+        "f1": "",
+        "f2": "",
+        "f3": "",
+        "cta": ""
+      }
+    },
+    "footer": {
+      "tagline": ""
+    }
+  },
   "Overview": {
     "title": "",
-    "pageTitle": ""
+    "pageTitle": "",
+    "signOut": ""
   },
   "Auth": {
     "signIn": "",

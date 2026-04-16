@@ -18,6 +18,7 @@
 
 | File | When to load |
 |---|---|
+| `skills/DESIGN_SKILL.md` | Product-specific design system. All UI decisions are made here |
 | `skills/NEXTJS_SKILL.md` | Any App Router, routing, Server Action, or RSC task |
 | `skills/DRIZZLE_SKILL.md` | Any DB schema, query, or migration task |
 | `skills/CLERK_SKILL.md` | Any auth, session, or user-sync task |
