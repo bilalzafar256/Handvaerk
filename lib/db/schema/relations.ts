@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm"
 import { users } from "./users"
+import { customers } from "./customers"
 
-// Relations will be expanded as more schemas are added in later phases
-export const usersRelations = relations(users, ({ }) => ({}))
+export const usersRelations = relations(users, ({ many }) => ({
+  customers: many(customers),
+}))
+
+export const customersRelations = relations(customers, ({ one }) => ({
+  user: one(users, { fields: [customers.userId], references: [users.id] }),
+}))

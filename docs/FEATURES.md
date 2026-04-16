@@ -90,16 +90,16 @@ users (
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-200 | Customer DB schema | `[ ]` | `N/A` | See below |
-| F-201 | Customer list page | `[ ]` | `[ ]` | Search + filter |
-| F-202 | Customer detail page | `[ ]` | `[ ]` | Info + linked records |
-| F-203 | Create customer form | `[ ]` | `[ ]` | Validation via Zod |
-| F-204 | Edit customer form | `[ ]` | `[ ]` | |
-| F-205 | Delete customer (soft) | `[ ]` | `[ ]` | `deleted_at` timestamp |
-| F-206 | Quick-dial from app | `N/A` | `[ ]` | `tel:` link on phone number |
-| F-207 | "Owes money" badge | `[ ]` | `[ ]` | Unpaid invoices count |
-| F-208 | CVR number field | `[ ]` | `[ ]` | For business customers / EAN future |
-| F-209 | Notes field per customer | `[ ]` | `[ ]` | Internal notes |
+| F-200 | Customer DB schema | `[x]` | `N/A` | See below |
+| F-201 | Customer list page | `[x]` | `[x]` | Search + filter |
+| F-202 | Customer detail page | `[x]` | `[x]` | Info + linked records |
+| F-203 | Create customer form | `[x]` | `[x]` | Validation via Zod |
+| F-204 | Edit customer form | `[x]` | `[x]` | |
+| F-205 | Delete customer (soft) | `[x]` | `[x]` | `deleted_at` timestamp |
+| F-206 | Quick-dial from app | `N/A` | `[x]` | `tel:` link on phone number |
+| F-207 | "Owes money" badge | `[x]` | `[x]` | Stub: 0 until Phase 5 invoices |
+| F-208 | CVR number field | `[x]` | `[x]` | For business customers / EAN future |
+| F-209 | Notes field per customer | `[x]` | `[x]` | Internal notes |
 
 ### DB Schema: customers
 ```sql

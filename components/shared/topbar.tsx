@@ -5,9 +5,10 @@ import { Menu } from "lucide-react"
 
 interface TopbarProps {
   title: string
+  action?: React.ReactNode
 }
 
-export function Topbar({ title }: TopbarProps) {
+export function Topbar({ title, action }: TopbarProps) {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen)
 
@@ -31,11 +32,12 @@ export function Topbar({ title }: TopbarProps) {
       </button>
 
       <h1
-        className="text-[17px] font-semibold"
+        className="text-[17px] font-semibold flex-1"
         style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
       >
         {title}
       </h1>
+      {action}
     </header>
   )
 }

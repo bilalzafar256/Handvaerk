@@ -1,0 +1,65 @@
+import { setRequestLocale, getTranslations } from "next-intl/server"
+import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
+import { db } from "@/lib/db"
+import { users } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+import { getCustomersByUser } from "@/lib/db/queries/customers"
+import { Topbar } from "@/components/shared/topbar"
+import { CustomerList } from "@/components/customers/customer-list"
+import { Link } from "@/i18n/navigation"
+import { Plus } from "lucide-react"
+
+export const dynamic = "force-dynamic"
+
+type Props = { params: Promise<{ locale: string }> }
+
+export async function generateMetadata({ params }: Props) {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "Customers" })
+  return { title: t("pageTitle") }
+}
+
+export default async function CustomersPage({ params }: Props) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const t = await getTranslations("Customers")
+
+  const { userId: clerkId } = await auth()
+  if (!clerkId) redirect("/sign-in")
+
+  const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
+  if (!user) redirect("/sign-in")
+
+  const customerRows = await getCustomersByUser(user.id)
+
+  // F-207: unpaid invoice count — Phase 5 will add a real join.
+  // For now, stub as 0 for every customer.
+  const customers = customerRows.map((c) => ({ ...c, unpaidCount: 0 }))
+
+  return (
+    <>
+      <Topbar
+        title={t("title")}
+        action={
+          <Link
+            href="/customers/new"
+            className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 active:scale-[0.98]"
+            style={{
+              backgroundColor: "var(--accent)",
+              color: "var(--accent-foreground)",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            {t("newCustomer")}
+          </Link>
+        }
+      />
+      <div className="pt-14">
+        <CustomerList customers={customers} />
+      </div>
+    </>
+  )
+}

@@ -33,6 +33,9 @@ All code-side Phase 0 work is complete. Proceed to Phase 1 once services are pro
 Complete: F-104, F-105, F-106, F-107, F-108, F-109.
 Remaining: F-100, F-101, F-102, F-103 (Clerk phone/email OTP pages — pending Clerk dashboard config).
 
+**Phase 2 — Customer Management** `[x]` complete
+Complete: F-200 through F-209. F-207 "owes money" badge is stubbed at 0 — will be wired to real invoice data in Phase 5.
+
 Update this when a phase completes.
 
 ---
