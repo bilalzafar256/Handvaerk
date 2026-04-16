@@ -28,9 +28,10 @@ type FormData = z.infer<typeof schema>
 interface JobFormProps {
   job?: Job
   customers: Pick<Customer, "id" | "name">[]
+  defaultCustomerId?: string
 }
 
-export function JobForm({ job, customers }: JobFormProps) {
+export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
   const t = useTranslations("JobForm")
   const router = useRouter()
   const [saving, setSaving] = useState(false)
@@ -47,7 +48,7 @@ export function JobForm({ job, customers }: JobFormProps) {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      customerId:    job?.customerId ?? "",
+      customerId:    job?.customerId ?? defaultCustomerId ?? "",
       title:         job?.title ?? "",
       description:   job?.description ?? "",
       jobType:       (job?.jobType as FormData["jobType"]) ?? "service",

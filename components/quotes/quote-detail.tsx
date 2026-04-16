@@ -15,6 +15,7 @@ import {
   XCircle,
   BookmarkPlus,
   Receipt,
+  ChevronRight,
 } from "lucide-react"
 import { formatDKK } from "@/lib/utils/currency"
 import {
@@ -28,6 +29,7 @@ import type { Quote, QuoteItem } from "@/lib/db/schema/quotes"
 import type { Customer } from "@/lib/db/schema/customers"
 import type { User } from "@/lib/db/schema/users"
 import type { Job } from "@/lib/db/schema/jobs"
+import type { Invoice } from "@/lib/db/schema/invoices"
 
 type QuoteWithRelations = Quote & {
   customer: Customer
@@ -52,7 +54,15 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; border: string }>
   expired:  { bg: "--status-invoiced-bg",  text: "--status-invoiced-text",  border: "--status-invoiced-border" },
 }
 
-export function QuoteDetail({ quote, user }: { quote: QuoteWithRelations; user: User }) {
+export function QuoteDetail({
+  quote,
+  user,
+  linkedInvoice,
+}: {
+  quote: QuoteWithRelations
+  user: User
+  linkedInvoice?: Invoice | null
+}) {
   const router = useRouter()
   const [busy, setBusy]               = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -157,6 +167,26 @@ export function QuoteDetail({ quote, user }: { quote: QuoteWithRelations; user: 
           {STATUS_LABELS[status]}
         </span>
       </motion.div>
+
+      {/* Linked invoice banner */}
+      {linkedInvoice && (
+        <a
+          href={`/invoices/${linkedInvoice.id}`}
+          className="flex items-center gap-3 px-4 py-3 rounded-[--radius-md] border transition-colors duration-150 hover:opacity-90"
+          style={{ backgroundColor: "var(--status-paid-bg)", borderColor: "var(--status-paid-border)" }}
+        >
+          <Receipt className="w-4 h-4 flex-shrink-0" style={{ color: "var(--status-paid-text)" }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-body)", color: "var(--status-paid-text)" }}>
+              Invoice generated
+            </p>
+            <p className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--status-paid-text)", opacity: 0.8 }}>
+              {linkedInvoice.invoiceNumber} · {linkedInvoice.status}
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--status-paid-text)" }} />
+        </a>
+      )}
 
       {/* Customer + dates card */}
       <div className="rounded-[--radius-lg] border p-4 space-y-3" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>

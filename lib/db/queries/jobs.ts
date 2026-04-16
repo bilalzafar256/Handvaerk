@@ -25,6 +25,13 @@ export async function getJobsByUser(userId: string, search?: string) {
   })
 }
 
+export async function getJobsByCustomer(customerId: string, userId: string) {
+  return db.query.jobs.findMany({
+    where: and(eq(jobs.customerId, customerId), eq(jobs.userId, userId), isNull(jobs.deletedAt)),
+    orderBy: [desc(jobs.createdAt)],
+  })
+}
+
 export async function getJobById(id: string, userId: string) {
   return db.query.jobs.findFirst({
     where: and(eq(jobs.id, id), eq(jobs.userId, userId), isNull(jobs.deletedAt)),
