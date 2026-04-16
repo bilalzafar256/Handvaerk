@@ -73,6 +73,7 @@
   },
   "Sidebar": {
     "overview": "",
+    "customers": "",
     "profile": "",
     "settingsSection": "",
     "signOut": ""
@@ -126,5 +127,66 @@
     "loading": "",
     "error": "",
     "success": ""
+  },
+  "Customers": {
+    "title": "",
+    "pageTitle": "",
+    "newCustomer": "",
+    "searchPlaceholder": "",
+    "empty": {
+      "title": "",
+      "description": "",
+      "cta": ""
+    },
+    "emptySearch": {
+      "title": "",
+      "description": ""
+    },
+    "owesBadge": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "notes": ""
+  },
+  "CustomerDetail": {
+    "pageTitle": "",
+    "editButton": "",
+    "deleteButton": "",
+    "deleteConfirm": "",
+    "deleteDescription": "",
+    "deleteConfirmButton": "",
+    "callButton": "",
+    "contactInfo": "",
+    "addressSection": "",
+    "notesSection": "",
+    "businessSection": "",
+    "cvrLabel": ""
+  },
+  "CustomerForm": {
+    "nameLabel": "",
+    "namePlaceholder": "",
+    "nameRequired": "",
+    "phoneLabel": "",
+    "phonePlaceholder": "",
+    "emailLabel": "",
+    "emailPlaceholder": "",
+    "emailInvalid": "",
+    "addressLabel": "",
+    "addressPlaceholder": "",
+    "cityLabel": "",
+    "cityPlaceholder": "",
+    "zipLabel": "",
+    "zipPlaceholder": "",
+    "cvrLabel": "",
+    "cvrPlaceholder": "",
+    "notesLabel": "",
+    "notesPlaceholder": "",
+    "saveButton": "",
+    "createButton": "",
+    "saving": "",
+    "saveSuccess": "",
+    "saveError": "",
+    "newTitle": "",
+    "editTitle": ""
   }
 }

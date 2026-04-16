@@ -318,23 +318,66 @@ Primary palette is **warm** — not cold blue-gray tech. Think:
 
 ---
 
+## CSS VARIABLE RULES — READ BEFORE WRITING ANY BUTTON OR ICON
+
+> **NEVER use `var(--accent)` or `var(--accent-foreground)` for CTAs or active states.**
+>
+> `--accent` is a shadcn/ui mapping → `workshop-100` (a light neutral for hover states).
+> It will render as a washed-out near-white, not amber.
+>
+> Correct variables for amber:
+>
+> | Purpose | Variable |
+> |---|---|
+> | CTA button background | `var(--primary)` |
+> | Text on CTA button | `var(--primary-foreground)` |
+> | Icon / text active tint | `var(--primary)` |
+> | Light amber tint background | `var(--accent-light)` |
+> | Hover state on CTA | `var(--accent-hover)` |
+> | Glow shadow on CTA | `var(--shadow-accent)` |
+>
+> **The one-line rule:** `--primary` = amber. Use it everywhere amber should appear. Never `--accent`.
+
+---
+
 ## COMPONENT PATTERNS
+
+### Cursor Rule
+
+**All interactive elements must use `cursor-pointer`.** This applies to every `<button>`, `<a>`, and any `<div>`/`<span>` with an `onClick`. Never rely on browser defaults — always set it explicitly.
+
+```tsx
+// ✅ correct
+<button className="cursor-pointer ...">Submit</button>
+<a href="/jobs" className="cursor-pointer ...">Jobs</a>
+
+// ❌ wrong — browser default on <button> is auto/default in some contexts
+<button className="...">Submit</button>
+```
+
+---
 
 ### Primary Button
 ```tsx
 // The main CTA — amber, with glow shadow, full-width on mobile
-<button className="
-  w-full h-12 px-6
-  bg-[--accent] hover:bg-[--accent-hover]
-  text-[--accent-foreground]
-  font-body font-medium text-[16px]
-  rounded-[--radius-md]
-  shadow-[--shadow-accent]
-  transition-all duration-200
-  active:scale-[0.98]
-  disabled:opacity-50 disabled:cursor-not-allowed
-  flex items-center justify-center gap-2
-">
+// ⚠️ Use var(--primary) NOT var(--accent) — see CSS VARIABLE RULES above
+<button
+  className="
+    w-full h-12 px-6
+    font-body font-medium text-base
+    rounded-[--radius-md]
+    cursor-pointer
+    transition-all duration-200
+    active:scale-[0.98]
+    disabled:opacity-50 disabled:cursor-not-allowed
+    flex items-center justify-center gap-2
+  "
+  style={{
+    backgroundColor: "var(--primary)",
+    color: "var(--primary-foreground)",
+    boxShadow: "var(--shadow-accent)",
+  }}
+>
   Create invoice
 </button>
 ```
@@ -663,4 +706,8 @@ Map shadcn's CSS variables to our design tokens in `globals.css`:
 ✅ Warm-tinted shadows (no cold blue box-shadows)
 ✅ Amber dot/border for active nav item
 ✅ oklch() color space throughout (perceptually uniform)
+✅ cursor-pointer on ALL buttons, links, and clickable elements
+
+❌ NEVER var(--accent) for CTA backgrounds or active icon color → use var(--primary)
+❌ NEVER var(--accent-foreground) for text on CTA → use var(--primary-foreground)
 ```

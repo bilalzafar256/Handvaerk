@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "motion/react"
 import {
   LayoutDashboard,
+  Users,
   UserCircle,
   LogOut,
   ChevronLeft,
@@ -15,7 +16,8 @@ import {
 } from "lucide-react"
 
 const navItems = [
-  { icon: LayoutDashboard, labelKey: "overview", href: "/overview" },
+  { icon: LayoutDashboard, labelKey: "overview",   href: "/overview" },
+  { icon: Users,           labelKey: "customers",  href: "/customers" },
 ] as const
 
 const settingsItems = [

@@ -73,6 +73,7 @@
   },
   "Sidebar": {
     "overview": "Overview",
+    "customers": "Customers",
     "profile": "Profile",
     "settingsSection": "Settings",
     "signOut": "Sign out"
@@ -126,5 +127,66 @@
     "loading": "Loading...",
     "error": "Something went wrong. Please try again.",
     "success": "Saved successfully."
+  },
+  "Customers": {
+    "title": "Customers",
+    "pageTitle": "Customers | Håndværk Pro",
+    "newCustomer": "New customer",
+    "searchPlaceholder": "Search by name, phone or email…",
+    "empty": {
+      "title": "No customers yet",
+      "description": "Add your first customer to get started.",
+      "cta": "Add customer"
+    },
+    "emptySearch": {
+      "title": "No results",
+      "description": "No customers match your search."
+    },
+    "owesBadge": "Owes money",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "notes": "Notes"
+  },
+  "CustomerDetail": {
+    "pageTitle": "Customer | Håndværk Pro",
+    "editButton": "Edit",
+    "deleteButton": "Delete",
+    "deleteConfirm": "Delete this customer?",
+    "deleteDescription": "This will remove the customer from your list. This action cannot be undone.",
+    "deleteConfirmButton": "Yes, delete",
+    "callButton": "Call",
+    "contactInfo": "Contact",
+    "addressSection": "Address",
+    "notesSection": "Notes",
+    "businessSection": "Business",
+    "cvrLabel": "CVR number"
+  },
+  "CustomerForm": {
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Lars Hansen",
+    "nameRequired": "Name is required",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "e.g. 42 42 42 42",
+    "emailLabel": "Email",
+    "emailPlaceholder": "e.g. lars@hansen.dk",
+    "emailInvalid": "Invalid email address",
+    "addressLabel": "Address",
+    "addressPlaceholder": "e.g. Nørrebrogade 12",
+    "cityLabel": "City",
+    "cityPlaceholder": "e.g. Copenhagen",
+    "zipLabel": "ZIP code",
+    "zipPlaceholder": "e.g. 2200",
+    "cvrLabel": "CVR number",
+    "cvrPlaceholder": "e.g. 12345678",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Internal notes about this customer…",
+    "saveButton": "Save customer",
+    "createButton": "Add customer",
+    "saving": "Saving…",
+    "saveSuccess": "Customer saved",
+    "saveError": "Something went wrong. Please try again.",
+    "newTitle": "New customer",
+    "editTitle": "Edit customer"
   }
 }
