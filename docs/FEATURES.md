@@ -128,17 +128,17 @@ customers (
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-300 | Job DB schema | `[ ]` | `N/A` | See below |
-| F-301 | Create job form | `[ ]` | `[ ]` | Customer picker, description, date |
-| F-302 | Voice input for description | `N/A` | `[ ]` | Web Speech API |
-| F-303 | Job detail page | `[ ]` | `[ ]` | Full info, status changer |
-| F-304 | Status change | `[ ]` | `[ ]` | new→scheduled→in_progress→done→invoiced→paid |
-| F-305 | Job notes | `[ ]` | `[ ]` | Internal, not shown to customer |
-| F-306 | Photo upload per job | `[ ]` | `[ ]` | Before/after, stored in Vercel Blob |
-| F-307 | Free tier gate: 3 active jobs | `[ ]` | `[ ]` | Status not 'paid' or 'invoiced' |
-| F-308 | Edit job | `[ ]` | `[ ]` | |
-| F-309 | Delete job (soft) | `[ ]` | `[ ]` | |
-| F-310 | Job type field | `[ ]` | `[ ]` | service / project / recurring |
+| F-300 | Job DB schema | `[x]` | `N/A` | See below |
+| F-301 | Create job form | `[x]` | `[x]` | Customer picker, description, date |
+| F-302 | Voice input for description | `N/A` | `[x]` | Web Speech API (da-DK) |
+| F-303 | Job detail page | `[x]` | `[x]` | Full info, status changer |
+| F-304 | Status change | `[x]` | `[x]` | new→scheduled→in_progress→done→invoiced→paid |
+| F-305 | Job notes | `[x]` | `[x]` | Internal, not shown to customer |
+| F-306 | Photo upload per job | `[x]` | `[x]` | Before/after, stored in Vercel Blob |
+| F-307 | Free tier gate: 10 active jobs | `[x]` | `[x]` | Status not 'paid' or 'invoiced' |
+| F-308 | Edit job | `[x]` | `[x]` | |
+| F-309 | Delete job (soft) | `[x]` | `[x]` | |
+| F-310 | Job type field | `[x]` | `[x]` | service / project / recurring |
 
 ### DB Schema: jobs
 ```sql
@@ -328,7 +328,7 @@ invoice_items (
 | F-601 | Dashboard: active jobs count | `[ ]` | `[ ]` | |
 | F-602 | Dashboard: overdue invoices | `[ ]` | `[ ]` | Count + total amount |
 | F-603 | Dashboard: this month billed | `[ ]` | `[ ]` | |
-| F-604 | Free tier: 3 active jobs gate | `[ ]` | `[ ]` | Hard limit enforced |
+| F-604 | Free tier: 10 active jobs gate | `[ ]` | `[ ]` | Hard limit enforced |
 | F-605 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |
 | F-606 | Beta launch: 20 users | `N/A` | `N/A` | Network outreach |
 | F-607 | Reporting DB queries ready | `[ ]` | `N/A` | See REPORTING.md |

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   LayoutDashboard,
   Users,
+  Briefcase,
   UserCircle,
   LogOut,
   ChevronLeft,
@@ -17,6 +18,7 @@ import {
 
 const navItems = [
   { icon: LayoutDashboard, labelKey: "overview",   href: "/overview" },
+  { icon: Briefcase,       labelKey: "jobs",       href: "/jobs" },
   { icon: Users,           labelKey: "customers",  href: "/customers" },
 ] as const
 

@@ -34,7 +34,7 @@
         "price": "0",
         "desc": "Try it free",
         "f1": "1 user",
-        "f2": "3 active jobs",
+        "f2": "10 active jobs",
         "f3": "Basic invoicing",
         "cta": "Get started free"
       },
@@ -64,15 +64,34 @@
   "Overview": {
     "title": "Overview",
     "pageTitle": "Overview | Håndværk Pro",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "greeting": "Hey, {name}",
+    "greetingSub": "Here's what's happening today.",
+    "statsCustomers": "Customers",
+    "statsActiveJobs": "Active jobs",
+    "statsInProgress": "In progress",
+    "statsDone": "Completed",
+    "jobsByStatus": "Jobs by status",
+    "recentJobs": "Recent jobs",
+    "viewAll": "View all",
+    "emptyTitle": "Ready to get started?",
+    "emptyDescription": "Add your first customer, then create a job for them.",
+    "emptyCta": "Add first customer"
   },
   "Auth": {
     "signIn": "Sign in",
     "signUp": "Sign up",
     "signOut": "Sign out"
   },
+  "BottomNav": {
+    "overview": "Overview",
+    "jobs": "Jobs",
+    "invoices": "Invoices",
+    "profile": "Profile"
+  },
   "Sidebar": {
     "overview": "Overview",
+    "jobs": "Jobs",
     "customers": "Customers",
     "profile": "Profile",
     "settingsSection": "Settings",
@@ -81,7 +100,8 @@
   "Profile": {
     "title": "Company profile",
     "pageTitle": "Profile | Håndværk Pro",
-    "companyDetails": "Company details"
+    "companyDetails": "Edit details",
+    "noCompanyName": "Your company"
   },
   "ProfileForm": {
     "companyNameLabel": "Company name",
@@ -161,6 +181,66 @@
     "notesSection": "Notes",
     "businessSection": "Business",
     "cvrLabel": "CVR number"
+  },
+  "Jobs": {
+    "title": "Jobs",
+    "pageTitle": "Jobs | Håndværk Pro",
+    "newJob": "New job",
+    "searchPlaceholder": "Search by title, customer or number…",
+    "empty": {
+      "title": "No jobs yet",
+      "description": "Create your first job to get started.",
+      "cta": "Create job"
+    },
+    "emptySearch": {
+      "title": "No results",
+      "description": "No jobs match your search."
+    }
+  },
+  "JobForm": {
+    "newTitle": "New job",
+    "editTitle": "Edit job",
+    "customerLabel": "Customer",
+    "customerPlaceholder": "Select a customer",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Electrical installation",
+    "titleRequired": "Title is required",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What needs to be done…",
+    "jobTypeLabel": "Job type",
+    "typeService": "Service",
+    "typeProject": "Project",
+    "typeRecurring": "Recurring",
+    "scheduledDateLabel": "Start date",
+    "endDateLabel": "End date",
+    "notesLabel": "Internal notes",
+    "notesPlaceholder": "Notes visible only to you…",
+    "voiceStart": "Voice",
+    "voiceStop": "Stop",
+    "saveButton": "Save job",
+    "createButton": "Create job",
+    "saving": "Saving…",
+    "saveSuccess": "Job saved",
+    "saveError": "Something went wrong. Please try again."
+  },
+  "JobDetail": {
+    "pageTitle": "Job | Håndværk Pro",
+    "editButton": "Edit",
+    "deleteButton": "Delete",
+    "deleteConfirm": "Delete this job?",
+    "deleteConfirmButton": "Yes, delete",
+    "cancelButton": "Cancel",
+    "backToJobs": "Jobs",
+    "customerSection": "Customer",
+    "descriptionSection": "Description",
+    "datesSection": "Dates",
+    "scheduledDateLabel": "Scheduled",
+    "endDateLabel": "End date / deadline",
+    "completedDateLabel": "Completed",
+    "detailsSection": "Details",
+    "jobTypeLabel": "Type",
+    "notesSection": "Internal notes",
+    "photosSection": "Photos"
   },
   "CustomerForm": {
     "nameLabel": "Name",

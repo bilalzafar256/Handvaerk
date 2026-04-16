@@ -23,12 +23,15 @@ interface CompanyProfileFormProps {
   redirectTo?: string
   /** Only show core fields (name + CVR) for onboarding */
   compact?: boolean
+  /** Render fields in a 2-column grid */
+  twoColumn?: boolean
 }
 
 export function CompanyProfileForm({
   initialValues,
   redirectTo,
   compact = false,
+  twoColumn = false,
 }: CompanyProfileFormProps) {
   const t = useTranslations("ProfileForm")
   const router = useRouter()
@@ -63,94 +66,69 @@ export function CompanyProfileForm({
     }
   }
 
+  const inputClass = "w-full h-12 px-4 rounded-[--radius-sm] border transition-colors duration-150 focus:outline-none focus:ring-2"
+  const inputStyle = (hasError = false) => ({
+    fontFamily: "var(--font-body)",
+    backgroundColor: "var(--surface)",
+    color: "var(--text-primary)",
+    borderColor: hasError ? "var(--error)" : "var(--border)",
+  })
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      {/* Company Name */}
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="companyName"
-          className="text-sm font-medium"
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-        >
-          {t("companyNameLabel")}
-          <span style={{ color: "var(--error)" }}> *</span>
-        </label>
-        <input
-          id="companyName"
-          {...register("companyName")}
-          placeholder={t("companyNamePlaceholder")}
-          className="w-full h-12 px-4 rounded-[--radius-sm] border transition-colors duration-150 focus:outline-none focus:ring-2"
-          style={{
-            fontFamily: "var(--font-body)",
-            backgroundColor: "var(--surface)",
-            color: "var(--text-primary)",
-            borderColor: errors.companyName ? "var(--error)" : "var(--border)",
-          }}
-        />
-        {errors.companyName && (
-          <p className="text-xs" style={{ color: "var(--error)", fontFamily: "var(--font-body)" }}>
-            {t("companyNameRequired")}
-          </p>
-        )}
-      </div>
+      {/* Row 1: Company Name + CVR */}
+      <div className={twoColumn ? "grid grid-cols-2 gap-3" : "flex flex-col gap-5"}>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="companyName" className="text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+            {t("companyNameLabel")}<span style={{ color: "var(--error)" }}> *</span>
+          </label>
+          <input
+            id="companyName"
+            {...register("companyName")}
+            placeholder={t("companyNamePlaceholder")}
+            className={inputClass}
+            style={inputStyle(!!errors.companyName)}
+          />
+          {errors.companyName && (
+            <p className="text-xs" style={{ color: "var(--error)", fontFamily: "var(--font-body)" }}>{t("companyNameRequired")}</p>
+          )}
+        </div>
 
-      {/* CVR Number */}
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="cvrNumber"
-          className="text-sm font-medium"
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-        >
-          {t("cvrLabel")}
-        </label>
-        <input
-          id="cvrNumber"
-          {...register("cvrNumber")}
-          placeholder={t("cvrPlaceholder")}
-          inputMode="numeric"
-          className="w-full h-12 px-4 rounded-[--radius-sm] border transition-colors duration-150 focus:outline-none focus:ring-2"
-          style={{
-            fontFamily: "var(--font-mono)",
-            backgroundColor: "var(--surface)",
-            color: "var(--text-primary)",
-            borderColor: "var(--border)",
-          }}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="cvrNumber" className="text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+            {t("cvrLabel")}
+          </label>
+          <input
+            id="cvrNumber"
+            {...register("cvrNumber")}
+            placeholder={t("cvrPlaceholder")}
+            inputMode="numeric"
+            className={inputClass}
+            style={{ ...inputStyle(), fontFamily: "var(--font-mono)" }}
+          />
+        </div>
       </div>
 
       {!compact && (
         <>
-          {/* Address */}
+          {/* Address (full width) */}
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="addressLine1"
-              className="text-sm font-medium"
-              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-            >
+            <label htmlFor="addressLine1" className="text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
               {t("addressLabel")}
             </label>
             <input
               id="addressLine1"
               {...register("addressLine1")}
               placeholder={t("addressPlaceholder")}
-              className="w-full h-12 px-4 rounded-[--radius-sm] border transition-colors duration-150 focus:outline-none focus:ring-2"
-              style={{
-                fontFamily: "var(--font-body)",
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
-                borderColor: "var(--border)",
-              }}
+              className={inputClass}
+              style={inputStyle()}
             />
           </div>
 
-          {/* City + ZIP */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* ZIP + City + Hourly rate in a grid */}
+          <div className={twoColumn ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3"}>
             <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="addressZip"
-                className="text-sm font-medium"
-                style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-              >
+              <label htmlFor="addressZip" className="text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
                 {t("zipLabel")}
               </label>
               <input
@@ -158,69 +136,65 @@ export function CompanyProfileForm({
                 {...register("addressZip")}
                 placeholder={t("zipPlaceholder")}
                 inputMode="numeric"
-                className="w-full h-12 px-4 rounded-[--radius-sm] border transition-colors duration-150 focus:outline-none focus:ring-2"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  borderColor: "var(--border)",
-                }}
+                className={inputClass}
+                style={{ ...inputStyle(), fontFamily: "var(--font-mono)" }}
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="addressCity"
-                className="text-sm font-medium"
-                style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-              >
+              <label htmlFor="addressCity" className="text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
                 {t("cityLabel")}
               </label>
               <input
                 id="addressCity"
                 {...register("addressCity")}
                 placeholder={t("cityPlaceholder")}
-                className="w-full h-12 px-4 rounded-[--radius-sm] border transition-colors duration-150 focus:outline-none focus:ring-2"
-                style={{
-                  fontFamily: "var(--font-body)",
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  borderColor: "var(--border)",
-                }}
+                className={inputClass}
+                style={inputStyle()}
               />
             </div>
+            {twoColumn && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="hourlyRate" className="text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+                  {t("hourlyRateLabel")}
+                </label>
+                <div className="relative">
+                  <input
+                    id="hourlyRate"
+                    {...register("hourlyRate")}
+                    placeholder={t("hourlyRatePlaceholder")}
+                    inputMode="decimal"
+                    className={`${inputClass} pr-14`}
+                    style={{ ...inputStyle(), fontFamily: "var(--font-mono)" }}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm" style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                    kr.
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Hourly Rate */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="hourlyRate"
-              className="text-sm font-medium"
-              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-            >
-              {t("hourlyRateLabel")}
-            </label>
-            <div className="relative">
-              <input
-                id="hourlyRate"
-                {...register("hourlyRate")}
-                placeholder={t("hourlyRatePlaceholder")}
-                inputMode="decimal"
-                className="w-full h-12 pl-4 pr-14 rounded-[--radius-sm] border transition-colors duration-150 focus:outline-none focus:ring-2"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  borderColor: "var(--border)",
-                }}
-              />
-              <span
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-sm"
-                style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}
-              >
-                kr.
-              </span>
+          {/* Hourly rate — only shown in single-column mode */}
+          {!twoColumn && (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="hourlyRate" className="text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+                {t("hourlyRateLabel")}
+              </label>
+              <div className="relative">
+                <input
+                  id="hourlyRate"
+                  {...register("hourlyRate")}
+                  placeholder={t("hourlyRatePlaceholder")}
+                  inputMode="decimal"
+                  className={`${inputClass} pr-14`}
+                  style={{ ...inputStyle(), fontFamily: "var(--font-mono)" }}
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm" style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                  kr.
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
 

@@ -64,15 +64,34 @@
   "Overview": {
     "title": "",
     "pageTitle": "",
-    "signOut": ""
+    "signOut": "",
+    "greeting": "",
+    "greetingSub": "",
+    "statsCustomers": "",
+    "statsActiveJobs": "",
+    "statsInProgress": "",
+    "statsDone": "",
+    "jobsByStatus": "",
+    "recentJobs": "",
+    "viewAll": "",
+    "emptyTitle": "",
+    "emptyDescription": "",
+    "emptyCta": ""
   },
   "Auth": {
     "signIn": "",
     "signUp": "",
     "signOut": ""
   },
+  "BottomNav": {
+    "overview": "",
+    "jobs": "",
+    "invoices": "",
+    "profile": ""
+  },
   "Sidebar": {
     "overview": "",
+    "jobs": "",
     "customers": "",
     "profile": "",
     "settingsSection": "",
@@ -81,7 +100,8 @@
   "Profile": {
     "title": "",
     "pageTitle": "",
-    "companyDetails": ""
+    "companyDetails": "",
+    "noCompanyName": ""
   },
   "ProfileForm": {
     "companyNameLabel": "",
@@ -161,6 +181,66 @@
     "notesSection": "",
     "businessSection": "",
     "cvrLabel": ""
+  },
+  "Jobs": {
+    "title": "",
+    "pageTitle": "",
+    "newJob": "",
+    "searchPlaceholder": "",
+    "empty": {
+      "title": "",
+      "description": "",
+      "cta": ""
+    },
+    "emptySearch": {
+      "title": "",
+      "description": ""
+    }
+  },
+  "JobForm": {
+    "newTitle": "",
+    "editTitle": "",
+    "customerLabel": "",
+    "customerPlaceholder": "",
+    "titleLabel": "",
+    "titlePlaceholder": "",
+    "titleRequired": "",
+    "descriptionLabel": "",
+    "descriptionPlaceholder": "",
+    "jobTypeLabel": "",
+    "typeService": "",
+    "typeProject": "",
+    "typeRecurring": "",
+    "scheduledDateLabel": "",
+    "endDateLabel": "",
+    "notesLabel": "",
+    "notesPlaceholder": "",
+    "voiceStart": "",
+    "voiceStop": "",
+    "saveButton": "",
+    "createButton": "",
+    "saving": "",
+    "saveSuccess": "",
+    "saveError": ""
+  },
+  "JobDetail": {
+    "pageTitle": "",
+    "editButton": "",
+    "deleteButton": "",
+    "deleteConfirm": "",
+    "deleteConfirmButton": "",
+    "cancelButton": "",
+    "backToJobs": "",
+    "customerSection": "",
+    "descriptionSection": "",
+    "datesSection": "",
+    "scheduledDateLabel": "",
+    "endDateLabel": "",
+    "completedDateLabel": "",
+    "detailsSection": "",
+    "jobTypeLabel": "",
+    "notesSection": "",
+    "photosSection": ""
   },
   "CustomerForm": {
     "nameLabel": "",
