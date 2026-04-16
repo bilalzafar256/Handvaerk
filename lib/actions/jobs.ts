@@ -26,6 +26,7 @@ const jobSchema = z.object({
   jobType:       z.enum(["service", "project", "recurring"]).default("service"),
   status:        z.enum(["new", "scheduled", "in_progress", "done", "invoiced", "paid"]).default("new"),
   scheduledDate: z.string().optional(),
+  endDate:       z.string().optional(),
   notes:         z.string().optional(),
 })
 
@@ -75,6 +76,7 @@ export async function createJobAction(data: JobFormData) {
     jobType:       validated.jobType,
     status:        validated.status,
     scheduledDate: validated.scheduledDate || null,
+    endDate:       validated.endDate || null,
     notes:         validated.notes || null,
   })
 
@@ -100,6 +102,7 @@ export async function updateJobAction(id: string, data: JobFormData) {
     jobType:       validated.jobType,
     status:        validated.status,
     scheduledDate: validated.scheduledDate || null,
+    endDate:       validated.endDate || null,
     notes:         validated.notes || null,
   })
 

@@ -19,6 +19,7 @@ const schema = z.object({
   jobType:       z.enum(["service", "project", "recurring"]),
   status:        z.enum(["new", "scheduled", "in_progress", "done", "invoiced", "paid"]),
   scheduledDate: z.string().optional(),
+  endDate:       z.string().optional(),
   notes:         z.string().optional(),
 })
 
@@ -52,6 +53,7 @@ export function JobForm({ job, customers }: JobFormProps) {
       jobType:       (job?.jobType as FormData["jobType"]) ?? "service",
       status:        (job?.status as FormData["status"]) ?? "new",
       scheduledDate: job?.scheduledDate ?? "",
+      endDate:       job?.endDate ?? "",
       notes:         job?.notes ?? "",
     },
   })
@@ -230,19 +232,34 @@ export function JobForm({ job, customers }: JobFormProps) {
         </select>
       </div>
 
-      {/* Scheduled date */}
-      <div>
-        <label
-          className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-        >
-          {t("scheduledDateLabel")}
-        </label>
-        <input
-          {...register("scheduledDate")}
-          type="date"
-          className={inputClass}
-        />
+      {/* Scheduled date + End date */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label
+            className={labelClass}
+            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          >
+            {t("scheduledDateLabel")}
+          </label>
+          <input
+            {...register("scheduledDate")}
+            type="date"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label
+            className={labelClass}
+            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          >
+            {t("endDateLabel")}
+          </label>
+          <input
+            {...register("endDate")}
+            type="date"
+            className={inputClass}
+          />
+        </div>
       </div>
 
       {/* Notes (internal) */}

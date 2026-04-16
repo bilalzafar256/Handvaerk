@@ -64,7 +64,19 @@
   "Overview": {
     "title": "Overview",
     "pageTitle": "Overview | Håndværk Pro",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "greeting": "Hey, {name}",
+    "greetingSub": "Here's what's happening today.",
+    "statsCustomers": "Customers",
+    "statsActiveJobs": "Active jobs",
+    "statsInProgress": "In progress",
+    "statsDone": "Completed",
+    "jobsByStatus": "Jobs by status",
+    "recentJobs": "Recent jobs",
+    "viewAll": "View all",
+    "emptyTitle": "Ready to get started?",
+    "emptyDescription": "Add your first customer, then create a job for them.",
+    "emptyCta": "Add first customer"
   },
   "Auth": {
     "signIn": "Sign in",
@@ -88,7 +100,8 @@
   "Profile": {
     "title": "Company profile",
     "pageTitle": "Profile | Håndværk Pro",
-    "companyDetails": "Company details"
+    "companyDetails": "Edit details",
+    "noCompanyName": "Your company"
   },
   "ProfileForm": {
     "companyNameLabel": "Company name",
@@ -198,7 +211,8 @@
     "typeService": "Service",
     "typeProject": "Project",
     "typeRecurring": "Recurring",
-    "scheduledDateLabel": "Scheduled date",
+    "scheduledDateLabel": "Start date",
+    "endDateLabel": "End date",
     "notesLabel": "Internal notes",
     "notesPlaceholder": "Notes visible only to you…",
     "voiceStart": "Voice",
@@ -221,6 +235,7 @@
     "descriptionSection": "Description",
     "datesSection": "Dates",
     "scheduledDateLabel": "Scheduled",
+    "endDateLabel": "End date / deadline",
     "completedDateLabel": "Completed",
     "detailsSection": "Details",
     "jobTypeLabel": "Type",

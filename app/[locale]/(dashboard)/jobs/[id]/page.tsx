@@ -141,7 +141,7 @@ export default async function JobDetailPage({ params }: Props) {
         )}
 
         {/* Dates */}
-        {(job.scheduledDate || job.completedDate) && (
+        {(job.scheduledDate || job.endDate || job.completedDate) && (
           <Section title={t("datesSection")}>
             {job.scheduledDate && (
               <InfoRow
@@ -150,6 +150,15 @@ export default async function JobDetailPage({ params }: Props) {
                   weekday: "long", day: "numeric", month: "long", year: "numeric",
                 })}
                 sublabel={t("scheduledDateLabel")}
+              />
+            )}
+            {job.endDate && (
+              <InfoRow
+                icon={Calendar}
+                label={new Date(job.endDate).toLocaleDateString("en-DK", {
+                  weekday: "long", day: "numeric", month: "long", year: "numeric",
+                })}
+                sublabel={t("endDateLabel")}
               />
             )}
             {job.completedDate && (

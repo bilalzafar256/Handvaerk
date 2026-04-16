@@ -12,6 +12,7 @@ export const jobs = pgTable("jobs", {
   jobType:       text("job_type").default("service"),  // 'service' | 'project' | 'recurring'
   status:        text("status").default("new"),         // new | scheduled | in_progress | done | invoiced | paid
   scheduledDate: date("scheduled_date"),
+  endDate:       date("end_date"),         // expected completion / deadline
   completedDate: date("completed_date"),
   notes:         text("notes"),
   createdAt:     timestamp("created_at").defaultNow(),

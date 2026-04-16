@@ -64,7 +64,19 @@
   "Overview": {
     "title": "",
     "pageTitle": "",
-    "signOut": ""
+    "signOut": "",
+    "greeting": "",
+    "greetingSub": "",
+    "statsCustomers": "",
+    "statsActiveJobs": "",
+    "statsInProgress": "",
+    "statsDone": "",
+    "jobsByStatus": "",
+    "recentJobs": "",
+    "viewAll": "",
+    "emptyTitle": "",
+    "emptyDescription": "",
+    "emptyCta": ""
   },
   "Auth": {
     "signIn": "",
@@ -88,7 +100,8 @@
   "Profile": {
     "title": "",
     "pageTitle": "",
-    "companyDetails": ""
+    "companyDetails": "",
+    "noCompanyName": ""
   },
   "ProfileForm": {
     "companyNameLabel": "",
@@ -199,6 +212,7 @@
     "typeProject": "",
     "typeRecurring": "",
     "scheduledDateLabel": "",
+    "endDateLabel": "",
     "notesLabel": "",
     "notesPlaceholder": "",
     "voiceStart": "",
@@ -221,6 +235,7 @@
     "descriptionSection": "",
     "datesSection": "",
     "scheduledDateLabel": "",
+    "endDateLabel": "",
     "completedDateLabel": "",
     "detailsSection": "",
     "jobTypeLabel": "",
