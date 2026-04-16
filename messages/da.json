@@ -64,7 +64,21 @@
   "Overview": {
     "title": "",
     "pageTitle": "",
-    "signOut": ""
+    "signOut": "",
+    "criticalTitle": "",
+    "calmState": "",
+    "daysOverdue": "",
+    "viewInvoice": "",
+    "statRevenue": "",
+    "statActiveJobs": "",
+    "statOutstanding": "",
+    "statPaidThisMonth": "",
+    "statUnpaidInvoices": "",
+    "statVsLastMonth": "",
+    "todayJobs": "",
+    "viewAll": "",
+    "noJobsToday": "",
+    "recentActivity": ""
   },
   "Auth": {
     "signIn": "",

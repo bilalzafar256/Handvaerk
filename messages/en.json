@@ -64,7 +64,21 @@
   "Overview": {
     "title": "Overview",
     "pageTitle": "Overview | Håndværk Pro",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "criticalTitle": "Needs attention",
+    "calmState": "No urgent items — business is running smoothly.",
+    "daysOverdue": "days overdue",
+    "viewInvoice": "View",
+    "statRevenue": "Revenue this month",
+    "statActiveJobs": "Active jobs",
+    "statOutstanding": "Outstanding",
+    "statPaidThisMonth": "Paid this month",
+    "statUnpaidInvoices": "unpaid invoices",
+    "statVsLastMonth": "vs. last month",
+    "todayJobs": "Today's jobs",
+    "viewAll": "View all",
+    "noJobsToday": "No jobs scheduled for today.",
+    "recentActivity": "Recent activity"
   },
   "Auth": {
     "signIn": "Sign in",
