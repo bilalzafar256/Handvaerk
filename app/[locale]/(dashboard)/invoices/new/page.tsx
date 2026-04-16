@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getCustomersByUser } from "@/lib/db/queries/customers"
+import { getQuotesByUser } from "@/lib/db/queries/quotes"
 import { Topbar } from "@/components/shared/topbar"
 import { InvoiceForm } from "@/components/forms/invoice-form"
 import { Link } from "@/i18n/navigation"
@@ -33,7 +34,17 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
   const defaultJobId      = sp?.jobId
   const defaultCustomerId = sp?.customerId
 
-  const customers = await getCustomersByUser(user.id)
+  const [customers, allQuotes] = await Promise.all([
+    getCustomersByUser(user.id),
+    getQuotesByUser(user.id),
+  ])
+
+  // Group quotes by customerId for the invoice form picker
+  const quotesByCustomer = allQuotes.reduce<Record<string, typeof allQuotes>>((acc, q) => {
+    if (!acc[q.customerId]) acc[q.customerId] = []
+    acc[q.customerId].push(q)
+    return acc
+  }, {})
 
   return (
     <>
@@ -53,6 +64,7 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
         <div className="pt-6">
           <InvoiceForm
             customers={customers}
+            quotesByCustomer={quotesByCustomer}
             defaultJobId={defaultJobId}
             defaultCustomerId={defaultCustomerId}
           />

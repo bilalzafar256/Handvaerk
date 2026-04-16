@@ -26,6 +26,14 @@ export async function getQuotesByUser(userId: string, search?: string) {
   })
 }
 
+export async function getQuotesByCustomer(customerId: string, userId: string) {
+  return db.query.quotes.findMany({
+    where: and(eq(quotes.customerId, customerId), eq(quotes.userId, userId), isNull(quotes.deletedAt)),
+    orderBy: [desc(quotes.createdAt)],
+    with: { items: true },
+  })
+}
+
 export async function getQuotesByJob(jobId: string, userId: string) {
   return db.query.quotes.findMany({
     where: and(eq(quotes.jobId, jobId), eq(quotes.userId, userId), isNull(quotes.deletedAt)),

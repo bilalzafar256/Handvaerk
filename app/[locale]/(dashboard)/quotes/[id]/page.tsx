@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getQuoteById } from "@/lib/db/queries/quotes"
+import { getInvoiceByQuote } from "@/lib/db/queries/invoices"
 import { Topbar } from "@/components/shared/topbar"
 import { QuoteDetail } from "@/components/quotes/quote-detail"
 import { Link } from "@/i18n/navigation"
@@ -24,7 +25,10 @@ export default async function QuoteDetailPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const quote = await getQuoteById(id, user.id)
+  const [quote, linkedInvoice] = await Promise.all([
+    getQuoteById(id, user.id),
+    getInvoiceByQuote(id, user.id),
+  ])
   if (!quote) notFound()
 
   return (
@@ -42,7 +46,7 @@ export default async function QuoteDetailPage({ params }: Props) {
         }
       />
       <div className="pt-14">
-        <QuoteDetail quote={quote} user={user} />
+        <QuoteDetail quote={quote} user={user} linkedInvoice={linkedInvoice ?? null} />
       </div>
     </>
   )

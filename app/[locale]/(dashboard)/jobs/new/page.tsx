@@ -10,7 +10,10 @@ import { JobForm } from "@/components/forms/job-form"
 import { Link } from "@/i18n/navigation"
 import { ChevronLeft } from "lucide-react"
 
-type Props = { params: Promise<{ locale: string }> }
+type Props = {
+  params: Promise<{ locale: string }>
+  searchParams?: Promise<Record<string, string>>
+}
 
 export async function generateMetadata({ params }: Props) {
   const { locale } = await params
@@ -18,7 +21,7 @@ export async function generateMetadata({ params }: Props) {
   return { title: t("newTitle") + " | Håndværk Pro" }
 }
 
-export default async function NewJobPage({ params }: Props) {
+export default async function NewJobPage({ params, searchParams }: Props) {
   const { locale } = await params
   setRequestLocale(locale)
 
@@ -30,6 +33,9 @@ export default async function NewJobPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
+  const sp = await searchParams
+  const defaultCustomerId = sp?.customerId
+
   const customers = await getCustomersByUser(user.id)
 
   return (
@@ -38,7 +44,7 @@ export default async function NewJobPage({ params }: Props) {
         title={t("newTitle")}
         action={
           <Link
-            href="/jobs"
+            href={defaultCustomerId ? `/customers/${defaultCustomerId}` : "/jobs"}
             className="flex items-center gap-1 text-sm h-9 px-2 rounded-[--radius-sm] transition-colors duration-150"
             style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
           >
@@ -48,7 +54,7 @@ export default async function NewJobPage({ params }: Props) {
       />
       <div className="pt-14">
         <div className="pt-6">
-          <JobForm customers={customers} />
+          <JobForm customers={customers} defaultCustomerId={defaultCustomerId} />
         </div>
       </div>
     </>
