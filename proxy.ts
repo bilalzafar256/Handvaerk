@@ -10,12 +10,13 @@ const isPublicRoute = createRouteMatcher([
   "/:locale/sign-up(.*)",
   "/api/webhooks(.*)",
   "/api/inngest(.*)",
+  "/docs(.*)",
 ])
 
 export default clerkMiddleware(async (auth, request) => {
   // API routes must not go through intl middleware — it would redirect
   // /api/upload → /en/api/upload which has no handler
-  if (!request.nextUrl.pathname.startsWith("/api/")) {
+  if (!request.nextUrl.pathname.startsWith("/api/") && !request.nextUrl.pathname.startsWith("/docs")) {
     const intlResponse = intlMiddleware(request)
     if (intlResponse) return intlResponse
   }
