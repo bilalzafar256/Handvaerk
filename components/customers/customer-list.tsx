@@ -98,7 +98,7 @@ function CustomerCard({ customer }: { customer: CustomerWithOwed }) {
           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold"
           style={{
             backgroundColor: "var(--accent-light)",
-            color: "var(--accent)",
+            color: "var(--primary)",
             fontFamily: "var(--font-display)",
           }}
         >
@@ -224,8 +224,8 @@ function EmptyState({
         href="/customers/new"
         className="flex items-center gap-2 h-11 px-5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.98]"
         style={{
-          backgroundColor: "var(--accent)",
-          color: "var(--accent-foreground)",
+          backgroundColor: "var(--primary)",
+          color: "var(--primary-foreground)",
           fontFamily: "var(--font-body)",
           boxShadow: "var(--shadow-accent)",
         }}

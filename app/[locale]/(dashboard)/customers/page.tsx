@@ -47,8 +47,8 @@ export default async function CustomersPage({ params }: Props) {
             href="/customers/new"
             className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 active:scale-[0.98]"
             style={{
-              backgroundColor: "var(--accent)",
-              color: "var(--accent-foreground)",
+              backgroundColor: "var(--primary)",
+              color: "var(--primary-foreground)",
               fontFamily: "var(--font-body)",
             }}
           >

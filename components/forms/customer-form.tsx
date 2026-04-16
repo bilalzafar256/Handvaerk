@@ -223,8 +223,8 @@ export function CustomerForm({ customer }: CustomerFormProps) {
         disabled={saving}
         className="w-full h-12 px-6 rounded-[--radius-md] font-medium text-base transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         style={{
-          backgroundColor: "var(--accent)",
-          color: "var(--accent-foreground)",
+          backgroundColor: "var(--primary)",
+          color: "var(--primary-foreground)",
           fontFamily: "var(--font-body)",
           boxShadow: "var(--shadow-accent)",
         }}

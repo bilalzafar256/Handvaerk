@@ -82,7 +82,7 @@ export default async function CustomerDetailPage({ params }: Props) {
             className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0"
             style={{
               backgroundColor: "var(--accent-light)",
-              color: "var(--accent)",
+              color: "var(--primary)",
               fontFamily: "var(--font-display)",
             }}
           >
@@ -119,7 +119,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                   className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-colors duration-150"
                   style={{
                     backgroundColor: "var(--accent-light)",
-                    color: "var(--accent)",
+                    color: "var(--primary)",
                     fontFamily: "var(--font-body)",
                   }}
                 >
@@ -139,7 +139,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                   className="h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-colors duration-150 flex items-center"
                   style={{
                     backgroundColor: "var(--accent-light)",
-                    color: "var(--accent)",
+                    color: "var(--primary)",
                     fontFamily: "var(--font-body)",
                   }}
                 >

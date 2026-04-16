@@ -34,7 +34,7 @@ export function BottomNav() {
               key={href}
               href={href}
               className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors duration-150"
-              style={{ color: isActive ? "var(--accent)" : "var(--text-tertiary)" }}
+              style={{ color: isActive ? "var(--primary)" : "var(--text-tertiary)" }}
             >
               <div className="relative">
                 <Icon
@@ -44,7 +44,7 @@ export function BottomNav() {
                 {isActive && (
                   <span
                     className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                    style={{ backgroundColor: "var(--accent)" }}
+                    style={{ backgroundColor: "var(--primary)" }}
                   />
                 )}
               </div>
