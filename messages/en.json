@@ -93,6 +93,8 @@
     "overview": "Overview",
     "jobs": "Jobs",
     "customers": "Customers",
+    "quotes": "Quotes",
+    "invoices": "Invoices",
     "profile": "Profile",
     "settingsSection": "Settings",
     "signOut": "Sign out"
