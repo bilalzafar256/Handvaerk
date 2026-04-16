@@ -83,15 +83,20 @@ function CustomerCard({ customer }: { customer: CustomerWithOwed }) {
     .join(", ")
 
   return (
-    <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}>
+    <motion.div
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.1 }}
+      className="flex items-center rounded-[--radius-md] border overflow-hidden"
+      style={{
+        backgroundColor: "var(--surface)",
+        borderColor: "var(--border)",
+        boxShadow: "var(--shadow-xs)",
+      }}
+    >
+      {/* Main row — taps to detail */}
       <Link
         href={`/customers/${customer.id}`}
-        className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
-        style={{
-          backgroundColor: "var(--surface)",
-          borderColor: "var(--border)",
-          boxShadow: "var(--shadow-xs)",
-        }}
+        className="flex items-center gap-3 p-4 flex-1 min-w-0 transition-colors duration-150"
       >
         {/* Avatar */}
         <div
@@ -146,22 +151,24 @@ function CustomerCard({ customer }: { customer: CustomerWithOwed }) {
           ) : null}
         </div>
 
-        {/* Quick-dial (F-206) */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {customer.phone && (
-            <a
-              href={`tel:${customer.phone.replace(/\s/g, "")}`}
-              onClick={(e) => e.stopPropagation()}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
-              style={{ backgroundColor: "var(--accent-light)", color: "var(--accent)" }}
-              aria-label={`Call ${customer.name}`}
-            >
-              <Phone className="w-4 h-4" />
-            </a>
-          )}
-          <ChevronRight className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
-        </div>
+        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
       </Link>
+
+      {/* Quick-dial (F-206) — outside the Link to avoid nested <a> */}
+      {customer.phone && (
+        <a
+          href={`tel:${customer.phone.replace(/\s/g, "")}`}
+          className="w-14 self-stretch flex items-center justify-center border-l transition-colors duration-150 flex-shrink-0"
+          style={{
+            backgroundColor: "var(--accent-light)",
+            borderColor: "var(--border)",
+            color: "var(--primary)",
+          }}
+          aria-label={`Call ${customer.name}`}
+        >
+          <Phone className="w-4 h-4" />
+        </a>
+      )}
     </motion.div>
   )
 }

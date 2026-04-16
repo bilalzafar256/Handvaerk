@@ -342,6 +342,21 @@ Primary palette is **warm** — not cold blue-gray tech. Think:
 
 ## COMPONENT PATTERNS
 
+### Cursor Rule
+
+**All interactive elements must use `cursor-pointer`.** This applies to every `<button>`, `<a>`, and any `<div>`/`<span>` with an `onClick`. Never rely on browser defaults — always set it explicitly.
+
+```tsx
+// ✅ correct
+<button className="cursor-pointer ...">Submit</button>
+<a href="/jobs" className="cursor-pointer ...">Jobs</a>
+
+// ❌ wrong — browser default on <button> is auto/default in some contexts
+<button className="...">Submit</button>
+```
+
+---
+
 ### Primary Button
 ```tsx
 // The main CTA — amber, with glow shadow, full-width on mobile
@@ -351,6 +366,7 @@ Primary palette is **warm** — not cold blue-gray tech. Think:
     w-full h-12 px-6
     font-body font-medium text-base
     rounded-[--radius-md]
+    cursor-pointer
     transition-all duration-200
     active:scale-[0.98]
     disabled:opacity-50 disabled:cursor-not-allowed
@@ -690,6 +706,7 @@ Map shadcn's CSS variables to our design tokens in `globals.css`:
 ✅ Warm-tinted shadows (no cold blue box-shadows)
 ✅ Amber dot/border for active nav item
 ✅ oklch() color space throughout (perceptually uniform)
+✅ cursor-pointer on ALL buttons, links, and clickable elements
 
 ❌ NEVER var(--accent) for CTA backgrounds or active icon color → use var(--primary)
 ❌ NEVER var(--accent-foreground) for text on CTA → use var(--primary-foreground)
