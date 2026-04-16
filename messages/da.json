@@ -71,8 +71,15 @@
     "signUp": "",
     "signOut": ""
   },
+  "BottomNav": {
+    "overview": "",
+    "jobs": "",
+    "invoices": "",
+    "profile": ""
+  },
   "Sidebar": {
     "overview": "",
+    "jobs": "",
     "customers": "",
     "profile": "",
     "settingsSection": "",
@@ -161,6 +168,64 @@
     "notesSection": "",
     "businessSection": "",
     "cvrLabel": ""
+  },
+  "Jobs": {
+    "title": "",
+    "pageTitle": "",
+    "newJob": "",
+    "searchPlaceholder": "",
+    "empty": {
+      "title": "",
+      "description": "",
+      "cta": ""
+    },
+    "emptySearch": {
+      "title": "",
+      "description": ""
+    }
+  },
+  "JobForm": {
+    "newTitle": "",
+    "editTitle": "",
+    "customerLabel": "",
+    "customerPlaceholder": "",
+    "titleLabel": "",
+    "titlePlaceholder": "",
+    "titleRequired": "",
+    "descriptionLabel": "",
+    "descriptionPlaceholder": "",
+    "jobTypeLabel": "",
+    "typeService": "",
+    "typeProject": "",
+    "typeRecurring": "",
+    "scheduledDateLabel": "",
+    "notesLabel": "",
+    "notesPlaceholder": "",
+    "voiceStart": "",
+    "voiceStop": "",
+    "saveButton": "",
+    "createButton": "",
+    "saving": "",
+    "saveSuccess": "",
+    "saveError": ""
+  },
+  "JobDetail": {
+    "pageTitle": "",
+    "editButton": "",
+    "deleteButton": "",
+    "deleteConfirm": "",
+    "deleteConfirmButton": "",
+    "cancelButton": "",
+    "backToJobs": "",
+    "customerSection": "",
+    "descriptionSection": "",
+    "datesSection": "",
+    "scheduledDateLabel": "",
+    "completedDateLabel": "",
+    "detailsSection": "",
+    "jobTypeLabel": "",
+    "notesSection": "",
+    "photosSection": ""
   },
   "CustomerForm": {
     "nameLabel": "",

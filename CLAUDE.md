@@ -36,6 +36,9 @@ Remaining: F-100, F-101, F-102, F-103 (Clerk phone/email OTP pages — pending C
 **Phase 2 — Customer Management** `[x]` complete
 Complete: F-200 through F-209. F-207 "owes money" badge is stubbed at 0 — will be wired to real invoice data in Phase 5.
 
+**Phase 3 — Job Management** `[x]` complete
+Complete: F-300 through F-310. Free tier gate enforced at 10 active jobs (F-307). F-307/F-604 limit updated from 3 → 10.
+
 Update this when a phase completes.
 
 ---

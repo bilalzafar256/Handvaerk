@@ -34,7 +34,7 @@
         "price": "0",
         "desc": "Try it free",
         "f1": "1 user",
-        "f2": "3 active jobs",
+        "f2": "10 active jobs",
         "f3": "Basic invoicing",
         "cta": "Get started free"
       },
@@ -71,8 +71,15 @@
     "signUp": "Sign up",
     "signOut": "Sign out"
   },
+  "BottomNav": {
+    "overview": "Overview",
+    "jobs": "Jobs",
+    "invoices": "Invoices",
+    "profile": "Profile"
+  },
   "Sidebar": {
     "overview": "Overview",
+    "jobs": "Jobs",
     "customers": "Customers",
     "profile": "Profile",
     "settingsSection": "Settings",
@@ -161,6 +168,64 @@
     "notesSection": "Notes",
     "businessSection": "Business",
     "cvrLabel": "CVR number"
+  },
+  "Jobs": {
+    "title": "Jobs",
+    "pageTitle": "Jobs | Håndværk Pro",
+    "newJob": "New job",
+    "searchPlaceholder": "Search by title, customer or number…",
+    "empty": {
+      "title": "No jobs yet",
+      "description": "Create your first job to get started.",
+      "cta": "Create job"
+    },
+    "emptySearch": {
+      "title": "No results",
+      "description": "No jobs match your search."
+    }
+  },
+  "JobForm": {
+    "newTitle": "New job",
+    "editTitle": "Edit job",
+    "customerLabel": "Customer",
+    "customerPlaceholder": "Select a customer",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Electrical installation",
+    "titleRequired": "Title is required",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What needs to be done…",
+    "jobTypeLabel": "Job type",
+    "typeService": "Service",
+    "typeProject": "Project",
+    "typeRecurring": "Recurring",
+    "scheduledDateLabel": "Scheduled date",
+    "notesLabel": "Internal notes",
+    "notesPlaceholder": "Notes visible only to you…",
+    "voiceStart": "Voice",
+    "voiceStop": "Stop",
+    "saveButton": "Save job",
+    "createButton": "Create job",
+    "saving": "Saving…",
+    "saveSuccess": "Job saved",
+    "saveError": "Something went wrong. Please try again."
+  },
+  "JobDetail": {
+    "pageTitle": "Job | Håndværk Pro",
+    "editButton": "Edit",
+    "deleteButton": "Delete",
+    "deleteConfirm": "Delete this job?",
+    "deleteConfirmButton": "Yes, delete",
+    "cancelButton": "Cancel",
+    "backToJobs": "Jobs",
+    "customerSection": "Customer",
+    "descriptionSection": "Description",
+    "datesSection": "Dates",
+    "scheduledDateLabel": "Scheduled",
+    "completedDateLabel": "Completed",
+    "detailsSection": "Details",
+    "jobTypeLabel": "Type",
+    "notesSection": "Internal notes",
+    "photosSection": "Photos"
   },
   "CustomerForm": {
     "nameLabel": "Name",
