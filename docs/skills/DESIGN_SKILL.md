@@ -20,7 +20,7 @@ References:
 - Bosch Professional tools — the orange of tool handles is our accent color
 - Garmin devices — dense, readable, purposeful information display
 
-**One sentence:** *Clean, warm, industrial precision — built for dirty hands and bright sunlight.*
+**One sentence:** *Clean, warm, industrial pracision — built for dirty hands and bright sunlight.*
 
 ---
 

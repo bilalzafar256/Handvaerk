@@ -5,6 +5,9 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getJobById } from "@/lib/db/queries/jobs"
+import { getQuotesByJob } from "@/lib/db/queries/quotes"
+import { getInvoicesByJob } from "@/lib/db/queries/invoices"
+import { formatDKK } from "@/lib/utils/currency"
 import { Topbar } from "@/components/shared/topbar"
 import { StatusChanger } from "@/components/jobs/status-changer"
 import { DeleteJobButton } from "@/components/jobs/job-detail-actions"
@@ -19,6 +22,9 @@ import {
   FileText,
   Tag,
   Image,
+  Receipt,
+  Plus,
+  ChevronRight,
 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -49,7 +55,11 @@ export default async function JobDetailPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const job = await getJobById(id, user.id)
+  const [job, jobQuotes, jobInvoices] = await Promise.all([
+    getJobById(id, user.id),
+    getQuotesByJob(id, user.id),
+    getInvoicesByJob(id, user.id),
+  ])
   if (!job) notFound()
 
   return (
@@ -201,6 +211,112 @@ export default async function JobDetailPage({ params }: Props) {
         <Section title={t("photosSection")} icon={Image}>
           <PhotoUpload jobId={job.id} photos={job.photos} />
         </Section>
+
+        {/* Quotes */}
+        <div
+          className="mt-4 rounded-[--radius-md] border overflow-hidden"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <div
+            className="px-4 py-2 border-b flex items-center justify-between"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}>
+              Quotes {jobQuotes.length > 0 && `(${jobQuotes.length})`}
+            </p>
+            <Link
+              href={`/quotes/new?jobId=${job.id}&customerId=${job.customer.id}`}
+              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-colors duration-150"
+              style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New quote
+            </Link>
+          </div>
+          <div className="px-4 py-3">
+            {jobQuotes.length === 0 ? (
+              <p className="text-sm" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>No quotes yet</p>
+            ) : (
+              <ul className="space-y-2">
+                {jobQuotes.map(q => {
+                  const subtotal = q.items.reduce((s: number, item) => {
+                    const qty = parseFloat(item.quantity ?? "1")
+                    const price = parseFloat(item.unitPrice ?? "0")
+                    const markup = 1 + parseFloat(item.markupPercent ?? "0") / 100
+                    return s + qty * price * markup
+                  }, 0)
+                  return (
+                    <li key={q.id}>
+                      <Link
+                        href={`/quotes/${q.id}`}
+                        className="flex items-center gap-3 py-2 transition-colors duration-150 hover:opacity-80"
+                      >
+                        <FileText className="w-4 h-4 flex-shrink-0" style={{ color: "var(--primary)" }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>{q.quoteNumber}</p>
+                          <p className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>{q.status}</p>
+                        </div>
+                        <span className="text-xs font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                          {formatDKK(subtotal)}
+                        </span>
+                        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Invoices */}
+        <div
+          className="mt-4 rounded-[--radius-md] border overflow-hidden"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <div
+            className="px-4 py-2 border-b flex items-center justify-between"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}>
+              Invoices {jobInvoices.length > 0 && `(${jobInvoices.length})`}
+            </p>
+            <Link
+              href={`/invoices/new?jobId=${job.id}&customerId=${job.customer.id}`}
+              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-colors duration-150"
+              style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New invoice
+            </Link>
+          </div>
+          <div className="px-4 py-3">
+            {jobInvoices.length === 0 ? (
+              <p className="text-sm" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>No invoices yet</p>
+            ) : (
+              <ul className="space-y-2">
+                {jobInvoices.map(inv => (
+                  <li key={inv.id}>
+                    <Link
+                      href={`/invoices/${inv.id}`}
+                      className="flex items-center gap-3 py-2 transition-colors duration-150 hover:opacity-80"
+                    >
+                      <Receipt className="w-4 h-4 flex-shrink-0" style={{ color: "var(--primary)" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>{inv.invoiceNumber}</p>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>{inv.status}</p>
+                      </div>
+                      <span className="text-xs font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                        {formatDKK(parseFloat(inv.totalInclVat ?? "0"))}
+                      </span>
+                      <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
     </>
   )

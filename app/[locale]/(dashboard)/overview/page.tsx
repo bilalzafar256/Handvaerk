@@ -7,7 +7,8 @@ import { eq } from "drizzle-orm"
 import { getOverviewStats } from "@/lib/db/queries/overview"
 import { Topbar } from "@/components/shared/topbar"
 import { Link } from "@/i18n/navigation"
-import { Users, Briefcase, ChevronRight, Zap, CheckCircle2, Clock } from "lucide-react"
+import { Users, Briefcase, ChevronRight, FileText, Receipt, TrendingUp, Clock } from "lucide-react"
+import { formatDKK } from "@/lib/utils/currency"
 import { StatusBadge } from "@/components/jobs/status-changer"
 import type { Job } from "@/lib/db/schema/jobs"
 import type { Customer } from "@/lib/db/schema/customers"
@@ -69,20 +70,54 @@ export default async function OverviewPage({ params }: Props) {
             color="amber"
           />
           <StatCard
-            icon={Zap}
-            label={t("statsInProgress")}
-            value={stats.statusCounts.in_progress}
-            href="/jobs"
+            icon={FileText}
+            label="Open quotes"
+            value={stats.openQuoteCount}
+            href="/quotes"
             color="progress"
           />
           <StatCard
-            icon={CheckCircle2}
-            label={t("statsDone")}
-            value={stats.statusCounts.done + stats.statusCounts.paid}
-            href="/jobs"
+            icon={Receipt}
+            label="Pending invoices"
+            value={stats.pendingInvoiceCount}
+            href="/invoices"
             color="green"
           />
         </div>
+
+        {/* Financial summary row */}
+        {(stats.pendingInvoiceTotal > 0 || stats.paidThisMonth > 0) && (
+          <div className="grid grid-cols-2 gap-3">
+            <div
+              className="rounded-[--radius-lg] p-4 flex flex-col gap-2"
+              style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+                <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
+                  Outstanding
+                </p>
+              </div>
+              <p className="text-xl font-bold leading-none" style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}>
+                {formatDKK(stats.pendingInvoiceTotal)}
+              </p>
+            </div>
+            <div
+              className="rounded-[--radius-lg] p-4 flex flex-col gap-2"
+              style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+                <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
+                  Paid this month
+                </p>
+              </div>
+              <p className="text-xl font-bold leading-none" style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}>
+                {formatDKK(stats.paidThisMonth)}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Status breakdown */}
         {stats.activeJobCount > 0 && (

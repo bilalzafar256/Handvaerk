@@ -1,21 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useUIStore } from "@/stores/ui-store"
 import type { ViewMode } from "@/components/shared/view-toggle"
 
 export function useViewPreference(key: string, defaultMode: ViewMode = "list") {
-  const [mode, setMode] = useState<ViewMode>(defaultMode)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(`view:${key}`)
-    if (stored === "list" || stored === "card" || stored === "table") {
-      setMode(stored)
-    }
-  }, [key])
+  const mode = useUIStore((s) => s.viewPreferences[key] ?? defaultMode)
+  const setViewPreference = useUIStore((s) => s.setViewPreference)
 
   function change(next: ViewMode) {
-    setMode(next)
-    localStorage.setItem(`view:${key}`, next)
+    setViewPreference(key, next)
   }
 
   return [mode, change] as const
