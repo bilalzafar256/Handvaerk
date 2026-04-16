@@ -63,7 +63,7 @@ export default async function CustomerDetailPage({ params }: Props) {
         }
       />
 
-      <div className="pt-14 max-w-lg mx-auto px-4 pb-10">
+      <div className="pt-14 px-4 pb-10">
         {/* Back link */}
         <div className="pt-4 pb-2">
           <Link

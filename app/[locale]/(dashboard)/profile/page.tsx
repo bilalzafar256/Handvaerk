@@ -28,7 +28,7 @@ export default async function ProfilePage({ params }: Props) {
     <>
       <Topbar title={t("title")} />
 
-      <div className="pt-14 pb-24 max-w-2xl mx-auto">
+      <div className="pt-14 pb-24">
         {/* Company header — logo + identity */}
         <div
           className="mx-4 mt-5 rounded-[--radius-lg] border overflow-hidden"

@@ -51,7 +51,7 @@ export default async function EditJobPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="pt-14 max-w-lg mx-auto">
+      <div className="pt-14">
         <div className="pt-6">
           <JobForm job={job} customers={customers} />
         </div>

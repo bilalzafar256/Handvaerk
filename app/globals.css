@@ -46,9 +46,9 @@
   --shadow-accent:      0 4px 14px oklch(0.70 0.19 62 / 0.35);
 
   /* ── Status colors ── */
-  --status-new-bg:            oklch(0.93 0.005 70);
-  --status-new-text:          oklch(0.40 0.010 65);
-  --status-new-border:        oklch(0.82 0.008 68);
+  --status-new-bg:            oklch(0.92 0.06 200);
+  --status-new-text:          oklch(0.32 0.14 200);
+  --status-new-border:        oklch(0.80 0.10 200);
 
   --status-scheduled-bg:      oklch(0.93 0.04 240);
   --status-scheduled-text:    oklch(0.35 0.14 240);

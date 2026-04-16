@@ -49,7 +49,7 @@ export default async function EditCustomerPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="pt-14 max-w-lg mx-auto">
+      <div className="pt-14">
         <div className="pt-6">
           <CustomerForm customer={customer} />
         </div>

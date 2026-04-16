@@ -35,7 +35,7 @@ export default async function OverviewPage({ params }: Props) {
     <>
       <Topbar title={t("title")} />
 
-      <div className="pt-14 pb-24 px-4 max-w-2xl mx-auto space-y-6">
+      <div className="pt-14 pb-24 px-4 space-y-6">
         {/* Greeting */}
         <div className="pt-5">
           <p

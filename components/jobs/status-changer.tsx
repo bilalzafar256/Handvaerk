@@ -83,10 +83,11 @@ export function StatusChanger({ jobId, currentStatus }: StatusChangerProps) {
               disabled={saving}
               className="h-8 px-3 rounded-[--radius-pill] text-xs font-medium border transition-all duration-150 cursor-pointer disabled:opacity-50"
               style={{
-                backgroundColor: isActive ? `var(${cfg.bg})` : "transparent",
-                color: isActive ? `var(${cfg.text})` : "var(--text-secondary)",
-                borderColor: isActive ? `var(${cfg.border})` : "var(--border)",
+                backgroundColor: `var(${cfg.bg})`,
+                color: `var(${cfg.text})`,
+                borderColor: `var(${cfg.border})`,
                 fontFamily: "var(--font-body)",
+                opacity: isActive ? 1 : 0.45,
                 outline: isActive ? `2px solid var(${cfg.border})` : "none",
                 outlineOffset: "1px",
               }}
