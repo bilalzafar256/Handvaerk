@@ -11,6 +11,7 @@
 | `FEATURES.md` | All features with `[ ]` tracking status |
 | `GDPR.md` | Privacy compliance requirements |
 | `REPORTING.md` | Analytics and reporting specs |
+| `AI_FEATURES.md` | AI feature specs (Phase 10+): OCR, smart suggestions, risk scoring, voice-to-quote |
 | `MOBILE_DESIGN.md` | Mobile UX constraints and patterns |
 | `CLAUDE_CODE_SKILLS.md` | How to use Claude Code effectively on this project |
 

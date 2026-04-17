@@ -320,36 +320,142 @@ invoice_items (
 
 ---
 
-## PHASE 6 — Dashboard, Free Tier Launch & Tier Gates
+## PHASE 6 — Quote & Invoice Enhancements
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-600 | Dashboard: outstanding amount | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
-| F-601 | Dashboard: active jobs count | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
-| F-602 | Dashboard: overdue invoices | `[x]` | `[~]` | Query in overview.ts; CriticalZone component uses stub data |
-| F-603 | Dashboard: this month billed | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
-| F-604 | Free tier: 10 active jobs gate | `[x]` | `[x]` | Done in Phase 3 as F-307 |
-| F-605 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |
-| F-606 | Beta launch: 20 users | `N/A` | `N/A` | Network outreach |
-| F-607 | Reporting DB queries ready | `[x]` | `N/A` | lib/db/queries/overview.ts covers all dashboard stats |
+| F-600 | Default `valid_until` = today + 15 days | `[ ]` | `[ ]` | Auto-fill on new quote and invoice creation forms |
+| F-601 | Per-line-item discount (% or fixed) | `[ ]` | `[ ]` | New `discount_type` + `discount_value` columns on `quote_items` and `invoice_items`; line total = (qty × unit_price × markup) − discount |
+| F-602 | Carry discount quote → invoice | `[ ]` | `[ ]` | When generating invoice from accepted quote, copy header discount AND per-line discounts exactly |
+| F-603 | Duplicate invoice guard | `[ ]` | `[ ]` | If an invoice already exists for the same quote_id, show modal: "View existing" or "Create new anyway" |
+| F-604 | Action buttons at top of detail pages | `N/A` | `[ ]` | Replace bottom stacked button list with a compact sticky action bar at the top of quote/invoice detail pages (PDF, Send, Edit, Delete, etc.) |
+| F-605 | Inline actions on quotes list page | `[ ]` | `[ ]` | Row-level action menu (⋯) on quotes list: Edit, Delete, Create Invoice, Download PDF, Save as Template, Send, Copy shareable link |
+| F-606 | Inline actions on invoices list page | `[ ]` | `[ ]` | Row-level action menu (⋯) on invoices list: Edit, Delete, Download PDF, Send, Mark as Paid, Create Credit Note |
+| F-607 | Landing page hero animation fix | `N/A` | `[ ]` | Fix broken animated word in hero ("Your invoice in ___." — rotating word not rendering) |
+
+### DB Schema changes (migration required)
+```sql
+-- Add to quote_items
+ALTER TABLE quote_items ADD COLUMN discount_type text;        -- 'percent' | 'fixed' | null
+ALTER TABLE quote_items ADD COLUMN discount_value numeric(10,2);
+
+-- Add to invoice_items
+ALTER TABLE invoice_items ADD COLUMN discount_type text;
+ALTER TABLE invoice_items ADD COLUMN discount_value numeric(10,2);
+```
 
 ---
 
-## PHASE 7 — Compliance Pre-GoLive
+## PHASE 7 — Bank Details & Profile Enhancements
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-700 | SKAT moms summary page | `[ ]` | `[ ]` | Quarterly export, not API yet |
-| F-701 | Moms period calculation | `[ ]` | `[ ]` | Q1/Q2/Q3/Q4 totals |
-| F-702 | EAN number on customer form | `[ ]` | `[ ]` | NemHandel field exposed |
-| F-703 | OIOUBL invoice export | `[ ]` | `[ ]` | XML format for public sector |
-| F-704 | GDPR: user data export | `[ ]` | `[ ]` | JSON download of all user data |
-| F-705 | GDPR: account deletion | `[ ]` | `[ ]` | Soft delete → hard delete 30 days |
-| F-706 | Privacy policy page | `N/A` | `[ ]` | Static legal page |
-| F-707 | Cookie consent | `N/A` | `[ ]` | For analytics cookies |
-| F-708 | Terms of service page | `N/A` | `[ ]` | Static |
-| F-709 | Rate limiting: all API routes | `[ ]` | `N/A` | Upstash |
-| F-710 | Security: Zod on all endpoints | `[ ]` | `N/A` | Audit all routes |
+| F-700 | Bank accounts DB schema | `[ ]` | `N/A` | New `bank_accounts` table: `bank_name`, `reg_number`, `account_number`, `is_default`, per user |
+| F-701 | Profile: bank details management UI | `[ ]` | `[ ]` | Add/edit/delete bank accounts on profile page; star icon to set default |
+| F-702 | Profile: MobilePay number management | `[ ]` | `[ ]` | Store MobilePay business number alongside bank details; mark as preferred payment method |
+| F-703 | Pre-load default bank details into new invoices | `[ ]` | `[ ]` | When creating invoice, auto-fill `bank_account` + `mobilepay_number` from user's default |
+| F-704 | Bank details + MobilePay on invoice PDF | `[ ]` | `[ ]` | Display payment details section in PDF with bank reg/account and/or MobilePay number |
+
+### DB Schema: bank_accounts
+```sql
+bank_accounts (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  bank_name       text,
+  reg_number      text NOT NULL,
+  account_number  text NOT NULL,
+  is_default      boolean DEFAULT false,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now()
+)
+```
+
+---
+
+## PHASE 8 — Merge Documents
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-800 | Merge quotes | `[ ]` | `[ ]` | Select 2+ quotes for the same customer → creates a new merged quote combining all line items; originals kept but status set to `merged` |
+| F-801 | Merge invoices | `[ ]` | `[ ]` | Select 2+ invoices for the same customer → creates new merged invoice; originals kept with `merged` status |
+| F-802 | Merge conflict UX | `N/A` | `[ ]` | Warn if header discounts differ across merged docs; show preview of merged totals before confirming |
+
+### DB Schema changes
+```sql
+-- Add to quotes
+ALTER TABLE quotes ADD COLUMN merged_into uuid REFERENCES quotes(id);
+
+-- Add to invoices
+ALTER TABLE invoices ADD COLUMN merged_into uuid REFERENCES invoices(id);
+
+-- Add 'merged' to status flows for both tables
+```
+
+---
+
+## PHASE 9 — Email Notifications & Customer Communication
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-900 | Quote accepted → thank-you email to customer | `[ ]` | `N/A` | Triggered by customer accept action on shareable quote link; Resend template |
+| F-901 | Quote rejected → "help us improve" email | `[ ]` | `N/A` | Triggered by customer reject action; email asks for feedback |
+| F-902 | Invoice paid → thank-you email + review request | `[ ]` | `N/A` | Triggered on "Mark as paid"; includes Google review link if configured |
+| F-903 | Google review URL on profile | `[ ]` | `[ ]` | New `google_review_url` field on users table; input on profile page |
+
+### DB Schema changes
+```sql
+ALTER TABLE users ADD COLUMN google_review_url text;
+```
+
+---
+
+## PHASE 10 — AI Features
+
+> Full spec in `docs/AI_FEATURES.md`
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1000 | Business card → customer (OCR) | `[ ]` | `[ ]` | Upload image → Claude vision extracts name/company/phone/email/address → pre-fills customer form |
+| F-1001 | Smart quote suggestions | `[ ]` | `[ ]` | Based on job description, suggest line items from past quotes |
+| F-1002 | Payment risk scoring | `[ ]` | `[ ]` | Predict overdue likelihood based on customer history |
+| F-1003 | Voice-to-quote | `[ ]` | `[ ]` | Dictate a job description → AI drafts quote line items |
+| F-1004 | Auto line-item categorization | `[ ]` | `[ ]` | Classify pasted or dictated items into labour/material/fixed/travel |
+| F-1005 | Customer sentiment flag | `[ ]` | `[ ]` | Flag negative tone in customer notes or email history |
+
+---
+
+## PHASE 11 — Dashboard, Free Tier Launch & Tier Gates
+> (Previously Phase 6)
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1100 | Dashboard: outstanding amount | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-1101 | Dashboard: active jobs count | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-1102 | Dashboard: overdue invoices | `[x]` | `[~]` | Query in overview.ts; CriticalZone component uses stub data |
+| F-1103 | Dashboard: this month billed | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-1104 | Free tier: 10 active jobs gate | `[x]` | `[x]` | Done in Phase 3 as F-307 |
+| F-1105 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |
+| F-1106 | Beta launch: 20 users | `N/A` | `N/A` | Network outreach |
+| F-1107 | Reporting DB queries ready | `[x]` | `N/A` | lib/db/queries/overview.ts covers all dashboard stats |
+
+---
+
+## PHASE 12 — Compliance Pre-GoLive
+> (Previously Phase 7)
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1200 | SKAT moms summary page | `[ ]` | `[ ]` | Quarterly export, not API yet |
+| F-1201 | Moms period calculation | `[ ]` | `[ ]` | Q1/Q2/Q3/Q4 totals |
+| F-1202 | EAN number on customer form | `[ ]` | `[ ]` | NemHandel field exposed |
+| F-1203 | OIOUBL invoice export | `[ ]` | `[ ]` | XML format for public sector |
+| F-1204 | GDPR: user data export | `[ ]` | `[ ]` | JSON download of all user data |
+| F-1205 | GDPR: account deletion | `[ ]` | `[ ]` | Soft delete → hard delete 30 days |
+| F-1206 | Privacy policy page | `N/A` | `[ ]` | Static legal page |
+| F-1207 | Cookie consent | `N/A` | `[ ]` | For analytics cookies |
+| F-1208 | Terms of service page | `N/A` | `[ ]` | Static |
+| F-1209 | Rate limiting: all API routes | `[ ]` | `N/A` | Upstash |
+| F-1210 | Security: Zod on all endpoints | `[ ]` | `N/A` | Audit all routes |
 
 ---
 

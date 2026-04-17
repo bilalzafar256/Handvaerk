@@ -45,10 +45,25 @@ Complete: F-400 through F-414. Schemas + migration applied (0004). Quote PDF (TI
 **Phase 5 — Invoice Engine** `[x]` complete
 Complete: F-500 through F-513. Schemas + migration applied (0004). Invoice PDF (FAKTURA), email via Resend with PDF attachment, Inngest payment reminders (+8d, +15d), credit notes (KRE-XXXX), mark as paid, overdue auto-flag. PDF download routes at /api/invoices/[id]/pdf and /api/quotes/[id]/pdf.
 
-**Phase 6 — Dashboard, Free Tier Launch & Tier Gates** `[~]` in progress
-Complete: F-604 (free tier gate, done in Phase 3), F-607 (overview queries in lib/db/queries/overview.ts).
+**Phase 6 — Quote & Invoice Enhancements** `[ ]` not started
+Features: default valid_until (today+15d), per-line discounts, discount carry-over quote→invoice, duplicate invoice guard, action buttons at top of detail pages, inline actions on list pages (⋯ menu), landing page hero fix. Requires DB migration for discount columns on quote_items/invoice_items.
+
+**Phase 7 — Bank Details & Profile Enhancements** `[ ]` not started
+Features: bank_accounts table, profile UI for bank/MobilePay management, pre-load defaults into new invoices, bank details on PDF.
+
+**Phase 8 — Merge Documents** `[ ]` not started
+Features: merge quotes, merge invoices (same customer), merge conflict UX.
+
+**Phase 9 — Email Notifications & Customer Communication** `[ ]` not started
+Features: quote accepted/rejected emails to customer, invoice paid thank-you + Google review request, google_review_url on profile.
+
+**Phase 10 — AI Features** `[ ]` not started
+Spec in docs/AI_FEATURES.md. Key: business card OCR → customer, smart quote suggestions, payment risk scoring, voice-to-quote.
+
+**Phase 11 — Dashboard, Free Tier Launch & Tier Gates** `[~]` in progress (previously Phase 6)
+Complete: F-1104 (free tier gate), F-1107 (overview queries in lib/db/queries/overview.ts).
 Dashboard components built: stat-cards, critical-zone, today-jobs, activity-feed (components/dashboard/).
-Remaining: wire real data into dashboard components — F-600, F-601, F-602, F-603 FE still use stub data. F-605 (upgrade prompt) not started.
+Remaining: wire real data into dashboard components — F-1100, F-1101, F-1102, F-1103 FE still use stub data. F-1105 (upgrade prompt) not started.
 
 Update this when a phase completes.
 
