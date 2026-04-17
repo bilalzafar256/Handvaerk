@@ -72,7 +72,7 @@ export default async function JobDetailPage({ params }: Props) {
         }
       />
 
-      <div className="pt-12 pb-8 overflow-x-hidden">
+      <div className="pt-2 pb-8 overflow-x-hidden">
         <div className="px-4 lg:px-6 max-w-5xl mx-auto">
           {/* Back */}
           <div className="pt-3 pb-2">
@@ -258,14 +258,14 @@ const CARD_ACCENTS: Record<string, string> = {
 
 function Card({ title, children, accent = "blue" }: { title: string; children: React.ReactNode; accent?: keyof typeof CARD_ACCENTS }) {
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-      <div className="px-4 py-2.5 border-b flex items-center gap-2.5" style={{ borderColor: "var(--border)" }}>
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+      <div className="px-4 py-2.5 border-b flex items-center gap-2.5" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CARD_ACCENTS[accent] }} />
         <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           {title}
         </p>
       </div>
-      <div className="px-4 py-3">{children}</div>
+      <div className="px-4 py-3" style={{ backgroundColor: "var(--background)" }}>{children}</div>
     </div>
   )
 }
@@ -300,8 +300,8 @@ function RelatedDocs({
         </p>
         <Link
           href={newHref}
-          className="flex items-center gap-1 text-[11px] font-medium px-2 h-6 rounded-md transition-colors"
-          style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
+          className="flex items-center gap-1 text-[11px] font-medium px-2 h-6 rounded-md transition-colors bg-[var(--accent-light)] hover:bg-[var(--amber-200)]"
+          style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
         >
           <Plus className="w-3 h-3" />
           {newLabel}

@@ -198,7 +198,7 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
       )}
 
       {filtered.length === 0 ? (
-        <EmptyState hasFilters={query.trim().length > 0 || activeFilters} />
+        <EmptyState hasFilters={query.trim().length > 0 || activeFilters} viewMode={viewMode} />
       ) : (
         <>
           {viewMode === "list" ? (
@@ -297,8 +297,8 @@ function JobCard({ job, index }: { job: JobWithCustomer; index: number }) {
     >
       <Link
         href={`/jobs/${job.id}`}
-        className="flex flex-col rounded-xl border overflow-hidden hover:bg-[var(--accent)] transition-colors"
-        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+        className="flex flex-col rounded-xl border overflow-hidden bg-[var(--card)] hover:bg-[var(--accent)] transition-colors"
+        style={{ borderColor: "var(--border)" }}
       >
         {/* Status bar top */}
         <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
@@ -358,23 +358,38 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
   )
 }
 
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+function EmptyState({ hasFilters, viewMode }: { hasFilters: boolean; viewMode: "list" | "grid" }) {
   const t = useTranslations("Jobs")
   return (
     <div className="relative flex flex-col items-center justify-center py-20 px-8 gap-4 text-center overflow-hidden">
       {/* Ghost card behind */}
-      <div className="absolute inset-x-4 top-8 bottom-8 rounded-xl border opacity-10 blur-[1px] pointer-events-none" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-        <div className="h-12 border-b" style={{ borderColor: "var(--border)" }} />
-        {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
-            <div className="w-3 h-full rounded-full" style={{ backgroundColor: "var(--muted-foreground)" }} />
-            <div className="flex-1 space-y-1.5">
-              <div className="h-3 rounded w-3/4" style={{ backgroundColor: "var(--muted-foreground)" }} />
-              <div className="h-2.5 rounded w-1/2" style={{ backgroundColor: "var(--muted-foreground)" }} />
+      {viewMode === "list" ? (
+        <div className="absolute inset-x-4 top-8 bottom-8 rounded-xl border opacity-10 blur-[1px] pointer-events-none" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+          <div className="h-12 border-b" style={{ borderColor: "var(--border)" }} />
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+              <div className="w-3 h-full rounded-full" style={{ backgroundColor: "var(--muted-foreground)" }} />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 rounded w-3/4" style={{ backgroundColor: "var(--muted-foreground)" }} />
+                <div className="h-2.5 rounded w-1/2" style={{ backgroundColor: "var(--muted-foreground)" }} />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="absolute inset-x-4 top-8 bottom-8 opacity-10 blur-[1px] pointer-events-none grid grid-cols-3 gap-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+              <div className="h-1" style={{ backgroundColor: "var(--muted-foreground)" }} />
+              <div className="p-3 space-y-2">
+                <div className="h-3 rounded w-3/4" style={{ backgroundColor: "var(--muted-foreground)" }} />
+                <div className="h-2.5 rounded w-1/2" style={{ backgroundColor: "var(--muted-foreground)" }} />
+                <div className="h-5 rounded w-1/3 mt-3" style={{ backgroundColor: "var(--muted-foreground)" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       <div className="relative space-y-1 z-10">
