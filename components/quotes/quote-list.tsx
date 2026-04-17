@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Link, useRouter } from "@/i18n/navigation"
 import { motion } from "motion/react"
-import { ChevronRight, ChevronLeft, Search, Plus, FileText, Calendar, Receipt, MoreHorizontal, Edit2, Trash2, Send, Download, BookmarkPlus, Copy } from "lucide-react"
+import { ChevronRight, ChevronLeft, Search, Plus, FileText, Calendar, Receipt, Edit2, Trash2, Send, Download, BookmarkPlus, Copy } from "lucide-react"
 import { toast } from "sonner"
 import { formatDKK } from "@/lib/utils/currency"
 import { ViewToggle } from "@/components/shared/view-toggle"
@@ -49,10 +49,14 @@ function calcTotal(items: QuoteItem[]): number {
 
 const PER_PAGE = 15
 
-function QuoteRowActions({ quote }: { quote: QuoteWithRelations }) {
+const btnCls = "flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-40 hover:bg-[--background-subtle] flex-shrink-0"
+const btnStyle = { borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }
+const btnDangerStyle = { borderColor: "var(--border)", color: "var(--error)", backgroundColor: "var(--surface)" }
+
+function QuoteInlineActions({ quote }: { quote: QuoteWithRelations }) {
   const router = useRouter()
-  const [open, setOpen]   = useState(false)
-  const [busy, setBusy]   = useState(false)
+  const [busy, setBusy] = useState(false)
+  const status = quote.status ?? "draft"
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/en/q/${quote.shareToken}` : ""
 
   async function handleDelete() {
@@ -60,13 +64,12 @@ function QuoteRowActions({ quote }: { quote: QuoteWithRelations }) {
     setBusy(true)
     try { await deleteQuoteAction(quote.id) } catch { toast.error("Failed to delete") }
     setBusy(false)
-    setOpen(false)
   }
 
   async function handleSend() {
     setBusy(true)
     try { await sendQuoteEmailAction(quote.id); toast.success("Quote sent") } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
-    setBusy(false); setOpen(false)
+    setBusy(false)
   }
 
   async function handleInvoice() {
@@ -79,76 +82,54 @@ function QuoteRowActions({ quote }: { quote: QuoteWithRelations }) {
         router.push(`/invoices/${result.id}`)
       }
     } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
-    setBusy(false); setOpen(false)
+    setBusy(false)
+  }
+
+  async function handleTemplate() {
+    const name = prompt("Template name:")
+    if (!name) return
+    setBusy(true)
+    try { await saveQuoteAsTemplateAction(quote.id, name); toast.success("Saved as template") } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
+    setBusy(false)
   }
 
   return (
-    <div className="relative" onClick={(e) => e.preventDefault()}>
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        disabled={busy}
-        className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-40"
-        style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
-      >
-        <MoreHorizontal className="w-4 h-4" />
-      </button>
-      {open && (
-        <div
-          className="absolute right-0 top-full mt-1 w-52 rounded-[--radius-md] border shadow-lg overflow-hidden z-30"
-          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
+    <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+      {status === "draft" && (
+        <Link href={`/quotes/${quote.id}/edit`} title="Edit" className={btnCls} style={btnStyle}>
+          <Edit2 className="w-3.5 h-3.5" />
+        </Link>
+      )}
+      {(status === "draft" || status === "sent") && (
+        <button onClick={handleSend} disabled={busy} title={status === "sent" ? "Resend" : "Send"} className={btnCls} style={btnStyle}>
+          <Send className="w-3.5 h-3.5" />
+        </button>
+      )}
+      {status === "accepted" && (
+        <button onClick={handleInvoice} disabled={busy} title="Create invoice" className={btnCls} style={btnStyle}>
+          <Receipt className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <a href={`/api/quotes/${quote.id}/pdf`} download title="Download PDF" className={btnCls} style={btnStyle}>
+        <Download className="w-3.5 h-3.5" />
+      </a>
+      {shareUrl && (
+        <button
+          onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied") }}
+          title="Copy link"
+          className={btnCls}
+          style={btnStyle}
         >
-          {quote.status === "draft" && (
-            <Link href={`/quotes/${quote.id}/edit`} onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors"
-              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-            >
-              <Edit2 className="w-4 h-4 flex-shrink-0" /> Edit
-            </Link>
-          )}
-          {(quote.status === "draft" || quote.status === "sent") && (
-            <button onClick={handleSend}
-              className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer"
-              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-            >
-              <Send className="w-4 h-4 flex-shrink-0" /> {quote.status === "sent" ? "Resend" : "Send"}
-            </button>
-          )}
-          {quote.status === "accepted" && (
-            <button onClick={handleInvoice}
-              className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer"
-              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
-            >
-              <Receipt className="w-4 h-4 flex-shrink-0" /> Create invoice
-            </button>
-          )}
-          <a href={`/api/quotes/${quote.id}/pdf`} download onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors"
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}
-          >
-            <Download className="w-4 h-4 flex-shrink-0" /> Download PDF
-          </a>
-          {shareUrl && (
-            <button onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied"); setOpen(false) }}
-              className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer"
-              style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}
-            >
-              <Copy className="w-4 h-4 flex-shrink-0" /> Copy link
-            </button>
-          )}
-          <button onClick={() => { setOpen(false); router.push(`/quotes/${quote.id}`) }}
-            className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer border-t"
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)", borderColor: "var(--border)" }}
-          >
-            <BookmarkPlus className="w-4 h-4 flex-shrink-0" /> Save as template
-          </button>
-          <button onClick={handleDelete}
-            className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer border-t"
-            style={{ fontFamily: "var(--font-body)", color: "var(--error)", borderColor: "var(--border)" }}
-          >
-            <Trash2 className="w-4 h-4 flex-shrink-0" /> Delete
-          </button>
-        </div>
+          <Copy className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <button onClick={handleTemplate} disabled={busy} title="Save as template" className={btnCls} style={btnStyle}>
+        <BookmarkPlus className="w-3.5 h-3.5" />
+      </button>
+      {status === "draft" && (
+        <button onClick={handleDelete} disabled={busy} title="Delete" className={btnCls} style={btnDangerStyle}>
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       )}
     </div>
   )
@@ -243,41 +224,46 @@ function ListView({ quotes }: { quotes: QuoteWithRelations[] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
           >
-            <div className="flex items-center gap-2">
-              <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }} className="flex-1 min-w-0">
-                <Link
-                  href={`/quotes/${quote.id}`}
-                  className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
-                  style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
-                >
-                  <div className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--accent-light)" }}>
-                    <FileText className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                      {quote.quoteNumber}
-                    </p>
-                    <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                      {quote.customer.name}
-                    </p>
-                    {quote.validUntil && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Calendar className="w-3 h-3" style={{ color: "var(--text-tertiary)" }} />
-                        <span className="text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
-                          Valid until {new Date(quote.validUntil).toLocaleDateString("da-DK")}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <QuoteStatusBadge status={quote.status ?? "draft"} />
-                    <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                      {formatDKK(subtotal)}
-                    </span>
-                  </div>
-                </Link>
-              </motion.div>
-              <QuoteRowActions quote={quote} />
+            <div
+              className="rounded-[--radius-md] border overflow-hidden"
+              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
+            >
+              <Link
+                href={`/quotes/${quote.id}`}
+                className="flex items-center gap-3 p-4 transition-colors duration-150 hover:bg-[--background-subtle]"
+              >
+                <div className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--accent-light)" }}>
+                  <FileText className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                    {quote.quoteNumber}
+                  </p>
+                  <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
+                    {quote.customer.name}
+                  </p>
+                  {quote.validUntil && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Calendar className="w-3 h-3" style={{ color: "var(--text-tertiary)" }} />
+                      <span className="text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
+                        Valid until {new Date(quote.validUntil).toLocaleDateString("da-DK")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <QuoteStatusBadge status={quote.status ?? "draft"} />
+                  <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                    {formatDKK(subtotal)}
+                  </span>
+                </div>
+              </Link>
+              <div
+                className="flex items-center gap-1 px-4 py-2 border-t"
+                style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+              >
+                <QuoteInlineActions quote={quote} />
+              </div>
             </div>
           </motion.li>
         )
@@ -298,12 +284,12 @@ function CardView({ quotes }: { quotes: QuoteWithRelations[] }) {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
-            whileTap={{ scale: 0.97 }}
+            className="flex flex-col rounded-[--radius-lg] border overflow-hidden"
+            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
           >
             <Link
               href={`/quotes/${quote.id}`}
-              className="flex flex-col gap-3 p-4 rounded-[--radius-lg] border h-full transition-colors duration-150"
-              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
+              className="flex flex-col gap-3 p-4 flex-1 transition-colors duration-150 hover:bg-[--background-subtle]"
             >
               <div className="w-10 h-10 rounded-[--radius-sm] flex items-center justify-center" style={{ backgroundColor: "var(--accent-light)" }}>
                 <FileText className="w-5 h-5" style={{ color: "var(--primary)" }} />
@@ -323,6 +309,12 @@ function CardView({ quotes }: { quotes: QuoteWithRelations[] }) {
                 </span>
               </div>
             </Link>
+            <div
+              className="flex items-center gap-1 px-3 py-2 border-t flex-wrap"
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+            >
+              <QuoteInlineActions quote={quote} />
+            </div>
           </motion.div>
         )
       })}
@@ -337,7 +329,7 @@ function TableView({ quotes }: { quotes: QuoteWithRelations[] }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr style={{ borderBottom: "1px solid var(--border)" }}>
-            {["Number", "Customer", "Valid until", "Amount", "Status", ""].map((h, i) => (
+            {["Number", "Customer", "Valid until", "Amount", "Status", "Actions"].map((h, i) => (
               <th
                 key={i}
                 className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wider first:pl-0"
@@ -384,7 +376,7 @@ function TableView({ quotes }: { quotes: QuoteWithRelations[] }) {
                   <QuoteStatusBadge status={quote.status ?? "draft"} />
                 </td>
                 <td className="py-3 px-3">
-                  <QuoteRowActions quote={quote} />
+                  <QuoteInlineActions quote={quote} />
                 </td>
               </tr>
             )
