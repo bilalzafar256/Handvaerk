@@ -37,7 +37,7 @@ export default async function QuotesPage({ params }: Props) {
         action={
           <Link
             href="/quotes/new"
-            className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer"
+            className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer hover:opacity-90"
             style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
           >
             <Plus className="w-4 h-4" />

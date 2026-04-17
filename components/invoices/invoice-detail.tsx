@@ -149,8 +149,8 @@ export function InvoiceDetail({ invoice, user }: { invoice: InvoiceWithRelations
           <a
             href={`/api/invoices/${invoice.id}/pdf`}
             download
-            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer hover:bg-[--background-subtle]"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
+            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer bg-[--surface] hover:bg-[--background-subtle]"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
             title="Download PDF"
           >
             <Download className="w-3.5 h-3.5" />

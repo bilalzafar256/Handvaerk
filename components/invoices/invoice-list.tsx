@@ -46,9 +46,9 @@ function InvoiceStatusBadge({ status, isCreditNote }: { status: string; isCredit
 
 const PER_PAGE = 15
 
-const btnCls = "flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-40 hover:bg-[--background-subtle] flex-shrink-0"
-const btnStyle = { borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }
-const btnDangerStyle = { borderColor: "var(--border)", color: "var(--error)", backgroundColor: "var(--surface)" }
+const btnCls = "flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-40 bg-[--surface] hover:bg-[--background-subtle] flex-shrink-0"
+const btnStyle = { borderColor: "var(--border)", color: "var(--text-secondary)" }
+const btnDangerStyle = { borderColor: "var(--border)", color: "var(--error)" }
 
 function InvoiceInlineActions({ inv }: { inv: InvoiceWithRelations }) {
   const router = useRouter()

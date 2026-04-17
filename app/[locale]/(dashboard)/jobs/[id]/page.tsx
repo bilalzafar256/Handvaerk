@@ -70,12 +70,11 @@ export default async function JobDetailPage({ params }: Props) {
           <div className="flex items-center gap-2">
             <Link
               href={`/jobs/${id}/edit`}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150 hover:bg-[--background-subtle]"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150 bg-[--surface] hover:bg-[--background-subtle]"
               style={{
                 borderColor: "var(--border)",
                 color: "var(--text-primary)",
                 fontFamily: "var(--font-body)",
-                backgroundColor: "var(--surface)",
               }}
             >
               <Pencil className="w-4 h-4" />

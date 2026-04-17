@@ -29,12 +29,11 @@ export function DeleteCustomerButton({ customerId }: { customerId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150 hover:bg-[--error-light]"
+        className="flex items-center gap-2 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150 cursor-pointer bg-[--surface] hover:bg-[--error-light]"
         style={{
           borderColor: "var(--border)",
           color: "var(--error)",
           fontFamily: "var(--font-body)",
-          backgroundColor: "var(--surface)",
         }}
       >
         <Trash2 className="w-4 h-4" />

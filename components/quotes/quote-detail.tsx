@@ -244,8 +244,8 @@ export function QuoteDetail({
           <a
             href={`/api/quotes/${quote.id}/pdf`}
             download
-            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer hover:bg-[--background-subtle]"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
+            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer bg-[--surface] hover:bg-[--background-subtle]"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
             title="Download PDF"
           >
             <Download className="w-3.5 h-3.5" />
@@ -255,8 +255,8 @@ export function QuoteDetail({
           <button
             type="button"
             onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied") }}
-            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer hover:bg-[--background-subtle]"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
+            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer bg-[--surface] hover:bg-[--background-subtle]"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
             title="Copy share link"
           >
             <Copy className="w-3.5 h-3.5" />
