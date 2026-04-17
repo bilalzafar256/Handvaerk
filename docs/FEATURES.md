@@ -350,11 +350,11 @@ ALTER TABLE invoice_items ADD COLUMN discount_value numeric(10,2);
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-700 | Bank accounts DB schema | `[ ]` | `N/A` | New `bank_accounts` table: `bank_name`, `reg_number`, `account_number`, `is_default`, per user |
-| F-701 | Profile: bank details management UI | `[ ]` | `[ ]` | Add/edit/delete bank accounts on profile page; star icon to set default |
-| F-702 | Profile: MobilePay number management | `[ ]` | `[ ]` | Store MobilePay business number alongside bank details; mark as preferred payment method |
-| F-703 | Pre-load default bank details into new invoices | `[ ]` | `[ ]` | When creating invoice, auto-fill `bank_account` + `mobilepay_number` from user's default |
-| F-704 | Bank details + MobilePay on invoice PDF | `[ ]` | `[ ]` | Display payment details section in PDF with bank reg/account and/or MobilePay number |
+| F-700 | Bank accounts DB schema | `[x]` | `N/A` | New `bank_accounts` table: `bank_name`, `reg_number`, `account_number`, `is_default`, per user |
+| F-701 | Profile: bank details management UI | `[x]` | `[x]` | Add/edit/delete bank accounts on profile page; star icon to set default |
+| F-702 | Profile: MobilePay number management | `[x]` | `[x]` | Store MobilePay business number alongside bank details; mark as preferred payment method |
+| F-703 | Pre-load default bank details into new invoices | `[x]` | `[x]` | When creating invoice, auto-fill `bank_account` + `mobilepay_number` from user's default |
+| F-704 | Bank details + MobilePay on invoice PDF | `[x]` | `[x]` | Display payment details section in PDF with bank reg/account and/or MobilePay number |
 
 ### DB Schema: bank_accounts
 ```sql
@@ -376,9 +376,9 @@ bank_accounts (
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-800 | Merge quotes | `[ ]` | `[ ]` | Select 2+ quotes for the same customer → creates a new merged quote combining all line items; originals kept but status set to `merged` |
-| F-801 | Merge invoices | `[ ]` | `[ ]` | Select 2+ invoices for the same customer → creates new merged invoice; originals kept with `merged` status |
-| F-802 | Merge conflict UX | `N/A` | `[ ]` | Warn if header discounts differ across merged docs; show preview of merged totals before confirming |
+| F-800 | Merge quotes | `[x]` | `[x]` | Select 2+ quotes for the same customer → creates a new merged quote combining all line items; originals kept but status set to `merged` |
+| F-801 | Merge invoices | `[x]` | `[x]` | Select 2+ invoices for the same customer → creates new merged invoice; originals kept with `merged` status |
+| F-802 | Merge conflict UX | `N/A` | `[x]` | Warn if header discounts differ across merged docs; show preview of merged totals before confirming |
 
 ### DB Schema changes
 ```sql
@@ -393,14 +393,60 @@ ALTER TABLE invoices ADD COLUMN merged_into uuid REFERENCES invoices(id);
 
 ---
 
-## PHASE 9 — Email Notifications & Customer Communication
+## PHASE 9 — Reporting
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-900 | Quote accepted → thank-you email to customer | `[ ]` | `N/A` | Triggered by customer accept action on shareable quote link; Resend template |
-| F-901 | Quote rejected → "help us improve" email | `[ ]` | `N/A` | Triggered by customer reject action; email asks for feedback |
-| F-902 | Invoice paid → thank-you email + review request | `[ ]` | `N/A` | Triggered on "Mark as paid"; includes Google review link if configured |
-| F-903 | Google review URL on profile | `[ ]` | `[ ]` | New `google_review_url` field on users table; input on profile page |
+| F-900 | Reports page scaffold | `[ ]` | `[ ]` | `/reports` route; tab navigation: Revenue / Customer / Job / Expense |
+| F-901 | Period filter component | `[ ]` | `[ ]` | This month / Last month / This quarter / Last quarter / This year / Custom range — shared across all report tabs |
+| F-902 | Revenue report | `[ ]` | `[ ]` | Total billed ex. VAT, incl. VAT, VAT collected, paid vs outstanding split, avg invoice value, invoices by status count |
+| F-903 | Customer report | `[ ]` | `[ ]` | Revenue by customer, outstanding by customer, jobs by customer, avg payment time per customer |
+| F-904 | Job report | `[ ]` | `[ ]` | Jobs by status, completed this month, avg job value, jobs by type breakdown |
+| F-905 | Expenses DB schema + logging UI | `[ ]` | `[ ]` | New `expenses` table; create/edit/delete expense entries with category, amount, VAT, receipt upload |
+| F-906 | Expense report | `[ ]` | `[ ]` | Total expenses by period, by category, input VAT (for SKAT offset), profit estimate (billed − expenses) |
+| F-907 | SKAT moms quarterly summary | `[ ]` | `[ ]` | Q1/Q2/Q3/Q4 view: output VAT collected − input VAT = net owed; structured display for manual SKAT filing |
+
+### DB Schema: expenses
+```sql
+expenses (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES users(id),
+  job_id          uuid REFERENCES jobs(id),
+  description     text NOT NULL,
+  category        text,                          -- 'van' | 'tools' | 'materials' | 'phone' | 'office' | 'other'
+  amount_ex_vat   numeric(10,2) NOT NULL,
+  vat_amount      numeric(10,2) DEFAULT 0,
+  amount_incl_vat numeric(10,2),
+  receipt_url     text,
+  expense_date    date NOT NULL DEFAULT CURRENT_DATE,
+  notes           text,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now(),
+  deleted_at      timestamptz
+)
+```
+
+### DB indexes (reporting performance)
+```sql
+CREATE INDEX idx_invoices_user_issue_date ON invoices(user_id, issue_date);
+CREATE INDEX idx_invoices_user_status ON invoices(user_id, status);
+CREATE INDEX idx_invoices_due_date ON invoices(due_date) WHERE status != 'paid';
+CREATE INDEX idx_invoices_customer ON invoices(user_id, customer_id);
+CREATE INDEX idx_jobs_customer ON jobs(user_id, customer_id);
+CREATE INDEX idx_jobs_user_status ON jobs(user_id, status);
+CREATE INDEX idx_expenses_user_date ON expenses(user_id, expense_date);
+```
+
+---
+
+## PHASE 10 — Email Notifications & Customer Communication
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1000 | Quote accepted → thank-you email to customer | `[ ]` | `N/A` | Triggered by customer accept action on shareable quote link; Resend template |
+| F-1001 | Quote rejected → "help us improve" email | `[ ]` | `N/A` | Triggered by customer reject action; email asks for feedback |
+| F-1002 | Invoice paid → thank-you email + review request | `[ ]` | `N/A` | Triggered on "Mark as paid"; includes Google review link if configured |
+| F-1003 | Google review URL on profile | `[ ]` | `[ ]` | New `google_review_url` field on users table; input on profile page |
 
 ### DB Schema changes
 ```sql
@@ -409,53 +455,53 @@ ALTER TABLE users ADD COLUMN google_review_url text;
 
 ---
 
-## PHASE 10 — AI Features
+## PHASE 11 — AI Features
 
 > Full spec in `docs/AI_FEATURES.md`
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-1000 | Business card → customer (OCR) | `[ ]` | `[ ]` | Upload image → Claude vision extracts name/company/phone/email/address → pre-fills customer form |
-| F-1001 | Smart quote suggestions | `[ ]` | `[ ]` | Based on job description, suggest line items from past quotes |
-| F-1002 | Payment risk scoring | `[ ]` | `[ ]` | Predict overdue likelihood based on customer history |
-| F-1003 | Voice-to-quote | `[ ]` | `[ ]` | Dictate a job description → AI drafts quote line items |
-| F-1004 | Auto line-item categorization | `[ ]` | `[ ]` | Classify pasted or dictated items into labour/material/fixed/travel |
-| F-1005 | Customer sentiment flag | `[ ]` | `[ ]` | Flag negative tone in customer notes or email history |
+| F-1100 | Business card → customer (OCR) | `[ ]` | `[ ]` | Upload image → Claude vision extracts name/company/phone/email/address → pre-fills customer form |
+| F-1101 | Smart quote suggestions | `[ ]` | `[ ]` | Based on job description, suggest line items from past quotes |
+| F-1102 | Payment risk scoring | `[ ]` | `[ ]` | Predict overdue likelihood based on customer history |
+| F-1103 | Voice-to-quote | `[ ]` | `[ ]` | Dictate a job description → AI drafts quote line items |
+| F-1104 | Auto line-item categorization | `[ ]` | `[ ]` | Classify pasted or dictated items into labour/material/fixed/travel |
+| F-1105 | Customer sentiment flag | `[ ]` | `[ ]` | Flag negative tone in customer notes or email history |
 
 ---
 
-## PHASE 11 — Dashboard, Free Tier Launch & Tier Gates
+## PHASE 12 — Dashboard, Free Tier Launch & Tier Gates
 > (Previously Phase 6)
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-1100 | Dashboard: outstanding amount | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
-| F-1101 | Dashboard: active jobs count | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
-| F-1102 | Dashboard: overdue invoices | `[x]` | `[~]` | Query in overview.ts; CriticalZone component uses stub data |
-| F-1103 | Dashboard: this month billed | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
-| F-1104 | Free tier: 10 active jobs gate | `[x]` | `[x]` | Done in Phase 3 as F-307 |
-| F-1105 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |
-| F-1106 | Beta launch: 20 users | `N/A` | `N/A` | Network outreach |
-| F-1107 | Reporting DB queries ready | `[x]` | `N/A` | lib/db/queries/overview.ts covers all dashboard stats |
+| F-1200 | Dashboard: outstanding amount | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-1201 | Dashboard: active jobs count | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-1202 | Dashboard: overdue invoices | `[x]` | `[~]` | Query in overview.ts; CriticalZone component uses stub data |
+| F-1203 | Dashboard: this month billed | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-1204 | Free tier: 10 active jobs gate | `[x]` | `[x]` | Done in Phase 3 as F-307 |
+| F-1205 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |
+| F-1206 | Beta launch: 20 users | `N/A` | `N/A` | Network outreach |
+| F-1207 | Reporting DB queries ready | `[x]` | `N/A` | lib/db/queries/overview.ts covers all dashboard stats |
 
 ---
 
-## PHASE 12 — Compliance Pre-GoLive
+## PHASE 13 — Compliance Pre-GoLive
 > (Previously Phase 7)
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-1200 | SKAT moms summary page | `[ ]` | `[ ]` | Quarterly export, not API yet |
-| F-1201 | Moms period calculation | `[ ]` | `[ ]` | Q1/Q2/Q3/Q4 totals |
-| F-1202 | EAN number on customer form | `[ ]` | `[ ]` | NemHandel field exposed |
-| F-1203 | OIOUBL invoice export | `[ ]` | `[ ]` | XML format for public sector |
-| F-1204 | GDPR: user data export | `[ ]` | `[ ]` | JSON download of all user data |
-| F-1205 | GDPR: account deletion | `[ ]` | `[ ]` | Soft delete → hard delete 30 days |
-| F-1206 | Privacy policy page | `N/A` | `[ ]` | Static legal page |
-| F-1207 | Cookie consent | `N/A` | `[ ]` | For analytics cookies |
-| F-1208 | Terms of service page | `N/A` | `[ ]` | Static |
-| F-1209 | Rate limiting: all API routes | `[ ]` | `N/A` | Upstash |
-| F-1210 | Security: Zod on all endpoints | `[ ]` | `N/A` | Audit all routes |
+| F-1300 | SKAT moms summary page | `[ ]` | `[ ]` | Quarterly export, not API yet |
+| F-1301 | Moms period calculation | `[ ]` | `[ ]` | Q1/Q2/Q3/Q4 totals |
+| F-1302 | EAN number on customer form | `[ ]` | `[ ]` | NemHandel field exposed |
+| F-1303 | OIOUBL invoice export | `[ ]` | `[ ]` | XML format for public sector |
+| F-1304 | GDPR: user data export | `[ ]` | `[ ]` | JSON download of all user data |
+| F-1305 | GDPR: account deletion | `[ ]` | `[ ]` | Soft delete → hard delete 30 days |
+| F-1306 | Privacy policy page | `N/A` | `[ ]` | Static legal page |
+| F-1307 | Cookie consent | `N/A` | `[ ]` | For analytics cookies |
+| F-1308 | Terms of service page | `N/A` | `[ ]` | Static |
+| F-1309 | Rate limiting: all API routes | `[ ]` | `N/A` | Upstash |
+| F-1310 | Security: Zod on all endpoints | `[ ]` | `N/A` | Audit all routes |
 
 ---
 
@@ -468,14 +514,14 @@ These features were evaluated and explicitly deferred. Do not build these until 
 | **MobilePay Erhverv payment links** | Requires MobilePay Erhverv API approval (business process, not just code). Payments require Finanstilsynet awareness. | Phase 8+ | Regulatory exposure if mishandled |
 | **Bank sync / Open Banking** | Requires PSD2 license or partnership with a licensed provider (Aiia, Nordigen). Multi-week integration. | Phase 8+ | High complexity, license dependency |
 | **SKAT moms API filing** | Direct TastSelv API integration requires SKAT developer access approval. Structural export covers pre-launch need. | Phase 8+ | Wrong moms filing = legal liability for users |
-| **Native iOS app** | PWA covers mobile use case. Native adds 3–4 months, separate build pipeline, App Store approval. | Phase 9+ | Wasted effort if web PWA is sufficient |
-| **Native Android app** | Same as iOS. | Phase 9+ | Same |
-| **Payroll (løn)** | Entirely separate compliance layer (ATP, holiday pay, pension). Would require Finanstilsynet consideration. | Phase 10+ | Accidental compliance violation |
+| **Native iOS app** | PWA covers mobile use case. Native adds 3–4 months, separate build pipeline, App Store approval. | Phase 10+ | Wasted effort if web PWA is sufficient |
+| **Native Android app** | Same as iOS. | Phase 10+ | Same |
+| **Payroll (løn)** | Entirely separate compliance layer (ATP, holiday pay, pension). Would require Finanstilsynet consideration. | Phase 11+ | Accidental compliance violation |
 | **Annual report generation** | Accountant's legal responsibility. Not a software feature, a liability. | Never (core) | Legal exposure |
-| **GPS / location tracking** | Solo tradespeople feel surveilled. Team version possible but trust-destroys for solo users. | Phase 9 (team only) | Churn trigger |
+| **GPS / location tracking** | Solo tradespeople feel surveilled. Team version possible but trust-destroys for solo users. | Phase 10 (team only) | Churn trigger |
 | **Inventory management** | Full stock management requires warehouse logic, supplier integration, reorder alerts. Not a job-management need. | Phase 8+ | Scope creep |
 | **AI auto-categorization** | Requires enough user data to train on. Premature without usage patterns. | Phase 8+ | Bad AI = distrust |
-| **Multi-currency** | Denmark uses DKK. EUR occasionally on export jobs. No demand in MVP market. | Phase 9+ | Unnecessary complexity |
+| **Multi-currency** | Denmark uses DKK. EUR occasionally on export jobs. No demand in MVP market. | Phase 10+ | Unnecessary complexity |
 | **Supplier price list integration** | KlarPris-style integration requires supplier API agreements. | Phase 8+ | Business development dependency |
 | **Customer portal** | Customers viewing their own history. Nice-to-have, not a pain point for Klaus. | Phase 8+ | Build for Klaus, not his customers |
 | **Recurring job automation** | Automatically creates jobs on a schedule. Useful for service contracts but not MVP scope. | Phase 7+ | Scheduling complexity |

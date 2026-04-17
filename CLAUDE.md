@@ -48,22 +48,25 @@ Complete: F-500 through F-513. Schemas + migration applied (0004). Invoice PDF (
 **Phase 6 — Quote & Invoice Enhancements** `[x]` complete
 All 8 features shipped. DB migration 0005 applied (discount_type + discount_value on quote_items and invoice_items). createInvoiceFromQuoteAction returns data instead of redirecting — client handles navigation.
 
-**Phase 7 — Bank Details & Profile Enhancements** `[ ]` not started
-Features: bank_accounts table, profile UI for bank/MobilePay management, pre-load defaults into new invoices, bank details on PDF.
+**Phase 7 — Bank Details & Profile Enhancements** `[x]` complete
+All 5 features shipped. DB migration 0006 applied (bank_accounts table + mobilepay_number on users).
 
-**Phase 8 — Merge Documents** `[ ]` not started
-Features: merge quotes, merge invoices (same customer), merge conflict UX.
+**Phase 8 — Merge Documents** `[x]` complete
+All 3 features shipped. DB migration 0007 applied (merged_into on quotes + invoices).
 
-**Phase 9 — Email Notifications & Customer Communication** `[ ]` not started
+**Phase 9 — Reporting** `[ ]` not started
+Features: revenue report, customer report, job report, expense report + logging, SKAT moms quarterly summary.
+
+**Phase 10 — Email Notifications & Customer Communication** `[ ]` not started
 Features: quote accepted/rejected emails to customer, invoice paid thank-you + Google review request, google_review_url on profile.
 
-**Phase 10 — AI Features** `[ ]` not started
+**Phase 11 — AI Features** `[ ]` not started
 Spec in docs/AI_FEATURES.md. Key: business card OCR → customer, smart quote suggestions, payment risk scoring, voice-to-quote.
 
-**Phase 11 — Dashboard, Free Tier Launch & Tier Gates** `[~]` in progress (previously Phase 6)
-Complete: F-1104 (free tier gate), F-1107 (overview queries in lib/db/queries/overview.ts).
+**Phase 12 — Dashboard, Free Tier Launch & Tier Gates** `[~]` in progress (previously Phase 6)
+Complete: F-1204 (free tier gate), F-1207 (overview queries in lib/db/queries/overview.ts).
 Dashboard components built: stat-cards, critical-zone, today-jobs, activity-feed (components/dashboard/).
-Remaining: wire real data into dashboard components — F-1100, F-1101, F-1102, F-1103 FE still use stub data. F-1105 (upgrade prompt) not started.
+Remaining: wire real data into dashboard components — F-1200, F-1201, F-1202, F-1203 FE still use stub data. F-1205 (upgrade prompt) not started.
 
 Update this when a phase completes.
 

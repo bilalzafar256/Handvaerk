@@ -2,8 +2,8 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { users, quotes } from "@/lib/db/schema"
+import { eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -260,6 +260,73 @@ export async function deleteTemplateAction(id: string) {
 
   await deleteTemplate(id, user.id)
   revalidatePath("/quotes")
+}
+
+export async function mergeQuotesAction(ids: string[]): Promise<{ id: string }> {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  if (ids.length < 2) throw new Error("Select at least 2 quotes to merge")
+
+  const user = await getDbUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  const rows = await db.query.quotes.findMany({
+    where: (q, { and, inArray, isNull, eq }) =>
+      and(inArray(q.id, ids), eq(q.userId, user.id), isNull(q.deletedAt)),
+    with: { items: true, customer: true },
+  })
+
+  if (rows.length !== ids.length) throw new Error("One or more quotes not found")
+
+  const uniqueCustomers = [...new Set(rows.map(q => q.customerId))]
+  if (uniqueCustomers.length > 1) throw new Error("All quotes must be for the same customer")
+
+  const total = await countAllQuotesEver(user.id)
+  const quoteNumber = `TIL-${String(total + 1).padStart(4, "0")}`
+  const shareToken = randomBytes(24).toString("hex")
+
+  // Merge notes: collect distinct non-empty notes
+  const allNotes = rows.map(q => q.notes).filter((n): n is string => !!n?.trim())
+  const uniqueNotes = [...new Set(allNotes)]
+  const mergedNotes = uniqueNotes.join("\n---\n") || null
+
+  const newQuote = await createQuote({
+    userId:        user.id,
+    customerId:    rows[0].customerId,
+    quoteNumber,
+    shareToken,
+    status:        "draft",
+    notes:         mergedNotes,
+    discountType:  null,
+    discountValue: null,
+  })
+
+  // Combine all items, re-assign sortOrder
+  const allItems = rows.flatMap(q => q.items)
+  allItems.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+  await replaceQuoteItems(newQuote.id, allItems.map((item, i) => ({
+    itemType:      item.itemType,
+    description:   item.description,
+    quantity:      item.quantity ?? null,
+    unitPrice:     item.unitPrice ?? null,
+    markupPercent: item.markupPercent ?? null,
+    discountType:  item.discountType ?? null,
+    discountValue: item.discountValue ?? null,
+    vatRate:       item.vatRate ?? "25.00",
+    sortOrder:     i,
+  })))
+
+  // Mark originals as merged
+  await db.update(quotes)
+    .set({ status: "merged", mergedInto: newQuote.id, updatedAt: new Date() })
+    .where(inArray(quotes.id, ids))
+
+  revalidatePath("/quotes")
+  return { id: newQuote.id }
 }
 
 // Upsert material to catalog

@@ -1,15 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import { useUIStore } from "@/stores/ui-store"
 import { Link, useRouter } from "@/i18n/navigation"
 import { motion } from "motion/react"
 import {
   ChevronRight, Search, Plus, FileText, Receipt, Edit2, Trash2,
   Send, Download, BookmarkPlus, Copy, LayoutList, LayoutGrid, Loader2,
+  GitMerge, X,
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDKK } from "@/lib/utils/currency"
-import { deleteQuoteAction, sendQuoteEmailAction, saveQuoteAsTemplateAction } from "@/lib/actions/quotes"
+import { deleteQuoteAction, sendQuoteEmailAction, saveQuoteAsTemplateAction, mergeQuotesAction } from "@/lib/actions/quotes"
 import { createInvoiceFromQuoteAction } from "@/lib/actions/invoices"
 import type { Quote, QuoteItem } from "@/lib/db/schema/quotes"
 import type { Customer } from "@/lib/db/schema/customers"
@@ -22,6 +24,7 @@ const STATUS_CONFIG = {
   accepted: { bg: "--status-paid-bg",      text: "--status-paid-text",      border: "--status-paid-border",      label: "Accepted" },
   rejected: { bg: "--status-overdue-bg",   text: "--status-overdue-text",   border: "--status-overdue-border",   label: "Rejected" },
   expired:  { bg: "--status-invoiced-bg",  text: "--status-invoiced-text",  border: "--status-invoiced-border",  label: "Expired" },
+  merged:   { bg: "--status-done-bg",      text: "--status-done-text",      border: "--status-done-border",      label: "Merged" },
 }
 
 const STATUS_BAR: Record<string, string> = {
@@ -30,6 +33,7 @@ const STATUS_BAR: Record<string, string> = {
   accepted: "oklch(0.52 0.14 145)",
   rejected: "var(--status-overdue-text)",
   expired:  "var(--muted-foreground)",
+  merged:   "oklch(0.55 0.12 290)",
 }
 
 function QuoteStatusBadge({ status }: { status: string }) {
@@ -153,10 +157,146 @@ function QuoteActions({ quote }: { quote: QuoteWithRelations }) {
   )
 }
 
+function MergeCheckbox({ selected, onToggle }: { selected: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.preventDefault(); onToggle() }}
+      className="flex-shrink-0 w-10 flex items-center justify-center cursor-pointer self-stretch"
+      style={{ backgroundColor: selected ? "var(--accent)" : "transparent" }}
+    >
+      <div
+        className="w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
+        style={{
+          borderColor: selected ? "var(--primary)" : "var(--border)",
+          backgroundColor: selected ? "var(--primary)" : "transparent",
+        }}
+      >
+        {selected && <span className="text-white text-[10px] leading-none font-bold">✓</span>}
+      </div>
+    </button>
+  )
+}
+
+function MergeBar({
+  quotes,
+  selectedIds,
+  onClear,
+}: {
+  quotes: QuoteWithRelations[]
+  selectedIds: string[]
+  onClear: () => void
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const router = useRouter()
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen)
+
+  const selected = quotes.filter(q => selectedIds.includes(q.id))
+  const customerIds = [...new Set(selected.map(q => q.customerId))]
+  const sameCustomer = customerIds.length <= 1
+  const hasDiscounts = selected.some(q => q.discountType && q.discountValue)
+  const total = selected.reduce((s, q) => s + calcTotal(q.items), 0)
+
+  async function handleConfirm() {
+    setBusy(true)
+    try {
+      const { id } = await mergeQuotesAction(selectedIds)
+      toast.success("Quotes merged")
+      router.push(`/quotes/${id}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Merge failed")
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed bottom-16 right-0 z-30 px-4 py-3 border-t shadow-lg"
+      style={{ left: sidebarOpen ? 240 : 64, backgroundColor: "var(--surface, var(--background))", borderColor: "var(--border)" }}
+    >
+      {!confirming ? (
+        <div className="flex flex-col gap-2">
+          {!sameCustomer && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--error-light)", border: "1px solid var(--error)" }}>
+              <p className="text-sm font-medium" style={{ color: "var(--error)", fontFamily: "var(--font-body)" }}>
+                Can&apos;t merge — selected quotes are from different customers. Select quotes from the same customer only.
+              </p>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                {selectedIds.length} quote{selectedIds.length !== 1 ? "s" : ""} selected
+              </p>
+              {sameCustomer && (
+                <p className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+                  Total: {formatDKK(total)}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClear}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", backgroundColor: "var(--background)" }}
+              title="Cancel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setConfirming(true)}
+              disabled={!sameCustomer || selectedIds.length < 2}
+              className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+            >
+              <GitMerge className="w-3.5 h-3.5" />
+              Merge
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {hasDiscounts && (
+            <p className="text-xs px-2 py-1.5 rounded-md" style={{ backgroundColor: "var(--status-invoiced-bg)", color: "var(--status-invoiced-text)", fontFamily: "var(--font-body)" }}>
+              Header discounts on selected quotes will not carry over to the merged quote.
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+              Create merged quote? ({formatDKK(total)})
+            </p>
+            <button
+              onClick={() => setConfirming(false)}
+              className="h-8 px-3 rounded-lg border text-sm cursor-pointer transition-colors"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", fontFamily: "var(--font-body)", backgroundColor: "var(--background)" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={busy}
+              className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+            >
+              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitMerge className="w-3.5 h-3.5" />}
+              Confirm
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
   const [query, setQuery] = useState("")
   const [page, setPage]   = useState(1)
   const [view, setView]   = useState<"list" | "grid">("list")
+  const [isMergeMode, setIsMergeMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
 
   const filtered = query.trim()
     ? quotes.filter(q => {
@@ -206,6 +346,19 @@ export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
             <LayoutGrid className="w-3.5 h-3.5" />
           </button>
         </div>
+        <button
+          onClick={() => { setIsMergeMode(m => !m); setSelectedIds([]) }}
+          className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border transition-colors cursor-pointer flex-shrink-0"
+          style={{
+            borderColor: isMergeMode ? "var(--primary)" : "var(--border)",
+            backgroundColor: isMergeMode ? "var(--primary)" : "var(--background)",
+            color: isMergeMode ? "var(--primary-foreground)" : "var(--muted-foreground)",
+          }}
+          title="Merge quotes"
+        >
+          <GitMerge className="w-3.5 h-3.5" />
+          <span className="text-xs font-medium" style={{ fontFamily: "var(--font-body)" }}>Merge</span>
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -214,26 +367,65 @@ export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
         <>
           {view === "list" && (
             <div>
-              {paged.map((quote, i) => <QuoteRow key={quote.id} quote={quote} index={i} />)}
+              {paged.map((quote, i) => (
+                <QuoteRow
+                  key={quote.id}
+                  quote={quote}
+                  index={i}
+                  isMergeMode={isMergeMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
             </div>
           )}
           {view === "grid" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
-              {paged.map((quote, i) => <QuoteCard key={quote.id} quote={quote} index={i} />)}
+              {paged.map((quote, i) => (
+                <QuoteCard
+                  key={quote.id}
+                  quote={quote}
+                  index={i}
+                  isMergeMode={isMergeMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
             </div>
           )}
           {totalPages > 1 && <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />}
         </>
       )}
+
+      {isMergeMode && selectedIds.length > 0 && (
+        <MergeBar
+          quotes={quotes}
+          selectedIds={selectedIds}
+          onClear={() => { setSelectedIds([]); setIsMergeMode(false) }}
+        />
+      )}
     </div>
   )
 }
 
-function QuoteRow({ quote, index }: { quote: QuoteWithRelations; index: number }) {
+function QuoteRow({
+  quote,
+  index,
+  isMergeMode,
+  selectedIds,
+  onToggleSelect,
+}: {
+  quote: QuoteWithRelations
+  index: number
+  isMergeMode: boolean
+  selectedIds: string[]
+  onToggleSelect: (id: string) => void
+}) {
   const [hovered, setHovered] = useState(false)
   const status = quote.status ?? "draft"
   const barColor = STATUS_BAR[status] ?? "var(--muted-foreground)"
   const subtotal = calcTotal(quote.items)
+  const isSelected = selectedIds.includes(quote.id)
 
   return (
     <motion.div
@@ -243,15 +435,22 @@ function QuoteRow({ quote, index }: { quote: QuoteWithRelations; index: number }
       className="flex border-b"
       style={{
         borderColor: "var(--border)",
-        backgroundColor: hovered ? "var(--accent)" : "transparent",
+        backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "transparent",
         transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="flex-shrink-0 self-stretch" style={{ width: hovered ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
+      {isMergeMode && (
+        <MergeCheckbox selected={isSelected} onToggle={() => onToggleSelect(quote.id)} />
+      )}
+      <div className="flex-shrink-0 self-stretch" style={{ width: hovered || isSelected ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
       <div className="flex-1 min-w-0">
-        <Link href={`/quotes/${quote.id}`} className="flex items-center gap-3 px-4 py-3 min-w-0">
+        <Link
+          href={`/quotes/${quote.id}`}
+          className="flex items-center gap-3 px-4 py-3 min-w-0"
+          onClick={(e) => { if (isMergeMode) { e.preventDefault(); onToggleSelect(quote.id) } }}
+        >
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
               {quote.quoteNumber}
@@ -268,19 +467,34 @@ function QuoteRow({ quote, index }: { quote: QuoteWithRelations; index: number }
           </div>
           <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
         </Link>
-        <div className="flex items-center gap-1 px-4 py-2 border-t flex-wrap" style={{ borderColor: "var(--border)" }}>
-          <QuoteActions quote={quote} />
-        </div>
+        {!isMergeMode && (
+          <div className="flex items-center gap-1 px-4 py-2 border-t flex-wrap" style={{ borderColor: "var(--border)" }}>
+            <QuoteActions quote={quote} />
+          </div>
+        )}
       </div>
     </motion.div>
   )
 }
 
-function QuoteCard({ quote, index }: { quote: QuoteWithRelations; index: number }) {
+function QuoteCard({
+  quote,
+  index,
+  isMergeMode,
+  selectedIds,
+  onToggleSelect,
+}: {
+  quote: QuoteWithRelations
+  index: number
+  isMergeMode: boolean
+  selectedIds: string[]
+  onToggleSelect: (id: string) => void
+}) {
   const [hovered, setHovered] = useState(false)
   const status = quote.status ?? "draft"
   const barColor = STATUS_BAR[status] ?? "var(--muted-foreground)"
   const subtotal = calcTotal(quote.items)
+  const isSelected = selectedIds.includes(quote.id)
 
   return (
     <motion.div
@@ -292,10 +506,19 @@ function QuoteCard({ quote, index }: { quote: QuoteWithRelations; index: number 
     >
       <div
         className="flex flex-col rounded-xl border overflow-hidden"
-        style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+        style={{ borderColor: isSelected ? "var(--primary)" : "var(--border)", backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
       >
         <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
-        <Link href={`/quotes/${quote.id}`} className="p-3 flex flex-col gap-2">
+        {isMergeMode && (
+          <div className="px-3 pt-2 flex items-center gap-2">
+            <MergeCheckbox selected={isSelected} onToggle={() => onToggleSelect(quote.id)} />
+          </div>
+        )}
+        <Link
+          href={`/quotes/${quote.id}`}
+          className="p-3 flex flex-col gap-2"
+          onClick={(e) => { if (isMergeMode) { e.preventDefault(); onToggleSelect(quote.id) } }}
+        >
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
               {quote.quoteNumber}
@@ -314,9 +537,11 @@ function QuoteCard({ quote, index }: { quote: QuoteWithRelations; index: number 
             </p>
           )}
         </Link>
-        <div className="flex items-center gap-1 px-3 pb-3 border-t pt-2 flex-wrap" style={{ borderColor: "var(--border)" }}>
-          <QuoteActions quote={quote} />
-        </div>
+        {!isMergeMode && (
+          <div className="flex items-center gap-1 px-3 pb-3 border-t pt-2 flex-wrap" style={{ borderColor: "var(--border)" }}>
+            <QuoteActions quote={quote} />
+          </div>
+        )}
       </div>
     </motion.div>
   )

@@ -1,15 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import { useUIStore } from "@/stores/ui-store"
 import { Link, useRouter } from "@/i18n/navigation"
 import { motion } from "motion/react"
 import {
   ChevronRight, Search, Plus, Receipt, Edit2, Trash2,
   Send, Download, CheckCircle, FileText, LayoutList, LayoutGrid, Loader2,
+  GitMerge, X,
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDKK } from "@/lib/utils/currency"
-import { deleteInvoiceAction, sendInvoiceAction, markInvoicePaidAction, createCreditNoteAction } from "@/lib/actions/invoices"
+import { deleteInvoiceAction, sendInvoiceAction, markInvoicePaidAction, createCreditNoteAction, mergeInvoicesAction } from "@/lib/actions/invoices"
 import type { Invoice, InvoiceItem } from "@/lib/db/schema/invoices"
 import type { Customer } from "@/lib/db/schema/customers"
 
@@ -21,6 +23,7 @@ const STATUS_CONFIG = {
   viewed:  { bg: "--status-done-bg",      text: "--status-done-text",      border: "--status-done-border",      label: "Viewed" },
   paid:    { bg: "--status-paid-bg",      text: "--status-paid-text",      border: "--status-paid-border",      label: "Paid" },
   overdue: { bg: "--status-overdue-bg",   text: "--status-overdue-text",   border: "--status-overdue-border",   label: "Overdue" },
+  merged:  { bg: "--status-done-bg",      text: "--status-done-text",      border: "--status-done-border",      label: "Merged" },
 }
 
 const STATUS_BAR: Record<string, string> = {
@@ -29,6 +32,7 @@ const STATUS_BAR: Record<string, string> = {
   viewed:  "oklch(0.55 0.12 290)",
   paid:    "oklch(0.52 0.14 145)",
   overdue: "var(--status-overdue-text)",
+  merged:  "oklch(0.55 0.12 290)",
 }
 
 function InvoiceStatusBadge({ status, isCreditNote }: { status: string; isCreditNote?: boolean }) {
@@ -135,10 +139,140 @@ function InvoiceActions({ inv }: { inv: InvoiceWithRelations }) {
   )
 }
 
+function MergeCheckbox({ selected, onToggle }: { selected: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.preventDefault(); onToggle() }}
+      className="flex-shrink-0 w-10 flex items-center justify-center cursor-pointer self-stretch"
+      style={{ backgroundColor: selected ? "var(--accent)" : "transparent" }}
+    >
+      <div
+        className="w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
+        style={{
+          borderColor: selected ? "var(--primary)" : "var(--border)",
+          backgroundColor: selected ? "var(--primary)" : "transparent",
+        }}
+      >
+        {selected && <span className="text-white text-[10px] leading-none font-bold">✓</span>}
+      </div>
+    </button>
+  )
+}
+
+function MergeBar({
+  invoices,
+  selectedIds,
+  onClear,
+}: {
+  invoices: InvoiceWithRelations[]
+  selectedIds: string[]
+  onClear: () => void
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const router = useRouter()
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen)
+
+  const selected = invoices.filter(inv => selectedIds.includes(inv.id))
+  const customerIds = [...new Set(selected.map(inv => inv.customerId))]
+  const sameCustomer = customerIds.length <= 1
+  const total = selected.reduce((s, inv) => s + parseFloat(inv.totalInclVat ?? "0"), 0)
+
+  async function handleConfirm() {
+    setBusy(true)
+    try {
+      const { id } = await mergeInvoicesAction(selectedIds)
+      toast.success("Invoices merged")
+      router.push(`/invoices/${id}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Merge failed")
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed bottom-16 right-0 z-30 px-4 py-3 border-t shadow-lg"
+      style={{ left: sidebarOpen ? 240 : 64, backgroundColor: "var(--surface, var(--background))", borderColor: "var(--border)" }}
+    >
+      {!confirming ? (
+        <div className="flex flex-col gap-2">
+          {!sameCustomer && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--error-light)", border: "1px solid var(--error)" }}>
+              <p className="text-sm font-medium" style={{ color: "var(--error)", fontFamily: "var(--font-body)" }}>
+                Can&apos;t merge — selected invoices are from different customers. Select invoices from the same customer only.
+              </p>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                {selectedIds.length} invoice{selectedIds.length !== 1 ? "s" : ""} selected
+              </p>
+              {sameCustomer && (
+                <p className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+                  Total: {formatDKK(total)}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClear}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", backgroundColor: "var(--background)" }}
+              title="Cancel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setConfirming(true)}
+              disabled={!sameCustomer || selectedIds.length < 2}
+              className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+            >
+              <GitMerge className="w-3.5 h-3.5" />
+              Merge
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-sm font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+              Create merged invoice? ({formatDKK(total)})
+            </p>
+            <button
+              onClick={() => setConfirming(false)}
+              className="h-8 px-3 rounded-lg border text-sm cursor-pointer transition-colors"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", fontFamily: "var(--font-body)", backgroundColor: "var(--background)" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={busy}
+              className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+            >
+              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GitMerge className="w-3.5 h-3.5" />}
+              Confirm
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function InvoiceList({ invoices }: { invoices: InvoiceWithRelations[] }) {
   const [query, setQuery] = useState("")
   const [page, setPage]   = useState(1)
   const [view, setView]   = useState<"list" | "grid">("list")
+  const [isMergeMode, setIsMergeMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
 
   const filtered = query.trim()
     ? invoices.filter(inv => {
@@ -188,6 +322,19 @@ export function InvoiceList({ invoices }: { invoices: InvoiceWithRelations[] }) 
             <LayoutGrid className="w-3.5 h-3.5" />
           </button>
         </div>
+        <button
+          onClick={() => { setIsMergeMode(m => !m); setSelectedIds([]) }}
+          className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border transition-colors cursor-pointer flex-shrink-0"
+          style={{
+            borderColor: isMergeMode ? "var(--primary)" : "var(--border)",
+            backgroundColor: isMergeMode ? "var(--primary)" : "var(--background)",
+            color: isMergeMode ? "var(--primary-foreground)" : "var(--muted-foreground)",
+          }}
+          title="Merge invoices"
+        >
+          <GitMerge className="w-3.5 h-3.5" />
+          <span className="text-xs font-medium" style={{ fontFamily: "var(--font-body)" }}>Merge</span>
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -196,25 +343,64 @@ export function InvoiceList({ invoices }: { invoices: InvoiceWithRelations[] }) 
         <>
           {view === "list" && (
             <div>
-              {paged.map((inv, i) => <InvoiceRow key={inv.id} inv={inv} index={i} />)}
+              {paged.map((inv, i) => (
+                <InvoiceRow
+                  key={inv.id}
+                  inv={inv}
+                  index={i}
+                  isMergeMode={isMergeMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
             </div>
           )}
           {view === "grid" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
-              {paged.map((inv, i) => <InvoiceCard key={inv.id} inv={inv} index={i} />)}
+              {paged.map((inv, i) => (
+                <InvoiceCard
+                  key={inv.id}
+                  inv={inv}
+                  index={i}
+                  isMergeMode={isMergeMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
             </div>
           )}
           {totalPages > 1 && <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />}
         </>
       )}
+
+      {isMergeMode && selectedIds.length > 0 && (
+        <MergeBar
+          invoices={invoices}
+          selectedIds={selectedIds}
+          onClear={() => { setSelectedIds([]); setIsMergeMode(false) }}
+        />
+      )}
     </div>
   )
 }
 
-function InvoiceRow({ inv, index }: { inv: InvoiceWithRelations; index: number }) {
+function InvoiceRow({
+  inv,
+  index,
+  isMergeMode,
+  selectedIds,
+  onToggleSelect,
+}: {
+  inv: InvoiceWithRelations
+  index: number
+  isMergeMode: boolean
+  selectedIds: string[]
+  onToggleSelect: (id: string) => void
+}) {
   const [hovered, setHovered] = useState(false)
   const status = inv.status ?? "draft"
   const barColor = STATUS_BAR[status] ?? "var(--muted-foreground)"
+  const isSelected = selectedIds.includes(inv.id)
 
   return (
     <motion.div
@@ -224,15 +410,22 @@ function InvoiceRow({ inv, index }: { inv: InvoiceWithRelations; index: number }
       className="flex border-b"
       style={{
         borderColor: "var(--border)",
-        backgroundColor: hovered ? "var(--accent)" : "transparent",
+        backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "transparent",
         transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="flex-shrink-0 self-stretch" style={{ width: hovered ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
+      {isMergeMode && (
+        <MergeCheckbox selected={isSelected} onToggle={() => onToggleSelect(inv.id)} />
+      )}
+      <div className="flex-shrink-0 self-stretch" style={{ width: isSelected || hovered ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
       <div className="flex-1 min-w-0">
-        <Link href={`/invoices/${inv.id}`} className="flex items-center gap-3 px-4 py-3 min-w-0">
+        <Link
+          href={`/invoices/${inv.id}`}
+          className="flex items-center gap-3 px-4 py-3 min-w-0"
+          onClick={(e) => { if (isMergeMode) { e.preventDefault(); onToggleSelect(inv.id) } }}
+        >
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
               {inv.invoiceNumber}
@@ -249,18 +442,33 @@ function InvoiceRow({ inv, index }: { inv: InvoiceWithRelations; index: number }
           </div>
           <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
         </Link>
-        <div className="flex items-center gap-1 px-4 py-2 border-t flex-wrap" style={{ borderColor: "var(--border)" }}>
-          <InvoiceActions inv={inv} />
-        </div>
+        {!isMergeMode && (
+          <div className="flex items-center gap-1 px-4 py-2 border-t flex-wrap" style={{ borderColor: "var(--border)" }}>
+            <InvoiceActions inv={inv} />
+          </div>
+        )}
       </div>
     </motion.div>
   )
 }
 
-function InvoiceCard({ inv, index }: { inv: InvoiceWithRelations; index: number }) {
+function InvoiceCard({
+  inv,
+  index,
+  isMergeMode,
+  selectedIds,
+  onToggleSelect,
+}: {
+  inv: InvoiceWithRelations
+  index: number
+  isMergeMode: boolean
+  selectedIds: string[]
+  onToggleSelect: (id: string) => void
+}) {
   const [hovered, setHovered] = useState(false)
   const status = inv.status ?? "draft"
   const barColor = STATUS_BAR[status] ?? "var(--muted-foreground)"
+  const isSelected = selectedIds.includes(inv.id)
 
   return (
     <motion.div
@@ -272,10 +480,19 @@ function InvoiceCard({ inv, index }: { inv: InvoiceWithRelations; index: number 
     >
       <div
         className="flex flex-col rounded-xl border overflow-hidden"
-        style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+        style={{ borderColor: isSelected ? "var(--primary)" : "var(--border)", backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
       >
         <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
-        <Link href={`/invoices/${inv.id}`} className="p-3 flex flex-col gap-2">
+        {isMergeMode && (
+          <div className="px-3 pt-2 flex items-center gap-2">
+            <MergeCheckbox selected={isSelected} onToggle={() => onToggleSelect(inv.id)} />
+          </div>
+        )}
+        <Link
+          href={`/invoices/${inv.id}`}
+          className="p-3 flex flex-col gap-2"
+          onClick={(e) => { if (isMergeMode) { e.preventDefault(); onToggleSelect(inv.id) } }}
+        >
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
               {inv.invoiceNumber}
@@ -292,9 +509,11 @@ function InvoiceCard({ inv, index }: { inv: InvoiceWithRelations; index: number 
             Due {new Date(inv.dueDate).toLocaleDateString("da-DK")}
           </p>
         </Link>
-        <div className="flex items-center gap-1 px-3 pb-3 border-t pt-2 flex-wrap" style={{ borderColor: "var(--border)" }}>
-          <InvoiceActions inv={inv} />
-        </div>
+        {!isMergeMode && (
+          <div className="flex items-center gap-1 px-3 pb-3 border-t pt-2 flex-wrap" style={{ borderColor: "var(--border)" }}>
+            <InvoiceActions inv={inv} />
+          </div>
+        )}
       </div>
     </motion.div>
   )

@@ -73,8 +73,8 @@ Full rationale for each choice in `BUSINESS_PLAN.md` § 4.
 [x] Phase 4  — Quote Builder
 [x] Phase 5  — Invoice Engine
 [x] Phase 6  — Quote & Invoice Enhancements         (migration 0005 applied)
-[ ] Phase 7  — Bank Details & Profile Enhancements
-[ ] Phase 8  — Merge Documents
+[x] Phase 7  — Bank Details & Profile Enhancements  (migration 0006 applied)
+[x] Phase 8  — Merge Documents  (migration 0007 applied)
 [ ] Phase 9  — Email Notifications & Customer Communication
 [ ] Phase 10 — AI Features                          (spec in docs/AI_FEATURES.md)
 [~] Phase 11 — Dashboard, Free Tier Launch & Tier Gates  (BE queries done; FE uses stub data)

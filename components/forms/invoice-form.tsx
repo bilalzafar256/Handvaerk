@@ -20,6 +20,8 @@ interface InvoiceFormProps {
   defaultCustomerId?: string
   defaultJobId?: string
   defaultQuoteId?: string
+  defaultBankAccount?: string
+  defaultMobilepayNumber?: string
 }
 
 const inputCls = `
@@ -74,6 +76,8 @@ export function InvoiceForm({
   defaultCustomerId,
   defaultJobId,
   defaultQuoteId,
+  defaultBankAccount,
+  defaultMobilepayNumber,
 }: InvoiceFormProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
@@ -85,8 +89,8 @@ export function InvoiceForm({
   const [customerId, setCustomerId]           = useState(invoice?.customerId ?? defaultCustomerId ?? "")
   const [dueDate, setDueDate]                 = useState(invoice?.dueDate ?? defaultDueDate(15))
   const [paymentTermsDays, setPaymentTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
-  const [bankAccount, setBankAccount]         = useState(invoice?.bankAccount ?? "")
-  const [mobilepayNumber, setMobilepayNumber] = useState(invoice?.mobilepayNumber ?? "")
+  const [bankAccount, setBankAccount]         = useState(invoice?.bankAccount ?? defaultBankAccount ?? "")
+  const [mobilepayNumber, setMobilepayNumber] = useState(invoice?.mobilepayNumber ?? defaultMobilepayNumber ?? "")
   const [notes, setNotes]                     = useState(invoice?.notes ?? "")
   const [items, setItems]                     = useState<LineItem[]>(
     invoice ? toLineItems(invoice.items) : []

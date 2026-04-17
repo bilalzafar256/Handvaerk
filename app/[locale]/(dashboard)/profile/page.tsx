@@ -3,6 +3,8 @@ import { getDbUser } from "@/lib/auth"
 import { CompanyProfileForm } from "@/components/forms/company-profile-form"
 import { LogoUpload } from "@/components/forms/logo-upload"
 import { Topbar } from "@/components/shared/topbar"
+import { BankAccountsSection } from "@/components/profile/bank-accounts-section"
+import { getBankAccountsByUser } from "@/lib/db/queries/bank-accounts"
 import { Building2, MapPin, Wrench } from "lucide-react"
 
 type Props = { params: Promise<{ locale: string }> }
@@ -19,6 +21,7 @@ export default async function ProfilePage({ params }: Props) {
 
   const t = await getTranslations("Profile")
   const user = await getDbUser()
+  const bankAccounts = user ? await getBankAccountsByUser(user.id) : []
 
   const addressLine = [user?.addressLine1, user?.addressZip, user?.addressCity]
     .filter(Boolean)
@@ -121,6 +124,12 @@ export default async function ProfilePage({ params }: Props) {
             />
           </div>
         </div>
+
+        {/* Payment details — bank accounts + MobilePay */}
+        <BankAccountsSection
+          accounts={bankAccounts}
+          mobilepayNumber={user?.mobilepayNumber}
+        />
       </div>
     </>
   )
