@@ -91,14 +91,6 @@ export default async function OverviewPage({ params }: Props) {
           <StatCards />
         </Suspense>
 
-        {/* Quick stat tiles */}
-        <div className="grid grid-cols-2 gap-3">
-          <StatTile icon={Briefcase} label={t("statsActiveJobs")} value={stats.activeJobCount} href="/jobs" variant="amber" />
-          <StatTile icon={Users} label={t("statsCustomers")} value={stats.customerCount} href="/customers" variant="blue" />
-          <StatTile icon={FileText} label={t("statOpenQuotes")} value={stats.openQuoteCount} href="/quotes" variant="default" />
-          <StatTile icon={Receipt} label={t("statPendingInvoices")} value={stats.pendingInvoiceCount} href="/invoices" variant="green" />
-        </div>
-
         {/* Financial summary */}
         {(stats.pendingInvoiceTotal > 0 || stats.paidThisMonth > 0) && (
           <div className="grid grid-cols-2 gap-3">
