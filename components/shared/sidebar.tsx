@@ -212,7 +212,7 @@ export function Sidebar() {
             <DropdownMenuTrigger
               className="w-full h-9 flex items-center gap-2.5 px-2.5 rounded-[6px] transition-colors duration-120 cursor-pointer"
               style={{ color: "var(--muted-foreground)" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "oklch(1 0 0 / 4%)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--foreground)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--accent)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--foreground)" }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = ""; (e.currentTarget as HTMLButtonElement).style.color = "var(--muted-foreground)" }}
             >
               <div
@@ -288,8 +288,8 @@ function NavItem({
         href={href}
         className="h-9 flex items-center gap-2.5 px-2.5 rounded-[6px] transition-colors duration-120 relative cursor-pointer"
         style={{
-          backgroundColor: active ? "oklch(0.720 0.195 58 / 10%)" : hovered ? "oklch(1 0 0 / 4%)" : "transparent",
-          color: active ? "var(--amber-400)" : "var(--muted-foreground)",
+          backgroundColor: active ? "oklch(0.720 0.195 58 / 12%)" : hovered ? "var(--accent)" : "transparent",
+          color: active ? "var(--amber-600)" : "var(--muted-foreground)",
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
