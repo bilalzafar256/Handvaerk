@@ -207,11 +207,11 @@ export async function sendQuoteEmailAction(id: string) {
 
   const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL}/en/q/${quote.shareToken}`
 
-  const { resend } = await import("@/lib/email/client")
+  const { resend, EMAIL_FROM } = await import("@/lib/email/client")
   const { QuoteSentEmail } = await import("@/lib/email/templates/quote-sent")
 
   const { data, error } = await resend.emails.send({
-    from: "Håndværk Pro <onboarding@resend.dev>",
+    from: EMAIL_FROM,
     to: [quote.customer.email],
     subject: `Tilbud ${quote.quoteNumber}`,
     react: QuoteSentEmail({

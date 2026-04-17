@@ -354,11 +354,11 @@ export async function sendInvoiceAction(id: string) {
     mobilepayNumber: invoice.mobilepayNumber ?? undefined,
   })
 
-  const { resend } = await import("@/lib/email/client")
+  const { resend, EMAIL_FROM } = await import("@/lib/email/client")
   const { InvoiceSentEmail } = await import("@/lib/email/templates/invoice-sent")
 
   const { data, error } = await resend.emails.send({
-    from:    "Håndværk Pro <onboarding@resend.dev>",
+    from:    EMAIL_FROM,
     to:      [invoice.customer.email],
     subject: `Faktura ${invoice.invoiceNumber}`,
     react:   InvoiceSentEmail({
