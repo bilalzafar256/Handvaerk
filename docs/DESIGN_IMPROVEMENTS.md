@@ -31,80 +31,605 @@ This app is used by Danish tradespeople — electricians, plumbers, carpenters. 
 
 ---
 
+## Phase 0 — Color System Overhaul
+
+**Files:** `app/globals.css` only.
+**Scope:** Replace every CSS variable value. Zero component changes. Everything downstream inherits automatically.
+
+---
+
+### 0.1 The Decision
+
+The current palette has two problems that no amount of component polish can fix:
+
+**Problem 1 — Warm neutrals feel dated.** `--workshop-*` grays sit at hue 50–75 (yellow-brown territory). On a screen, warm neutrals read as aged or craft-y — fine for a hardware store brand, wrong for a modern SaaS tool. The designers we're emulating — Paco Coursey at Linear, Rauno Freiberg at Vercel — all use cool-biased neutrals (hue 240–260) as their base. The cool hue reads as deliberate and modern without feeling cold.
+
+**Problem 2 — Dark mode is abandoned.** The current `.dark` block is entirely achromatic (`chroma: 0`). That's a placeholder, not a design. Vercel's entire visual identity lives in dark mode. Linear defaulted to dark for years. The product should feel equally intentional on both.
+
+**The solution: Obsidian + Electric Amber.**
+
+Keep the amber brand color — it's distinctive and earns its place as the one warm note. Everything else shifts to **cool slate**: perceptually neutral, slightly blue-biased. The result is the exact tension Vercel and Linear create: cool, restrained canvas with a single warm accent that commands every CTA and active state. Adam Argyle calls this "thermal contrast" — it's why the amber will feel more amber than it does today, even though the amber values barely change.
+
+Dark mode becomes the **primary, flagship experience**. Light mode is clean and fully functional. Neither is an afterthought.
+
+---
+
+### 0.2 New Palette: "Slate" replaces "Workshop"
+
+The `--workshop-*` scale is replaced by `--slate-*`. Hue shifts from 50–75 → **255** (cool blue-gray). Chroma is slightly higher for the mid-tones to avoid the muddy middle that pure gray has — Adam Argyle's OKLCH technique for perceptually rich neutrals.
+
+```css
+/* Old workshop (warm, hue 50-75) → New slate (cool, hue 255) */
+--slate-50:  oklch(0.985 0.002 255);   /* near-white, breathable */
+--slate-100: oklch(0.960 0.004 255);
+--slate-200: oklch(0.900 0.007 255);
+--slate-300: oklch(0.780 0.009 255);
+--slate-400: oklch(0.620 0.011 255);
+--slate-500: oklch(0.450 0.011 255);
+--slate-600: oklch(0.320 0.009 255);
+--slate-700: oklch(0.220 0.007 255);
+--slate-800: oklch(0.150 0.005 255);
+--slate-900: oklch(0.090 0.004 255);   /* Obsidian */
+```
+
+The amber scale stays. It gets a tiny chroma boost (+0.02) and a 4° hue shift toward orange (62→58) — this makes it feel more electric on the new cool backgrounds:
+
+```css
+/* Amber — Electric revision */
+--amber-50:  oklch(0.975 0.025 72);
+--amber-100: oklch(0.945 0.055 68);
+--amber-200: oklch(0.890 0.095 65);
+--amber-300: oklch(0.830 0.135 62);
+--amber-400: oklch(0.770 0.165 60);
+--amber-500: oklch(0.720 0.195 58);   /* PRIMARY — was 0.70 0.19 62 */
+--amber-600: oklch(0.640 0.180 55);
+--amber-700: oklch(0.530 0.155 52);
+--amber-800: oklch(0.410 0.115 50);
+--amber-900: oklch(0.280 0.075 48);
+```
+
+---
+
+### 0.3 Light Mode Token Map
+
+```css
+:root {
+  /* Base surfaces */
+  --background:          var(--slate-50);          /* was workshop-50 */
+  --foreground:          var(--slate-900);          /* was workshop-900 */
+  --card:                oklch(1.000 0.000 0);      /* pure white */
+  --card-foreground:     var(--slate-900);
+  --popover:             oklch(1.000 0.000 0);
+  --popover-foreground:  var(--slate-900);
+
+  /* Borders & inputs */
+  --border:              var(--slate-200);          /* was workshop-200 */
+  --input:               var(--slate-200);
+  --ring:                var(--amber-500);          /* focus ring stays amber */
+
+  /* Primary (brand) */
+  --primary:             var(--amber-500);
+  --primary-foreground:  oklch(0.10 0.005 52);      /* near-black on amber */
+
+  /* Secondary / Muted */
+  --secondary:           var(--slate-100);          /* was workshop-100 */
+  --secondary-foreground: var(--slate-700);
+  --muted:               var(--slate-100);
+  --muted-foreground:    var(--slate-400);
+
+  /* Shadcn --accent (not brand) */
+  --accent:              var(--slate-100);
+  --accent-foreground:   var(--slate-900);
+
+  /* Destructive */
+  --destructive:         oklch(0.52 0.20 25);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  /* Sidebar */
+  --sidebar:             oklch(0.975 0.003 255);    /* slightly off-white, not pure white */
+  --sidebar-foreground:  var(--slate-900);
+  --sidebar-border:      var(--slate-200);
+  --sidebar-primary:     var(--amber-500);
+  --sidebar-primary-foreground: oklch(0.10 0.005 52);
+  --sidebar-accent:      var(--amber-50);
+  --sidebar-accent-foreground: var(--slate-900);
+  --sidebar-ring:        var(--amber-500);
+
+  /* Semantic text */
+  --text-primary:        var(--slate-900);
+  --text-secondary:      var(--slate-500);
+  --text-tertiary:       var(--slate-400);
+  --text-inverse:        var(--slate-50);
+
+  /* Surfaces */
+  --surface:             oklch(1.000 0.000 0);
+  --surface-raised:      oklch(0.990 0.002 255);
+  --background-subtle:   var(--slate-100);
+  --border-strong:       var(--slate-300);
+
+  /* Brand accent helpers */
+  --accent-brand:        var(--amber-500);
+  --accent-hover:        var(--amber-600);
+  --accent-light:        var(--amber-100);
+  --accent-foreground-brand: oklch(0.10 0.005 52);
+
+  /* Shadows — shift shadow hue to match new cool base */
+  --shadow-xs:    0 1px 2px oklch(0.09 0.004 255 / 0.06);
+  --shadow-sm:    0 1px 3px oklch(0.09 0.004 255 / 0.10), 0 1px 2px oklch(0.09 0.004 255 / 0.06);
+  --shadow-md:    0 4px 6px oklch(0.09 0.004 255 / 0.08), 0 2px 4px oklch(0.09 0.004 255 / 0.05);
+  --shadow-lg:    0 10px 15px oklch(0.09 0.004 255 / 0.10), 0 4px 6px oklch(0.09 0.004 255 / 0.05);
+  --shadow-accent: 0 4px 16px oklch(0.720 0.195 58 / 0.40);   /* amber glow */
+}
+```
+
+---
+
+### 0.4 Dark Mode Token Map
+
+The dark mode is fully chromatic — every surface gets the `255` hue with gradually increasing lightness. This is how Linear and Vercel avoid the "gray soup" problem of fully achromatic dark modes.
+
+```css
+.dark {
+  /* Base surfaces — stacked obsidian layers */
+  --background:          var(--slate-900);           /* oklch(0.090 0.004 255) */
+  --foreground:          var(--slate-50);            /* near-white */
+  --card:                var(--slate-800);           /* oklch(0.150 0.005 255) */
+  --card-foreground:     var(--slate-50);
+  --popover:             var(--slate-800);
+  --popover-foreground:  var(--slate-50);
+
+  /* Borders — semi-transparent white over the slate base */
+  --border:              oklch(1 0 0 / 9%);
+  --input:               oklch(1 0 0 / 12%);
+  --ring:                var(--amber-500);            /* amber focus ring on dark — striking */
+
+  /* Primary — amber stays exactly the same */
+  --primary:             var(--amber-500);
+  --primary-foreground:  oklch(0.10 0.005 52);
+
+  /* Secondary / Muted */
+  --secondary:           var(--slate-700);
+  --secondary-foreground: var(--slate-200);
+  --muted:               var(--slate-700);
+  --muted-foreground:    var(--slate-400);
+
+  /* Shadcn --accent */
+  --accent:              var(--slate-700);
+  --accent-foreground:   var(--slate-50);
+
+  /* Destructive */
+  --destructive:         oklch(0.65 0.20 25);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  /* Sidebar — one step lighter than background */
+  --sidebar:             var(--slate-800);
+  --sidebar-foreground:  var(--slate-200);
+  --sidebar-border:      oklch(1 0 0 / 8%);
+  --sidebar-primary:     var(--amber-500);
+  --sidebar-primary-foreground: oklch(0.10 0.005 52);
+  --sidebar-accent:      oklch(0.720 0.195 58 / 12%);   /* amber tint at 12% opacity */
+  --sidebar-accent-foreground: var(--amber-400);
+  --sidebar-ring:        var(--amber-500);
+
+  /* Semantic text */
+  --text-primary:        var(--slate-50);
+  --text-secondary:      var(--slate-400);
+  --text-tertiary:       var(--slate-500);
+  --text-inverse:        var(--slate-900);
+
+  /* Surfaces */
+  --surface:             var(--slate-800);
+  --surface-raised:      var(--slate-700);
+  --background-subtle:   var(--slate-700);
+  --border-strong:       oklch(1 0 0 / 18%);
+
+  /* Shadows — on dark, use lighter alpha glow not darker shadow */
+  --shadow-xs:    0 1px 2px oklch(0 0 0 / 0.30);
+  --shadow-sm:    0 1px 3px oklch(0 0 0 / 0.40), 0 1px 2px oklch(0 0 0 / 0.24);
+  --shadow-md:    0 4px 8px oklch(0 0 0 / 0.45), 0 2px 4px oklch(0 0 0 / 0.30);
+  --shadow-lg:    0 12px 24px oklch(0 0 0 / 0.50), 0 4px 8px oklch(0 0 0 / 0.30);
+  --shadow-accent: 0 4px 20px oklch(0.720 0.195 58 / 0.50);   /* amber stronger on dark */
+}
+```
+
+---
+
+### 0.5 Status Colors — Dark Mode Upgrade
+
+Status colors on dark need to be luminous enough to read but not garish. Increase lightness and reduce chroma versus light mode:
+
+```css
+.dark {
+  /* Status — all bg values shift to translucent tinted overlays */
+  --status-new-bg:           oklch(0.32 0.10 200 / 25%);
+  --status-new-text:         oklch(0.78 0.14 200);
+  --status-new-border:       oklch(0.50 0.12 200 / 40%);
+
+  --status-scheduled-bg:     oklch(0.32 0.08 240 / 25%);
+  --status-scheduled-text:   oklch(0.78 0.12 240);
+  --status-scheduled-border: oklch(0.50 0.10 240 / 40%);
+
+  --status-progress-bg:      oklch(0.720 0.195 58 / 15%);
+  --status-progress-text:    var(--amber-400);
+  --status-progress-border:  oklch(0.720 0.195 58 / 35%);
+
+  --status-done-bg:          oklch(0.32 0.07 290 / 25%);
+  --status-done-text:        oklch(0.78 0.10 290);
+  --status-done-border:      oklch(0.50 0.09 290 / 40%);
+
+  --status-invoiced-bg:      oklch(0.35 0.10 55 / 25%);
+  --status-invoiced-text:    oklch(0.80 0.14 55);
+  --status-invoiced-border:  oklch(0.52 0.12 52 / 40%);
+
+  --status-paid-bg:          oklch(0.30 0.10 145 / 25%);
+  --status-paid-text:        oklch(0.75 0.14 145);
+  --status-paid-border:      oklch(0.48 0.12 145 / 40%);
+
+  --status-overdue-bg:       oklch(0.35 0.12 25 / 25%);
+  --status-overdue-text:     oklch(0.78 0.18 25);
+  --status-overdue-border:   oklch(0.52 0.16 25 / 40%);
+}
+```
+
+---
+
+### 0.6 Global Easing Variables
+
+Add these to `:root` alongside the color tokens. Every phase references them:
+
+```css
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap:   cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+}
+```
+
+---
+
+### 0.7 Rename Workshop → Slate in Globals
+
+Every reference to `var(--workshop-*)` in `globals.css` is replaced with `var(--slate-*)`. The variable names in component files do **not** change — they reference semantic tokens (`--background`, `--border`, `--muted`, etc.) which now point to slate values. No component edits needed.
+
+Remove the `--workshop-*` declarations entirely. Add `--slate-*` in their place.
+
+---
+
+### 0.8 Default to Dark Mode
+
+In `app/[locale]/layout.tsx`, add `className="dark"` to the `<html>` element by default. The user's OS preference can override this via a future theme toggle (Phase 7 enhancement). For now, dark is the experience.
+
+This single line transforms the app. The amber accent will immediately look more electric, text contrast will sharpen, and the product will feel like it belongs next to Linear and Vercel in a screenshot.
+
+---
+
+### 0.9 Visual Before/After Reference
+
+| Element | Before (warm) | After (cool dark) |
+|---|---|---|
+| App background | `oklch(0.98 0.004 75)` warm off-white | `oklch(0.09 0.004 255)` obsidian |
+| Card surface | `oklch(1.00 0 0)` white | `oklch(0.15 0.005 255)` lifted slate |
+| Body text | `oklch(0.10 0.005 50)` warm black | `oklch(0.985 0.002 255)` cool white |
+| Secondary text | `oklch(0.42 0.012 62)` warm gray | `oklch(0.45 0.011 255)` cool gray |
+| Border | `oklch(0.88 0.008 70)` warm line | `oklch(1 0 0 / 9%)` white at 9% alpha |
+| Primary button | amber on off-white | amber on obsidian — pops harder |
+
+The amber doesn't change. The world around it changes, making it sing.
+
+---
+
 ## Phase 1 — Landing Page
 
 **Pages:** `app/[locale]/page.tsx`
-**Inspiration:** Vercel.com hero, Linear.app marketing, Stripe homepage
+**Inspiration:** Vercel.com, Linear.app marketing, Stripe homepage, Loom.com, Raycast.com
+
+### Section Order (full page, top to bottom)
+
+```
+1.  Nav
+2.  Hero
+3.  Stats Bar
+4.  Problem (Pain Points)
+5.  Feature: Jobs & Workflow
+6.  Feature: Quotes in Seconds
+7.  Feature: Invoice & Get Paid
+8.  Feature: Customer Intelligence
+9.  Product Demo (interactive timeline)
+10. Who It's For
+11. Comparison Table
+12. Testimonials
+13. Pricing
+14. FAQ
+15. Trust Bar
+16. Footer CTA
+```
+
+The page is **long by design**. Tradespeople have real objections — trust, complexity, cost, data safety. Every section exists to answer a question a skeptical 52-year-old carpenter has before signing up.
+
+---
 
 ### 1.1 Navigation Bar
 
-**Current:** Fixed top nav with logo, nav links, CTA button. Functional but generic.
+**Current:** Fixed top nav with logo, links, CTA. Functional but generic.
 
 **New:**
-- Add a **blur-behind glass** effect: `backdrop-filter: blur(12px) saturate(180%); background: oklch(0.10 0.005 50 / 75%)` — same technique Vercel uses on their site nav.
-- Nav links get a subtle **underline-on-hover** that slides in from left to right (width: 0 → 100%, transition 180ms ease-out). No bold, no color change. Just the line.
-- The CTA button ("Kom i gang") gets a **shimmer sweep** on hover: a `::before` pseudo-element with a white diagonal gradient, `translate(-100%) → translate(100%)` on hover in 400ms. Subtle. Paco Coursey used this on Cron.
-- Add a **1px bottom border** that appears on scroll (IntersectionObserver on hero section exit). The border is `var(--amber-200)` at 40% opacity. Signals "you've left the hero."
-- Collapse to **hamburger + sheet** below 768px (already exists, but re-animate: sheet slides in from right with `--ease-smooth`, 260ms).
+- Background: `backdrop-filter: blur(16px) saturate(180%); background: oklch(0.09 0.004 255 / 80%)` — Vercel's exact glass nav technique, now with the new obsidian color.
+- Nav links: `var(--slate-400)` default. Hover: `var(--slate-100)`. Transition 120ms `--ease-snap`. No underline — color shift is enough.
+- Scroll behavior: after 80px scroll, a `1px solid oklch(1 0 0 / 8%)` bottom border fades in. Communicates depth without being heavy.
+- CTA button ("Kom i gang"): amber. On hover, `--shadow-accent` glow activates and button lifts `translateY(-1px)`. 120ms.
+- Mobile: hamburger left, logo center, "Prøv gratis" pill button right (24px height, compact). Sheet slides from right, `--ease-smooth` 240ms. Sheet background: `oklch(0.12 0.005 255)`.
+- Add nav links: `Funktioner`, `Priser`, `FAQ`, `Log ind`. Anchors to page sections — no separate pages needed.
 
 ### 1.2 Hero Section
 
-**Current:** Dark background, logo, headline, subheadline, two buttons, animated background grid.
+**Current:** Dark, headline, subheadline, two buttons, grid background.
 
 **New:**
 
-**Typography overhaul:**
-- Main headline: Bricolage Grotesque 800 weight, `clamp(36px, 6vw, 72px)`. Split into two lines. First line: white. Second line (the key value prop noun): `var(--amber-400)`. Example: `"Din forretning" / "på ét sted."` The amber word is the hook.
-- Subheadline: DM Sans 400, `clamp(16px, 2vw, 20px)`, `var(--workshop-400)`. Max 2 lines. 60 characters max.
-- Add a **word-by-word fade-up** on load: each word animates in with `translateY(8px) opacity(0) → translateY(0) opacity(1)`, staggered 40ms per word, `--ease-spring`. Total duration: ~600ms. Emil Kowalski's technique — makes the headline feel written, not loaded.
+**Layout:** Centered, max-width 760px, plenty of vertical breathing room. Not full-viewport — hero ends and next section is visible, encouraging scroll (Loom's approach).
 
-**CTA button redesign:**
-- Primary button ("Prøv gratis"): Add a small pulsing dot to the left (like a live-indicator). `width: 6px; height: 6px; border-radius: 50%; background: var(--amber-400); animation: pulse 2s ease infinite`. This creates urgency without being aggressive.
-- Secondary button: Ghost with `var(--workshop-600)` border, `var(--workshop-300)` text. On hover: border brightens to `var(--workshop-400)`.
+**Eyebrow label above headline:** Small pill: `● Ny: Fakturaer via email →` in `var(--amber-500)` text, `oklch(0.720 0.195 58 / 12%)` background, `oklch(0.720 0.195 58 / 30%)` border. Link to the invoice feature section. This is the Vercel "Announcing X" badge — it's the highest-CTR element on a hero.
+
+**Headline:** Bricolage Grotesque 800, `clamp(40px, 7vw, 80px)`, tight line-height (1.05). Split into three lines:
+```
+Spar 3 timer
+om ugen. Fokusér
+på håndværket.
+```
+Lines 1 and 3: `var(--slate-50)`. Line 2: `var(--amber-400)`. The amber line is the pivot — it names the benefit.
+
+**Word-by-word entrance:** Each word: `translateY(12px) opacity(0)` → `translateY(0) opacity(1)`, staggered 35ms per word, `--ease-spring`. Emil Kowalski's technique. Feels typed, not loaded.
+
+**Subheadline:** DM Sans 400, `clamp(17px, 2.2vw, 21px)`, `var(--slate-400)`. One sentence. Max 80 chars. Example: `"Tilbud, jobs, fakturaer og kunder — alt samlet på 5 minutter."`.
+
+**CTA row:**
+- Primary: amber button, 48px height. Left side: 7px pulsing dot in `var(--amber-300)` — signals "live product." Text: `"Start gratis i dag"`.
+- Secondary: ghost, `var(--slate-600)` border, `var(--slate-300)` text. Text: `"Se hvordan det virker →"`. Links to the demo section.
+- Micro-trust below buttons: `"Ingen kreditkort · Gratis at starte · Dansk support"` — 12px, `var(--slate-500)`, `·` as separator.
 
 **Background:**
-- Replace the static grid with a **radial gradient spotlight** that follows the cursor at 25% speed (parallax effect). The spotlight is `radial-gradient(600px at var(--x) var(--y), oklch(0.70 0.19 62 / 8%), transparent 70%)`. This is the exact technique used on Vercel's homepage dark sections.
-- Keep the grid, but make it `opacity: 0.04` instead of current. The spotlight makes it feel alive.
-- Add **3 floating cards** at the bottom of the hero — small, frosted glass, showing real data: `"Tilbud #T-0042 · Accepteret"`, `"Faktura betalt · 12.800 kr"`, `"Job afsluttet · Frederiksberg"`. These cards appear with a staggered fade-up (400ms, 600ms, 800ms after page load). They animate with a very slow float: `translateY(0) → translateY(-6px) → translateY(0)`, 6s loop, each card offset by 2s.
+- Cursor-following radial spotlight: `radial-gradient(700px circle at var(--x, 50%) var(--y, 50%), oklch(0.720 0.195 58 / 6%), transparent 65%)`. Updates via `mousemove` → CSS custom property at 30% speed. On mobile: centered static version, no mousemove.
+- Background grid: `opacity: 0.035`. Fine lines, CSS background-image pattern.
+- Add a `radial-gradient(ellipse 120% 50% at 50% 100%, oklch(0.720 0.195 58 / 4%), transparent)` at the bottom of the hero — a faint amber floor glow that bleeds into the next section.
 
-### 1.3 Problem Section
+**Floating proof cards:** 3 cards arranged below the CTA row in a horizontal cluster (desktop) or vertical stack (mobile). Each card is a frosted glass pill:
+- `background: oklch(1 0 0 / 5%); border: 1px solid oklch(1 0 0 / 10%); backdrop-filter: blur(8px)`
+- Card 1: `✓ Tilbud T-0042 accepteret — Erik Hansen`
+- Card 2: `💰 Faktura betalt · 12.800 kr`
+- Card 3: `📍 Job afsluttet · Frederiksberg`
+- Each card: icon 14px, text 13px DM Sans. Enter animation staggered 500/700/900ms from page load. Slow float loop: `translateY(0px) → translateY(-5px)` 5s ease-in-out, each card offset 1.5s.
 
-**Current:** 3 cards in a row with icons and text.
+### 1.3 Social Proof Stats Bar
 
-**New:**
-- Change layout to **horizontal timeline**: 3 "before" states connected by `→` arrows. Each item: icon top-left, 1-line bold problem label, 2-line description.
-- On mobile: vertical stack with a left-border accent line connecting items (like Stripe's features section).
-- Add a **micro-hover lift**: cards translate `translateY(-2px)` on hover, shadow goes from `--shadow-sm` to `--shadow-md`. 120ms `--ease-snap`.
-- Numbers in top-right corner: `01`, `02`, `03` in `var(--workshop-700)` DM Mono 12px. Paco's aesthetic — quiet hierarchical signaling.
+**New section — placed immediately below hero.**
 
-### 1.4 Product Demo Section (Workflow Timeline)
+A horizontal bar breaking the dark background. Background: `oklch(1 0 0 / 4%)` — barely distinguishable from hero. Separator lines on left and right: `1px solid oklch(1 0 0 / 8%)`.
 
-**Current:** Horizontal pill-steps showing job lifecycle. Animated on scroll.
+Three stats, centered, equal width columns:
+```
+2.400+          48.000+         1,2 mia. kr
+Håndværkere     Fakturaer sendt  Faktureret via platformen
+```
 
-**New:**
-- Show a **live-looking job card** below the timeline steps. As user scrolls through each step, the job card "updates" — status badge changes, fields appear, amounts fill in. Uses IntersectionObserver on each step to trigger the card update. This transforms a static diagram into a product demo.
-- The card is `320px` wide, positioned sticky right side on desktop, flowing below on mobile.
-- Each status badge change: `opacity: 0 scale(0.9) → opacity: 1 scale(1)`, 180ms `--ease-spring`. The old badge fades out simultaneously.
-- Add a **keyboard shortcut hint** in the corner: `↵ Enter to accept` when hovering the Accepteret state — signals power-user features to come.
+Numbers: JetBrains Mono 700, `clamp(28px, 4vw, 40px)`, `var(--slate-50)`.
+Labels: DM Sans 400, 13px, `var(--slate-500)`.
 
-### 1.5 Pricing Section
+**Counting animation:** On scroll-into-view, numbers count up from 0 to final value in 1.2s using `requestAnimationFrame`. Easing: ease-out. This is the most-copied hero pattern because it works — the motion draws the eye and the numbers make the claim feel earned.
 
-**Current:** 3 tiers with feature lists.
+Vertical `1px` dividers between columns: `oklch(1 0 0 / 10%)`.
 
-**New:**
-- **Solo tier** (recommended) gets a `position: relative` card with a `::before` glow: `box-shadow: 0 0 40px oklch(0.70 0.19 62 / 25%)`. Softly glows amber. Not a badge — the card itself glows.
-- Feature list items: add `✓` checkmarks using `var(--amber-400)` SVG icon (not emoji). The icon renders with a stroke-dasharray draw animation on first scroll-into-view: 240ms.
-- Add a **"Ingen binding"** (no commitment) micro-label below the CTA buttons: 11px, `var(--workshop-500)`, letter-spacing: 0.05em. Small trust signal, big conversion impact.
-- Price numbers: Use JetBrains Mono for the number itself, DM Sans for `/md`. This creates a deliberate typographic contrast — the number feels precise, financial.
+### 1.4 Problem Section (Pain Points)
 
-### 1.6 Footer CTA
+**New design — replaces current 3-card layout.**
 
-**Current:** Simple CTA with SVG pipeline graphic.
+Section heading: `"Lyder det bekendt?"` — 13px uppercase, `var(--amber-500)`, letter-spacing: 0.1em. Acts as a category label. Below: a headline in 38px Bricolage Grotesque: `"Papirbunkerne er ikke værd at slæbe med."`.
 
-**New:**
-- Full-bleed `var(--amber-500)` to `var(--amber-600)` gradient background. High contrast inversion: white headline, white button with `var(--amber-500)` text.
-- The button is now **dark on amber**: `background: oklch(0.12 0.005 50); color: white`. This reversal signals "this is the moment."
-- Headline: `"Begynd i dag. Første job gratis."` — short, direct, no softness.
+Three pain points in a **3-column card grid** (1 column mobile, 3 desktop). Each card:
+- Top: icon (24px, `var(--slate-600)`)
+- Bold 1-line headline: 17px, `var(--slate-200)`
+- 2-3 line description: 14px, `var(--slate-400)`
+- Number badge top-right: `01`/`02`/`03` — JetBrains Mono 11px, `var(--slate-700)`
+
+Pain points to convey:
+1. `"Excel-arket fejler igen"` — sporer ikke betalinger, sender forkerte totaler
+2. `"Fakturaen ankom for sent"` — kunden betalte 40 dage for sent, fordi du glemte det
+3. `"Du mister overblikket"` — 3 apps, 2 mapper, 1 rodet indbakke
+
+Cards enter with `opacity: 0 translateY(16px)` → fully visible, staggered 80ms, on scroll-into-view.
+
+### 1.5 Feature Section: Jobs & Workflow
+
+**New section — first of 4 feature deep-dives.**
+
+Layout: **two-column alternating** (image left, text right). On mobile: text above, image below.
+
+Left: A product screenshot mockup of the jobs list — real UI inside a phone frame (375×812 artboard). Phone frame: `var(--slate-800)` rounded rect, `--shadow-lg`. Screenshot shows the status-colored job list with amber active state.
+
+Right:
+- Section label: `"Jobs"` — 11px uppercase amber
+- Headline: `"Alle jobs. Alt overblik."` — 32px Bricolage Grotesque
+- 3 bullet points with custom amber checkmark icons:
+  - `"Opret, planlæg og afslut jobs på under 30 sekunder"`
+  - `"Status-system med 6 trin — fra Ny til Betalt"`
+  - `"Upload fotos direkte fra jobstedet"`
+- CTA link: `"Udforsk jobs →"` — amber, 14px
+
+On scroll-into-view: image slides in from left (`translateX(-24px) opacity(0)` → default), text from right. 200ms `--ease-smooth`, 100ms delay offset.
+
+### 1.6 Feature Section: Quotes in Seconds
+
+**Layout: text left, image right** (alternating from 1.5).
+
+Right: Product mockup of the quote builder on desktop — showing the document-editor layout with a total panel.
+
+Left:
+- Section label: `"Tilbud"`
+- Headline: `"Et tilbud på 45 sekunder."` — exact promise, exact number.
+- Bullets:
+  - `"Præfyldte linjevarer fra dit materialebibliotek"`
+  - `"Send direkte til kunden — de accepterer med ét klik"`
+  - `"Tilbud konverteres automatisk til faktura"`
+- Animated counter below bullets: a `45` in 48px JetBrains Mono `var(--amber-400)` with `"sekunder"` in 16px next to it. The 45 counts down from 99 on first scroll-into-view. Pure showmanship — but it stops the scroll.
+
+### 1.7 Feature Section: Invoice & Get Paid
+
+**Layout: image left, text right.**
+
+Left: Invoice PDF preview inside a laptop frame (16:10 artboard). Shows a real-looking FAKTURA with amber header, line items, moms, total. Laptop frame: thin `var(--slate-700)` border, screen glow from amber header bleeds out faintly.
+
+Right:
+- Section label: `"Fakturaer"`
+- Headline: `"Fra job til betalt — automatisk."`.
+- Bullets:
+  - `"Professionelle PDF-fakturaer med dit logo"`
+  - `"Automatisk rykker efter 8 og 15 dage"`
+  - `"MobilePay og bankoverførsels-detaljer på fakturaen"`
+- Trust micro-detail: `"Overholder dansk bogføringslov"` — 12px, `var(--slate-500)`, with a small `✓` icon. This is the most important trust signal for Danish business users.
+
+### 1.8 Feature Section: Customer Intelligence
+
+**Layout: text left, image right.**
+
+Right: Customer detail mockup — shows the profile header with financial summary bar (Faktureret/Udestående/Betalt) and the job history tab.
+
+Left:
+- Section label: `"Kunder"`
+- Headline: `"Kend din kunde. Husk alt."`
+- Bullets:
+  - `"CVR-opslag udfylder firma og adresse automatisk"`
+  - `"Komplet historik: jobs, tilbud, fakturaer"`
+  - `"Se præcis hvad en kunde skylder dig"`
+
+### 1.9 Interactive Product Demo
+
+**Redesign of current workflow timeline.**
+
+Section intro: `"Se det i praksis"` label + `"Fra opkald til betaling — se hele flowet."` headline.
+
+**Desktop layout:** Horizontal stepper across the top (6 steps). Below: a `480×320px` product UI panel that updates as user clicks/hovers each step. The panel shows an animated screenshot transition for each step. Steps: `Opkald → Job oprettet → Tilbud sendt → Accepteret → Faktura sendt → Betalt`.
+
+**Mobile layout:** Vertical timeline. Tap a step to expand and show the product panel for that step. Accordion-style, `--ease-smooth` 220ms.
+
+**The panel transition:** When switching steps, the panel content fades out (`opacity: 0`, 80ms), then the new content fades in (`opacity: 1`, 120ms). No slide — it's a cut with a soft fade. Emil Kowalski's rule: when spatial relationship between states is unclear, fade is cleaner than a slide.
+
+Each step content shows a realistic (mocked) screenshot:
+- Step 1 (Job oprettet): Empty new-job form being filled
+- Step 2 (Tilbud sendt): Quote document with customer email
+- Step 3 (Accepteret): Green "Accepteret" status + customer signature line
+- Step 4 (Faktura sendt): Invoice PDF preview
+- Step 5 (Betalt): Payment confirmed, invoice green, balance updated
+
+Auto-advances every 3s if user doesn't interact. Pauses on hover. Progress indicator: thin amber progress bar below the stepper, fills from 0→100% over 3s with a CSS animation, resets on step change.
+
+### 1.10 Who It's For
+
+**Redesign of current trade-type section.**
+
+Section heading: `"Bygget til dem der bygger Danmark."` — 38px Bricolage Grotesque.
+
+**Trade icons grid:** 8 trades in a 4×2 grid. Each trade: icon (32px custom SVG or Lucide), trade name below in 13px DM Sans. Hover: card background `oklch(0.720 0.195 58 / 8%)`, icon shifts to amber. 120ms `--ease-snap`.
+
+Trades: Elektriker, VVS-montør, Tømrer, Maler, Murer, Smed, Gulvlægger, Tagdækker.
+
+**Single testimonial below grid (rotates):** Large `"` quote mark in amber, quote text in 20px DM Sans 400 italic `var(--slate-300)`, author name 15px 600 `var(--slate-100)`, trade + city in 13px `var(--slate-500)`. Auto-rotates between 3 quotes every 5s. Transition: `opacity: 0 scale(0.97)` → `opacity: 1 scale(1)`, 200ms `--ease-smooth`.
+
+### 1.11 Competitor Comparison Table
+
+**New section — directly before pricing.**
+
+Section heading: `"Hvorfor ikke bare Excel?"` — disarms the objection by naming it.
+
+Table with 5 rows × 4 columns:
+
+| Funktion | Håndværk Pro | Excel/Word | Billy/e-conomic | Pen & papir |
+|---|---|---|---|---|
+| Mobilvenlig | ✓ | ✗ | Delvist | ✗ |
+| Jobstyring | ✓ | ✗ | ✗ | ✗ |
+| Auto-rykkere | ✓ | ✗ | ✓ | ✗ |
+| Bygget til håndværkere | ✓ | ✗ | ✗ | ✗ |
+| Pris/md | Fra 0 kr | 0 kr | Fra 149 kr | 0 kr |
+
+Håndværk Pro column: header has amber tint background, `var(--amber-500)` top border (2px). Checkmarks: amber SVG. X marks: `var(--slate-600)`. This is Stripe's comparison table pattern — own column stands out without being garish.
+
+On mobile: table scrolls horizontally. Sticky first column (feature names).
+
+### 1.12 Testimonials Section
+
+**New section.**
+
+Section heading: `"Hvad håndværkere siger."` — plain, no hype.
+
+**3-column testimonial card grid** (1 mobile, 2 tablet, 3 desktop). Each card:
+- Background: `var(--slate-800)`, `1px solid oklch(1 0 0 / 8%)` border, `--shadow-sm`
+- `"` quotation mark: 48px Bricolage Grotesque 800, `var(--amber-600)`, positioned absolute top-left
+- Quote text: 15px DM Sans 400, `var(--slate-300)`, italic. 3–4 lines max.
+- Author row at bottom: avatar (40px initials circle, amber bg), name 14px 600 `var(--slate-100)`, trade + city 12px `var(--slate-500)`
+- Star rating: 5 amber `★` at 13px
+
+Cards enter staggered on scroll-into-view: `translateY(20px) opacity(0)` → default, 100ms offset each, 180ms `--ease-smooth`.
+
+### 1.13 Pricing Section
+
+**Redesign of current 3-tier layout.**
+
+Section heading: `"Enkle priser. Ingen overraskelser."`.
+
+**Annual/Monthly toggle** above the cards: pill toggle switch. Annual selected by default — shows savings badge `"Spar 2 måneder"` in amber.
+
+3 cards: `Gratis`, `Solo`, `Hold`. Same features as today but visually refined:
+- **Solo card (recommended):** `box-shadow: 0 0 0 1px var(--amber-500), 0 0 48px oklch(0.720 0.195 58 / 18%)` — amber ring glow, not just a badge. This is the strongest visual highlight in the section.
+- `"Anbefalet"` badge: absolute positioned top-center. `var(--amber-500)` background, `var(--slate-900)` text, 11px uppercase.
+- Price: JetBrains Mono 700 for the number, DM Sans 400 for `/md`. Annual price shown, monthly in smaller text below.
+- Feature list: left-aligned, `var(--amber-400)` checkmark SVG icons. Grey-out unavailable features (slash through, `var(--slate-700)`) rather than hiding — shows what you're upgrading from.
+- CTA buttons: primary amber for Solo, ghost for Gratis, ghost for Hold.
+- Below all cards: `"Ingen binding · Annullér når som helst · Data eksporteres altid"` — 12px, `var(--slate-500)`, centered.
+
+### 1.14 FAQ Section
+
+**New section — critical for conversion.**
+
+Section heading: `"Ofte stillede spørgsmål"`.
+
+**Accordion layout** — 8 questions, one column, full width up to 720px centered. Each item:
+- Question: 16px DM Sans 600 `var(--slate-100)`. Right side: `+` / `×` icon.
+- Answer: 15px DM Sans 400 `var(--slate-400)`. Revealed with `height: 0 → auto` + `opacity: 0 → 1`, 200ms `--ease-smooth`.
+- Separator: `1px solid oklch(1 0 0 / 8%)`.
+- Active item: question text becomes `var(--slate-50)`, `+` becomes amber `×`.
+
+Questions:
+1. `"Er det sikkert at gemme mine kundedata her?"` — GDPR, dansk hosting
+2. `"Kræver det teknisk indsigt?"` — nej, bygget til håndværkere
+3. `"Hvad sker der med mine data hvis jeg stopper?"` — eksport altid tilgængelig
+4. `"Overholder fakturaerne bogføringsloven?"` — ja, EAN, moms, CVR
+5. `"Kan jeg bruge det på min telefon på jobstedet?"` — ja, mobil-first
+6. `"Hvad er forskellen på Gratis og Solo?"` — jobgrænse, PDF-branding, rykkere
+7. `"Kan jeg importere mine eksisterende kunder?"` — CSV-import
+8. `"Hvad koster det hvis jeg vil stoppe?"` — ingenting, ingen binding
+
+### 1.15 Trust Bar
+
+**New section — immediately before footer CTA.**
+
+A `64px` tall horizontal strip. Background: `oklch(1 0 0 / 3%)`. Three or four trust signals separated by vertical dividers:
+
+`🔒 GDPR-compliant`  `·`  `🇩🇰 Dansk support`  `·`  `💳 Ingen kreditkort kræves`  `·`  `⚡ Opsæt på 5 min`
+
+Each signal: icon + 13px DM Sans `var(--slate-400)`. Simple. This is the "fine print made visible" technique — Stripe does this above their footer on every page.
+
+### 1.16 Footer CTA
+
+**Redesign of current CTA.**
+
+Full-bleed section. Background: a diagonal amber gradient — `linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 50%, var(--amber-400) 100%)`. This is the only full-amber section on the page — maximum contrast from the dark sections above.
+
+Headline: `"Begynd i dag."` — Bricolage Grotesque 800, 52px, `var(--slate-900)`. One line, nothing else.
+Subline: `"Første job gratis. Ingen binding."` — 18px DM Sans 400, `oklch(0.15 0.005 52)`.
+CTA button: dark — `background: oklch(0.10 0.004 255); color: var(--slate-50)`. Hover: `background: oklch(0.15 0.005 255)`. Inverse of all other buttons — signals "final action."
+
+Footer below: standard links. 3 columns: Product (Funktioner, Priser, Vejledning), Virksomhed (Om os, Kontakt, Blog), Legal (Privatlivspolitik, Cookiepolitik, Vilkår). All links `var(--slate-500)`, hover `var(--slate-300)`. Bottom row: `"© 2025 Håndværk Pro · CVR XXXXXXXX"` in `var(--slate-600)` 12px.
 
 ---
 

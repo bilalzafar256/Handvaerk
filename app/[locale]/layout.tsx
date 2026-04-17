@@ -58,7 +58,7 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <ClerkProvider>
-      <html lang={locale} className={`${bricolage.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
+      <html lang={locale} className={`dark ${bricolage.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
         <body>
           <NextIntlClientProvider messages={messages}>
             <AnalyticsProvider>
