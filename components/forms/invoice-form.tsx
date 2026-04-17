@@ -24,41 +24,44 @@ interface InvoiceFormProps {
 
 const inputCls = `
   w-full h-12 px-4
-  bg-[--surface] text-[--text-primary]
-  border border-[--border]
-  rounded-[--radius-sm]
-  placeholder:text-[--text-tertiary]
-  focus:outline-none focus:border-[--primary]
-  focus:ring-2 focus:ring-[--primary]/20
+  bg-[var(--background)] text-[var(--foreground)]
+  border border-[var(--border)]
+  rounded-lg
+  placeholder:opacity-50
+  focus:outline-none focus:ring-2
   transition-colors duration-150 text-base
 `
 const labelCls = "block text-sm font-medium mb-1.5"
 
 function toLineItems(items: InvoiceItem[]): LineItem[] {
   return items.map((item, i) => ({
-    id:          item.id,
-    itemType:    item.itemType as LineItem["itemType"],
-    description: item.description,
-    quantity:    item.quantity ?? "",
-    unitPrice:   item.unitPrice ?? "",
-    vatRate:     item.vatRate ?? "25.00",
-    sortOrder:   item.sortOrder ?? i,
+    id:            item.id,
+    itemType:      item.itemType as LineItem["itemType"],
+    description:   item.description,
+    quantity:      item.quantity ?? "",
+    unitPrice:     item.unitPrice ?? "",
+    discountType:  (item.discountType as LineItem["discountType"]) ?? "",
+    discountValue: item.discountValue ?? "",
+    vatRate:       item.vatRate ?? "25.00",
+    sortOrder:     item.sortOrder ?? i,
   }))
 }
 
 function quoteItemsToLineItems(items: QuoteItem[]): LineItem[] {
   return items.map((item, i) => ({
-    id:          crypto.randomUUID(),
-    itemType:    (item.itemType ?? "labour") as LineItem["itemType"],
-    description: item.description,
-    quantity:    item.quantity ?? "",
-    unitPrice:   item.unitPrice ?? "",
-    vatRate:     item.vatRate ?? "25.00",
-    sortOrder:   i,
+    id:            crypto.randomUUID(),
+    itemType:      (item.itemType ?? "labour") as LineItem["itemType"],
+    description:   item.description,
+    quantity:      item.quantity ?? "",
+    unitPrice:     item.unitPrice ?? "",
+    discountType:  (item.discountType as LineItem["discountType"]) ?? "",
+    discountValue: item.discountValue ?? "",
+    vatRate:       item.vatRate ?? "25.00",
+    sortOrder:     i,
   }))
 }
 
-function defaultDueDate(days = 14): string {
+function defaultDueDate(days = 15): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
   return d.toISOString().split("T")[0]
@@ -80,7 +83,7 @@ export function InvoiceForm({
   const [linkedQuoteId, setLinkedQuoteId] = useState<string | undefined>(defaultQuoteId)
 
   const [customerId, setCustomerId]           = useState(invoice?.customerId ?? defaultCustomerId ?? "")
-  const [dueDate, setDueDate]                 = useState(invoice?.dueDate ?? defaultDueDate(14))
+  const [dueDate, setDueDate]                 = useState(invoice?.dueDate ?? defaultDueDate(15))
   const [paymentTermsDays, setPaymentTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
   const [bankAccount, setBankAccount]         = useState(invoice?.bankAccount ?? "")
   const [mobilepayNumber, setMobilepayNumber] = useState(invoice?.mobilepayNumber ?? "")
@@ -135,13 +138,15 @@ export function InvoiceForm({
         items: items
           .filter(item => item.description.trim().length > 0)
           .map((item, i) => ({
-            itemType:    item.itemType,
-            description: item.description,
-            quantity:    item.quantity || undefined,
-            unitPrice:   item.unitPrice || undefined,
-            vatRate:     item.vatRate,
-            lineTotal:   undefined,
-            sortOrder:   i,
+            itemType:      item.itemType,
+            description:   item.description,
+            quantity:      item.quantity || undefined,
+            unitPrice:     item.unitPrice || undefined,
+            discountType:  item.discountType || undefined,
+            discountValue: item.discountValue || undefined,
+            vatRate:       item.vatRate,
+            lineTotal:     undefined,
+            sortOrder:     i,
           })),
       }
 
@@ -165,7 +170,7 @@ export function InvoiceForm({
 
       {/* Customer */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Customer <span style={{ color: "var(--error)" }}>*</span>
         </label>
         <select
@@ -176,7 +181,7 @@ export function InvoiceForm({
             setSelectedQuoteIds([])
           }}
           className={inputCls}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           <option value="">Select customer…</option>
           {customers.map(c => (
@@ -191,7 +196,7 @@ export function InvoiceForm({
           <button
             type="button"
             onClick={() => setShowQuotePicker(v => !v)}
-            className="w-full h-11 px-4 flex items-center justify-between rounded-[--radius-sm] border text-sm font-medium transition-colors duration-150 cursor-pointer"
+            className="w-full h-11 px-4 flex items-center justify-between rounded-lg border text-sm font-medium transition-colors duration-150 cursor-pointer"
             style={{
               backgroundColor: "var(--accent-light)",
               borderColor: "var(--primary)",
@@ -217,9 +222,9 @@ export function InvoiceForm({
           {showQuotePicker && (
             <div
               className="absolute z-20 left-0 right-0 mt-1 rounded-[--radius-md] border shadow-lg overflow-hidden"
-              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
+              style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
             >
-              <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: "var(--text-tertiary)", borderColor: "var(--border)", backgroundColor: "var(--background-subtle)", fontFamily: "var(--font-body)" }}>
+              <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: "var(--muted-foreground)", borderColor: "var(--border)", backgroundColor: "var(--muted)", fontFamily: "var(--font-body)" }}>
                 Select quotes to combine
               </p>
               {availableQuotes.map(q => {
@@ -230,7 +235,7 @@ export function InvoiceForm({
                     key={q.id}
                     type="button"
                     onClick={() => toggleQuoteSelection(q)}
-                    className="w-full text-left px-4 py-3 flex items-center gap-3 transition-colors duration-100 hover:bg-[--background-subtle] cursor-pointer"
+                    className="w-full text-left px-4 py-3 flex items-center gap-3 transition-colors duration-100 hover:bg-[var(--accent)] cursor-pointer"
                     style={{ fontFamily: "var(--font-body)" }}
                   >
                     <div
@@ -243,10 +248,10 @@ export function InvoiceForm({
                       {selected && <Check className="w-3 h-3" style={{ color: "var(--primary-foreground)" }} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
+                      <p className="text-sm font-medium" style={{ color: "var(--foreground)", fontFamily: "var(--font-mono)" }}>
                         {q.quoteNumber}
                       </p>
-                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                      <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                         {itemCount} item{itemCount !== 1 ? "s" : ""} · {q.status}
                       </p>
                     </div>
@@ -258,7 +263,7 @@ export function InvoiceForm({
                   type="button"
                   onClick={applySelectedQuotes}
                   disabled={selectedQuoteIds.length === 0}
-                  className="flex-1 h-9 rounded-[--radius-sm] text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-1 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
                 >
                   Add {selectedQuoteIds.length > 0 ? `${selectedQuoteIds.length} quote${selectedQuoteIds.length > 1 ? "s" : ""}` : "quotes"}
@@ -266,8 +271,8 @@ export function InvoiceForm({
                 <button
                   type="button"
                   onClick={() => { setShowQuotePicker(false); setSelectedQuoteIds([]) }}
-                  className="h-9 w-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors cursor-pointer"
-                  style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                  className="h-9 w-9 flex items-center justify-center rounded-lg border transition-colors cursor-pointer"
+                  style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -280,7 +285,7 @@ export function InvoiceForm({
       {/* Due date + payment terms */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+          <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
             Due date <span style={{ color: "var(--error)" }}>*</span>
           </label>
           <input
@@ -291,7 +296,7 @@ export function InvoiceForm({
           />
         </div>
         <div>
-          <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+          <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
             Payment terms (days)
           </label>
           <select
@@ -302,7 +307,7 @@ export function InvoiceForm({
               setDueDate(defaultDueDate(days))
             }}
             className={inputCls}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             <option value={8}>Net 8</option>
             <option value={14}>Net 14</option>
@@ -314,7 +319,7 @@ export function InvoiceForm({
 
       {/* Line items */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Line items
         </label>
         <LineItemBuilder items={items} onChange={setItems} />
@@ -322,7 +327,7 @@ export function InvoiceForm({
 
       {/* Payment info */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Bank account (optional)
         </label>
         <input
@@ -336,7 +341,7 @@ export function InvoiceForm({
       </div>
 
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           MobilePay number (optional)
         </label>
         <input
@@ -347,14 +352,14 @@ export function InvoiceForm({
           className={inputCls}
           style={{ fontFamily: "var(--font-mono)" }}
         />
-        <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
+        <p className="mt-1 text-xs" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
           MobilePay Erhverv payment links coming soon.
         </p>
       </div>
 
       {/* Notes */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Notes
         </label>
         <textarea

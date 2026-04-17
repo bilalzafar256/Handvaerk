@@ -45,8 +45,8 @@ Complete: F-400 through F-414. Schemas + migration applied (0004). Quote PDF (TI
 **Phase 5 — Invoice Engine** `[x]` complete
 Complete: F-500 through F-513. Schemas + migration applied (0004). Invoice PDF (FAKTURA), email via Resend with PDF attachment, Inngest payment reminders (+8d, +15d), credit notes (KRE-XXXX), mark as paid, overdue auto-flag. PDF download routes at /api/invoices/[id]/pdf and /api/quotes/[id]/pdf.
 
-**Phase 6 — Quote & Invoice Enhancements** `[ ]` not started
-Features: default valid_until (today+15d), per-line discounts, discount carry-over quote→invoice, duplicate invoice guard, action buttons at top of detail pages, inline actions on list pages (⋯ menu), landing page hero fix. Requires DB migration for discount columns on quote_items/invoice_items.
+**Phase 6 — Quote & Invoice Enhancements** `[x]` complete
+All 8 features shipped. DB migration 0005 applied (discount_type + discount_value on quote_items and invoice_items). createInvoiceFromQuoteAction returns data instead of redirecting — client handles navigation.
 
 **Phase 7 — Bank Details & Profile Enhancements** `[ ]` not started
 Features: bank_accounts table, profile UI for bank/MobilePay management, pre-load defaults into new invoices, bank details on PDF.

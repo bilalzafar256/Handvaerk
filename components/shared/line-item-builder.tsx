@@ -23,14 +23,16 @@ import { formatDKK } from "@/lib/utils/currency"
 export type ItemType = "labour" | "material" | "fixed" | "travel"
 
 export interface LineItem {
-  id:            string   // client-side only
-  itemType:      ItemType
-  description:   string
-  quantity:      string
-  unitPrice:     string
+  id:             string   // client-side only
+  itemType:       ItemType
+  description:    string
+  quantity:       string
+  unitPrice:      string
   markupPercent?: string
-  vatRate:       string
-  sortOrder:     number
+  discountType?:  "percent" | "fixed" | ""
+  discountValue?: string
+  vatRate:        string
+  sortOrder:      number
 }
 
 interface LineItemBuilderProps {
@@ -60,15 +62,23 @@ const inputCls = `
   transition-colors duration-150 text-sm w-full
 `
 
-function calcLine(qty: string, price: string, markup?: string): number {
+function calcLine(qty: string, price: string, markup?: string, discountType?: string, discountValue?: string): number {
   const q = parseFloat(qty) || 0
   const p = parseFloat(price) || 0
   const m = markup ? 1 + (parseFloat(markup) || 0) / 100 : 1
-  return q * p * m
+  const gross = q * p * m
+  if (!discountType || !discountValue) return gross
+  const dv = parseFloat(discountValue) || 0
+  if (discountType === "percent") return gross * (1 - dv / 100)
+  return Math.max(0, gross - dv)
 }
 
 function calcSubtotal(items: LineItem[], showMarkup: boolean): number {
-  return items.reduce((s, i) => s + calcLine(i.quantity, i.unitPrice, showMarkup ? i.markupPercent : undefined), 0)
+  return items.reduce((s, i) => s + calcLine(
+    i.quantity, i.unitPrice,
+    showMarkup ? i.markupPercent : undefined,
+    i.discountType || undefined, i.discountValue
+  ), 0)
 }
 
 // ── Sortable item wrapper ──────────────────────────────────────────────────
@@ -152,8 +162,9 @@ function SortableItem({
               <p className="text-xs mt-0.5" style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
                 {item.quantity || "—"} × {item.unitPrice ? formatDKK(parseFloat(item.unitPrice)) : "—"}
                 {showMarkup && item.markupPercent ? ` +${item.markupPercent}%` : ""}
+                {item.discountType && item.discountValue ? ` −${item.discountType === "percent" ? `${item.discountValue}%` : formatDKK(parseFloat(item.discountValue))}` : ""}
                 {" = "}
-                <strong>{formatDKK(calcLine(item.quantity, item.unitPrice, showMarkup ? item.markupPercent : undefined))}</strong>
+                <strong>{formatDKK(calcLine(item.quantity, item.unitPrice, showMarkup ? item.markupPercent : undefined, item.discountType || undefined, item.discountValue))}</strong>
               </p>
             )}
           </div>
@@ -285,11 +296,42 @@ function SortableItem({
             )}
           </div>
 
+          {/* Per-line discount */}
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+              Line discount (optional)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={item.discountType ?? ""}
+                onChange={(e) => onUpdate(item.id, "discountType", e.target.value)}
+                className={inputCls}
+                style={{ fontFamily: "var(--font-body)" }}
+              >
+                <option value="">No discount</option>
+                <option value="percent">% off</option>
+                <option value="fixed">Fixed kr.</option>
+              </select>
+              {item.discountType && (
+                <input
+                  type="number"
+                  value={item.discountValue ?? ""}
+                  onChange={(e) => onUpdate(item.id, "discountValue", e.target.value)}
+                  placeholder={item.discountType === "percent" ? "e.g. 10" : "e.g. 100"}
+                  min="0"
+                  step={item.discountType === "percent" ? "1" : "0.01"}
+                  className={inputCls}
+                  style={{ fontFamily: "var(--font-mono)" }}
+                />
+              )}
+            </div>
+          </div>
+
           {/* Line total */}
           <div className="flex items-center justify-end gap-2 pt-1">
             <span className="text-xs" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>Line total:</span>
             <span className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-              {formatDKK(calcLine(item.quantity, item.unitPrice, showMarkup ? item.markupPercent : undefined))}
+              {formatDKK(calcLine(item.quantity, item.unitPrice, showMarkup ? item.markupPercent : undefined, item.discountType || undefined, item.discountValue))}
             </span>
           </div>
         </div>
@@ -324,14 +366,16 @@ export function LineItemBuilder({
 
   function addItem(type: ItemType) {
     const newItem: LineItem = {
-      id:          crypto.randomUUID(),
-      itemType:    type,
-      description: type === "travel" ? "Kørsel" : type === "labour" ? "Timer" : "",
-      quantity:    "1",
-      unitPrice:   "",
-      markupPercent: "",
-      vatRate:     "25.00",
-      sortOrder:   items.length,
+      id:             crypto.randomUUID(),
+      itemType:       type,
+      description:    type === "travel" ? "Kørsel" : type === "labour" ? "Timer" : "",
+      quantity:       "1",
+      unitPrice:      "",
+      markupPercent:  "",
+      discountType:   "",
+      discountValue:  "",
+      vatRate:        "25.00",
+      sortOrder:      items.length,
     }
     onChange([...items, newItem])
     setExpandedId(newItem.id)

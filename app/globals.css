@@ -7,170 +7,225 @@
 :root {
   /* ── Håndværk Pro brand palette ── */
 
-  /* Craftsman Amber */
-  --amber-50:  oklch(0.97 0.03 72);
-  --amber-100: oklch(0.94 0.06 72);
-  --amber-200: oklch(0.88 0.10 68);
-  --amber-300: oklch(0.82 0.14 66);
-  --amber-400: oklch(0.76 0.17 64);
-  --amber-500: oklch(0.70 0.19 62);
-  --amber-600: oklch(0.62 0.18 58);
-  --amber-700: oklch(0.52 0.16 55);
-  --amber-800: oklch(0.40 0.12 52);
-  --amber-900: oklch(0.28 0.08 50);
+  /* Electric Amber — slightly cooler, more vivid than before */
+  --amber-50:  oklch(0.975 0.025 72);
+  --amber-100: oklch(0.945 0.055 68);
+  --amber-200: oklch(0.890 0.095 65);
+  --amber-300: oklch(0.830 0.135 62);
+  --amber-400: oklch(0.770 0.165 60);
+  --amber-500: oklch(0.720 0.195 58);
+  --amber-600: oklch(0.640 0.180 55);
+  --amber-700: oklch(0.530 0.155 52);
+  --amber-800: oklch(0.410 0.115 50);
+  --amber-900: oklch(0.280 0.075 48);
 
-  /* Workshop warm grays */
-  --workshop-50:  oklch(0.98 0.004 75);
-  --workshop-100: oklch(0.95 0.006 75);
-  --workshop-200: oklch(0.88 0.008 70);
-  --workshop-300: oklch(0.75 0.010 68);
-  --workshop-400: oklch(0.58 0.012 65);
-  --workshop-500: oklch(0.42 0.012 62);
-  --workshop-600: oklch(0.30 0.010 60);
-  --workshop-700: oklch(0.22 0.008 58);
-  --workshop-800: oklch(0.16 0.006 55);
-  --workshop-900: oklch(0.10 0.005 50);
+  /* Obsidian Slate — cool hue 255, replaces warm workshop grays */
+  --slate-50:  oklch(0.985 0.002 255);
+  --slate-100: oklch(0.960 0.004 255);
+  --slate-200: oklch(0.900 0.007 255);
+  --slate-300: oklch(0.780 0.009 255);
+  --slate-400: oklch(0.620 0.011 255);
+  --slate-500: oklch(0.450 0.011 255);
+  --slate-600: oklch(0.320 0.009 255);
+  --slate-700: oklch(0.220 0.007 255);
+  --slate-800: oklch(0.150 0.005 255);
+  --slate-900: oklch(0.090 0.004 255);
+
+  /* Motion easing — used everywhere */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap:   cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
 
   /* Semantic tokens */
-  --text-primary:       var(--workshop-900);
-  --text-secondary:     var(--workshop-500);
-  --text-tertiary:      var(--workshop-400);
-  --text-inverse:       var(--workshop-50);
-  --surface:            oklch(1.00 0.000 0);
-  --surface-raised:     oklch(0.99 0.003 75);
-  --border-strong:      oklch(0.78 0.010 68);
-  --accent-brand:       var(--amber-500);
-  --accent-hover:       var(--amber-600);
-  --accent-light:       var(--amber-100);
-  --accent-foreground-brand: oklch(0.12 0.005 55);
-  --shadow-accent:      0 4px 14px oklch(0.70 0.19 62 / 0.35);
+  --text-primary:            var(--slate-900);
+  --text-secondary:          var(--slate-500);
+  --text-tertiary:           var(--slate-400);
+  --text-inverse:            var(--slate-50);
+  --surface:                 oklch(1.00 0.000 0);
+  --surface-raised:          oklch(0.990 0.002 255);
+  --border-strong:           var(--slate-300);
+  --accent-brand:            var(--amber-500);
+  --accent-hover:            var(--amber-600);
+  --accent-light:            var(--amber-100);
+  --accent-foreground-brand: oklch(0.10 0.005 52);
+  --shadow-accent:           0 4px 16px oklch(0.720 0.195 58 / 0.40);
 
   /* ── Status colors ── */
-  --status-new-bg:            oklch(0.92 0.06 200);
-  --status-new-text:          oklch(0.32 0.14 200);
-  --status-new-border:        oklch(0.80 0.10 200);
+  --status-new-bg:           oklch(0.92 0.06 200);
+  --status-new-text:         oklch(0.32 0.14 200);
+  --status-new-border:       oklch(0.80 0.10 200);
 
-  --status-scheduled-bg:      oklch(0.93 0.04 240);
-  --status-scheduled-text:    oklch(0.35 0.14 240);
-  --status-scheduled-border:  oklch(0.82 0.08 240);
+  --status-scheduled-bg:     oklch(0.93 0.04 240);
+  --status-scheduled-text:   oklch(0.35 0.14 240);
+  --status-scheduled-border: oklch(0.82 0.08 240);
 
-  --status-progress-bg:       var(--amber-100);
-  --status-progress-text:     var(--amber-800);
-  --status-progress-border:   var(--amber-300);
+  --status-progress-bg:      var(--amber-100);
+  --status-progress-text:    var(--amber-800);
+  --status-progress-border:  var(--amber-300);
 
-  --status-done-bg:           oklch(0.93 0.04 290);
-  --status-done-text:         oklch(0.35 0.12 290);
-  --status-done-border:       oklch(0.82 0.08 290);
+  --status-done-bg:          oklch(0.93 0.04 290);
+  --status-done-text:        oklch(0.35 0.12 290);
+  --status-done-border:      oklch(0.82 0.08 290);
 
-  --status-invoiced-bg:       oklch(0.94 0.06 55);
-  --status-invoiced-text:     oklch(0.38 0.14 48);
-  --status-invoiced-border:   oklch(0.84 0.10 52);
+  --status-invoiced-bg:      oklch(0.94 0.06 55);
+  --status-invoiced-text:    oklch(0.38 0.14 48);
+  --status-invoiced-border:  oklch(0.84 0.10 52);
 
-  --status-paid-bg:           oklch(0.93 0.06 145);
-  --status-paid-text:         oklch(0.32 0.14 145);
-  --status-paid-border:       oklch(0.82 0.10 145);
+  --status-paid-bg:          oklch(0.93 0.06 145);
+  --status-paid-text:        oklch(0.32 0.14 145);
+  --status-paid-border:      oklch(0.82 0.10 145);
 
-  --status-overdue-bg:        oklch(0.94 0.05 25);
-  --status-overdue-text:      oklch(0.38 0.18 25);
-  --status-overdue-border:    oklch(0.84 0.12 25);
+  --status-overdue-bg:       oklch(0.94 0.05 25);
+  --status-overdue-text:     oklch(0.38 0.18 25);
+  --status-overdue-border:   oklch(0.84 0.12 25);
 
   /* Functional */
-  --background-subtle:        oklch(0.96 0.006 75);
-  --shadow-xs:                0 1px 2px oklch(0.10 0.01 60 / 0.06);
-  --shadow-sm:                0 1px 3px oklch(0.10 0.01 60 / 0.10), 0 1px 2px oklch(0.10 0.01 60 / 0.06);
-  --shadow-md:                0 4px 6px oklch(0.10 0.01 60 / 0.07), 0 2px 4px oklch(0.10 0.01 60 / 0.06);
-  --shadow-lg:                0 10px 15px oklch(0.10 0.01 60 / 0.10), 0 4px 6px oklch(0.10 0.01 60 / 0.05);
-  --error:                    oklch(0.52 0.20 25);
-  --error-light:              oklch(0.94 0.05 25);
-  --success:                  oklch(0.52 0.14 145);
-  --success-light:            oklch(0.93 0.06 145);
+  --background-subtle: var(--slate-100);
+  --shadow-xs: 0 1px 2px oklch(0.09 0.004 255 / 0.06);
+  --shadow-sm: 0 1px 3px oklch(0.09 0.004 255 / 0.10), 0 1px 2px oklch(0.09 0.004 255 / 0.06);
+  --shadow-md: 0 4px 6px oklch(0.09 0.004 255 / 0.08), 0 2px 4px oklch(0.09 0.004 255 / 0.05);
+  --shadow-lg: 0 10px 15px oklch(0.09 0.004 255 / 0.10), 0 4px 6px oklch(0.09 0.004 255 / 0.05);
+  --error:        oklch(0.52 0.20 25);
+  --error-light:  oklch(0.94 0.05 25);
+  --success:      oklch(0.52 0.14 145);
+  --success-light: oklch(0.93 0.06 145);
 
-  /* Shadcn overrides — mapped to design system */
-  --background: var(--workshop-50);
-  --foreground: var(--workshop-900);
-  --card: oklch(1.00 0.000 0);
-  --card-foreground: var(--workshop-900);
-  --primary: var(--amber-500);
-  --primary-foreground: oklch(0.12 0.005 55);
-  --secondary: var(--workshop-100);
-  --secondary-foreground: var(--workshop-700);
-  --muted: var(--workshop-100);
-  --muted-foreground: var(--workshop-400);
-  --accent: var(--workshop-100);
-  --accent-foreground: var(--workshop-900);
-  --destructive: oklch(0.52 0.20 25);
+  /* Shadcn overrides — mapped to new slate system */
+  --background:            var(--slate-50);
+  --foreground:            var(--slate-900);
+  --card:                  oklch(1.00 0.000 0);
+  --card-foreground:       var(--slate-900);
+  --primary:               var(--amber-500);
+  --primary-foreground:    oklch(0.10 0.005 52);
+  --secondary:             var(--slate-100);
+  --secondary-foreground:  var(--slate-700);
+  --muted:                 var(--slate-100);
+  --muted-foreground:      var(--slate-400);
+  --accent:                var(--slate-100);
+  --accent-foreground:     var(--slate-900);
+  --destructive:           oklch(0.52 0.20 25);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: var(--workshop-200);
-  --input: var(--workshop-200);
-  --ring: var(--amber-500);
-  --radius: 0.625rem;
-
-  /* Card */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --border:                var(--slate-200);
+  --input:                 var(--slate-200);
+  --ring:                  var(--amber-500);
+  --radius:                0.625rem;
 
   /* Popover */
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover:               oklch(1 0 0);
+  --popover-foreground:    var(--slate-900);
 
   /* Sidebar */
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar:               oklch(0.975 0.003 255);
+  --sidebar-foreground:    var(--slate-900);
+  --sidebar-border:        var(--slate-200);
+  --sidebar-primary:       var(--amber-500);
+  --sidebar-primary-foreground: oklch(0.10 0.005 52);
+  --sidebar-accent:        var(--amber-50);
+  --sidebar-accent-foreground: var(--slate-900);
+  --sidebar-ring:          var(--amber-500);
+
+  /* Charts */
+  --chart-1: var(--amber-500);
+  --chart-2: oklch(0.52 0.14 145);
+  --chart-3: oklch(0.50 0.12 200);
+  --chart-4: oklch(0.50 0.10 290);
+  --chart-5: var(--slate-400);
 }
 
+/* ── Dark mode — fully chromatic slate, amber pops ── */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-
-  --destructive: oklch(0.704 0.191 22.216);
+  --background:            var(--slate-900);
+  --foreground:            var(--slate-50);
+  --card:                  var(--slate-800);
+  --card-foreground:       var(--slate-50);
+  --popover:               var(--slate-800);
+  --popover-foreground:    var(--slate-50);
+  --border:                oklch(1 0 0 / 9%);
+  --input:                 oklch(1 0 0 / 12%);
+  --ring:                  var(--amber-500);
+  --primary:               var(--amber-500);
+  --primary-foreground:    oklch(0.10 0.005 52);
+  --secondary:             var(--slate-700);
+  --secondary-foreground:  var(--slate-200);
+  --muted:                 var(--slate-700);
+  --muted-foreground:      var(--slate-400);
+  --accent:                var(--slate-700);
+  --accent-foreground:     var(--slate-50);
+  --destructive:           oklch(0.65 0.20 25);
   --destructive-foreground: oklch(0.985 0 0);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  /* Semantic */
+  --text-primary:    var(--slate-50);
+  --text-secondary:  var(--slate-400);
+  --text-tertiary:   var(--slate-500);
+  --text-inverse:    var(--slate-900);
+  --surface:         var(--slate-800);
+  --surface-raised:  var(--slate-700);
+  --background-subtle: var(--slate-700);
+  --border-strong:   oklch(1 0 0 / 18%);
+  --accent-light:    oklch(0.720 0.195 58 / 12%);
+  --shadow-accent:   0 4px 20px oklch(0.720 0.195 58 / 0.50);
 
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
+  /* Shadows — dark mode uses opacity-based */
+  --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.30);
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.40), 0 1px 2px oklch(0 0 0 / 0.24);
+  --shadow-md: 0 4px 8px oklch(0 0 0 / 0.45), 0 2px 4px oklch(0 0 0 / 0.30);
+  --shadow-lg: 0 12px 24px oklch(0 0 0 / 0.50), 0 4px 8px oklch(0 0 0 / 0.30);
 
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  /* Sidebar */
+  --sidebar:               var(--slate-800);
+  --sidebar-foreground:    var(--slate-200);
+  --sidebar-border:        oklch(1 0 0 / 8%);
+  --sidebar-primary:       var(--amber-500);
+  --sidebar-primary-foreground: oklch(0.10 0.005 52);
+  --sidebar-accent:        oklch(0.720 0.195 58 / 12%);
+  --sidebar-accent-foreground: var(--amber-400);
+  --sidebar-ring:          var(--amber-500);
 
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Status colors — translucent overlays on dark */
+  --status-new-bg:           oklch(0.32 0.10 200 / 25%);
+  --status-new-text:         oklch(0.78 0.14 200);
+  --status-new-border:       oklch(0.50 0.12 200 / 40%);
+
+  --status-scheduled-bg:     oklch(0.32 0.08 240 / 25%);
+  --status-scheduled-text:   oklch(0.78 0.12 240);
+  --status-scheduled-border: oklch(0.50 0.10 240 / 40%);
+
+  --status-progress-bg:      oklch(0.720 0.195 58 / 15%);
+  --status-progress-text:    var(--amber-400);
+  --status-progress-border:  oklch(0.720 0.195 58 / 35%);
+
+  --status-done-bg:          oklch(0.32 0.07 290 / 25%);
+  --status-done-text:        oklch(0.78 0.10 290);
+  --status-done-border:      oklch(0.50 0.09 290 / 40%);
+
+  --status-invoiced-bg:      oklch(0.35 0.10 55 / 25%);
+  --status-invoiced-text:    oklch(0.80 0.14 55);
+  --status-invoiced-border:  oklch(0.52 0.12 52 / 40%);
+
+  --status-paid-bg:          oklch(0.30 0.10 145 / 25%);
+  --status-paid-text:        oklch(0.75 0.14 145);
+  --status-paid-border:      oklch(0.48 0.12 145 / 40%);
+
+  --status-overdue-bg:       oklch(0.35 0.12 25 / 25%);
+  --status-overdue-text:     oklch(0.78 0.18 25);
+  --status-overdue-border:   oklch(0.52 0.16 25 / 40%);
+
+  /* Error/Success */
+  --error:        oklch(0.65 0.20 25);
+  --error-light:  oklch(0.35 0.12 25 / 25%);
+  --success:      oklch(0.65 0.14 145);
+  --success-light: oklch(0.30 0.10 145 / 25%);
+
+  /* Charts */
+  --chart-1: var(--amber-400);
+  --chart-2: oklch(0.65 0.14 145);
+  --chart-3: oklch(0.65 0.12 200);
+  --chart-4: oklch(0.65 0.10 290);
+  --chart-5: var(--slate-400);
 }
 
 @theme inline {

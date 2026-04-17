@@ -324,22 +324,22 @@ invoice_items (
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-600 | Default `valid_until` = today + 15 days | `[ ]` | `[ ]` | Auto-fill on new quote and invoice creation forms |
-| F-601 | Per-line-item discount (% or fixed) | `[ ]` | `[ ]` | New `discount_type` + `discount_value` columns on `quote_items` and `invoice_items`; line total = (qty × unit_price × markup) − discount |
-| F-602 | Carry discount quote → invoice | `[ ]` | `[ ]` | When generating invoice from accepted quote, copy header discount AND per-line discounts exactly |
-| F-603 | Duplicate invoice guard | `[ ]` | `[ ]` | If an invoice already exists for the same quote_id, show modal: "View existing" or "Create new anyway" |
-| F-604 | Action buttons at top of detail pages | `N/A` | `[ ]` | Replace bottom stacked button list with a compact sticky action bar at the top of quote/invoice detail pages (PDF, Send, Edit, Delete, etc.) |
-| F-605 | Inline actions on quotes list page | `[ ]` | `[ ]` | Row-level action menu (⋯) on quotes list: Edit, Delete, Create Invoice, Download PDF, Save as Template, Send, Copy shareable link |
-| F-606 | Inline actions on invoices list page | `[ ]` | `[ ]` | Row-level action menu (⋯) on invoices list: Edit, Delete, Download PDF, Send, Mark as Paid, Create Credit Note |
-| F-607 | Landing page hero animation fix | `N/A` | `[ ]` | Fix broken animated word in hero ("Your invoice in ___." — rotating word not rendering) |
+| F-600 | Default `valid_until` = today + 15 days | `[x]` | `[x]` | Auto-fill on new quote and invoice creation forms |
+| F-601 | Per-line-item discount (% or fixed) | `[x]` | `[x]` | New `discount_type` + `discount_value` columns on `quote_items` and `invoice_items`; migration 0005 applied |
+| F-602 | Carry discount quote → invoice | `[x]` | `[x]` | createInvoiceFromQuoteAction carries header + per-line discounts |
+| F-603 | Duplicate invoice guard | `[x]` | `[x]` | Modal: "View existing" or "Create new anyway" |
+| F-604 | Action buttons at top of detail pages | `N/A` | `[x]` | Compact sticky action bar + ⋯ overflow menu on quote/invoice detail pages |
+| F-605 | Inline actions on quotes list page | `[x]` | `[x]` | Row-level ⋯ menu: Edit, Send, Create Invoice, Download PDF, Copy link, Save as Template, Delete |
+| F-606 | Inline actions on invoices list page | `[x]` | `[x]` | Row-level ⋯ menu: Edit, Send, Mark as Paid, Download PDF, Credit Note, Delete |
+| F-607 | Landing page hero animation fix | `N/A` | `[x]` | Fixed: removed character-splitting spans that broke background-clip gradient |
 
-### DB Schema changes (migration required)
+### DB Schema changes (migration applied — 0005_phase6_line_discounts)
 ```sql
--- Add to quote_items
+-- Added to quote_items
 ALTER TABLE quote_items ADD COLUMN discount_type text;        -- 'percent' | 'fixed' | null
 ALTER TABLE quote_items ADD COLUMN discount_value numeric(10,2);
 
--- Add to invoice_items
+-- Added to invoice_items
 ALTER TABLE invoice_items ADD COLUMN discount_type text;
 ALTER TABLE invoice_items ADD COLUMN discount_value numeric(10,2);
 ```

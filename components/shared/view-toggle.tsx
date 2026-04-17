@@ -18,8 +18,8 @@ const OPTIONS: { mode: ViewMode; Icon: React.ElementType; label: string }[] = [
 export function ViewToggle({ mode, onChange }: ViewToggleProps) {
   return (
     <div
-      className="flex items-center rounded-[--radius-sm] border overflow-hidden"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+      className="flex items-center rounded-[--radius-sm] border overflow-hidden bg-[--surface]"
+      style={{ borderColor: "var(--border)" }}
     >
       {OPTIONS.map(({ mode: m, Icon, label }) => {
         const active = m === mode
@@ -28,11 +28,11 @@ export function ViewToggle({ mode, onChange }: ViewToggleProps) {
             key={m}
             onClick={() => onChange(m)}
             aria-label={label}
-            className="h-11 w-11 flex items-center justify-center transition-colors duration-150 cursor-pointer"
-            style={{
-              backgroundColor: active ? "var(--primary)" : "transparent",
-              color: active ? "var(--primary-foreground)" : "var(--text-tertiary)",
-            }}
+            className={`h-11 w-11 flex items-center justify-center transition-colors duration-150 cursor-pointer ${
+              active
+                ? "bg-[--primary] text-[--primary-foreground]"
+                : "bg-transparent text-[--text-tertiary] hover:bg-[--background-subtle]"
+            }`}
           >
             <Icon className="w-3.5 h-3.5" />
           </button>

@@ -66,14 +66,18 @@ Full rationale for each choice in `BUSINESS_PLAN.md` § 4.
 ## PHASE CHECKLIST
 
 ```
-[~] Phase 0 — Foundation & Infrastructure      (F-001, F-014 pending external setup)
-[~] Phase 1 — Authentication & User Profile    (F-100–F-103 pending Clerk dashboard config)
-[x] Phase 2 — Customer Management
-[x] Phase 3 — Job Management
-[x] Phase 4 — Quote Builder
-[x] Phase 5 — Invoice Engine
-[~] Phase 6 — Dashboard & Free Tier Launch     (BE queries done; dashboard FE uses stub data)
-[ ] Phase 7 — Compliance Pre-GoLive
+[~] Phase 0  — Foundation & Infrastructure          (F-001, F-014 pending external setup)
+[~] Phase 1  — Authentication & User Profile        (F-100–F-103 pending Clerk dashboard config)
+[x] Phase 2  — Customer Management
+[x] Phase 3  — Job Management
+[x] Phase 4  — Quote Builder
+[x] Phase 5  — Invoice Engine
+[x] Phase 6  — Quote & Invoice Enhancements         (migration 0005 applied)
+[ ] Phase 7  — Bank Details & Profile Enhancements
+[ ] Phase 8  — Merge Documents
+[ ] Phase 9  — Email Notifications & Customer Communication
+[ ] Phase 10 — AI Features                          (spec in docs/AI_FEATURES.md)
+[~] Phase 11 — Dashboard, Free Tier Launch & Tier Gates  (BE queries done; FE uses stub data)
 ```
 
 Update `CLAUDE.md` current phase when a phase completes. Full phase specs in `BUSINESS_PLAN.md` § 6.

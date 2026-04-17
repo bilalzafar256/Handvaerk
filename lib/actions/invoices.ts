@@ -14,19 +14,22 @@ import {
   countAllInvoicesEver,
   replaceInvoiceItems,
   getInvoiceById,
+  getInvoiceByQuote,
   markOverdueInvoices,
 } from "@/lib/db/queries/invoices"
 import { getJobById } from "@/lib/db/queries/jobs"
 import { getQuoteById } from "@/lib/db/queries/quotes"
 
 const lineItemSchema = z.object({
-  itemType:    z.enum(["labour", "material", "fixed", "travel"]),
-  description: z.string().min(1),
-  quantity:    z.string().optional(),
-  unitPrice:   z.string().optional(),
-  vatRate:     z.string().default("25.00"),
-  lineTotal:   z.string().optional(),
-  sortOrder:   z.number().default(0),
+  itemType:      z.enum(["labour", "material", "fixed", "travel"]),
+  description:   z.string().min(1),
+  quantity:      z.string().optional(),
+  unitPrice:     z.string().optional(),
+  discountType:  z.enum(["percent", "fixed"]).optional(),
+  discountValue: z.string().optional(),
+  vatRate:       z.string().default("25.00"),
+  lineTotal:     z.string().optional(),
+  sortOrder:     z.number().default(0),
 })
 
 const invoiceSchema = z.object({
@@ -55,23 +58,42 @@ async function applyRateLimit(clerkId: string) {
   }
 }
 
-function calcTotals(items: z.infer<typeof lineItemSchema>[]) {
+function applyLineDiscount(gross: number, discountType?: string, discountValue?: string): number {
+  if (!discountType || !discountValue) return gross
+  const dv = parseFloat(discountValue) || 0
+  if (discountType === "percent") return gross * (1 - dv / 100)
+  return Math.max(0, gross - dv)
+}
+
+function calcTotals(items: z.infer<typeof lineItemSchema>[], headerDiscountType?: string, headerDiscountValue?: string) {
   let subtotalExVat = 0
   let vatAmount = 0
 
   for (const item of items) {
     const qty = parseFloat(item.quantity ?? "1")
     const price = parseFloat(item.unitPrice ?? "0")
-    const markup = parseFloat(item.vatRate ?? "25") // vatRate field
-    const lineEx = qty * price
+    const gross = qty * price
+    const lineEx = applyLineDiscount(gross, item.discountType, item.discountValue)
     subtotalExVat += lineEx
     vatAmount += lineEx * (parseFloat(item.vatRate ?? "25") / 100)
+  }
+
+  // Apply header discount
+  let discountAmount = 0
+  if (headerDiscountType && headerDiscountValue) {
+    const dv = parseFloat(headerDiscountValue) || 0
+    discountAmount = headerDiscountType === "percent"
+      ? subtotalExVat * (dv / 100)
+      : Math.min(dv, subtotalExVat)
+    subtotalExVat -= discountAmount
+    vatAmount = subtotalExVat * 0.25
   }
 
   return {
     subtotalExVat: subtotalExVat.toFixed(2),
     vatAmount: vatAmount.toFixed(2),
     totalInclVat: (subtotalExVat + vatAmount).toFixed(2),
+    discountAmount: discountAmount.toFixed(2),
   }
 }
 
@@ -114,25 +136,28 @@ export async function createInvoiceAction(data: InvoiceFormData) {
     subtotalExVat:    totals.subtotalExVat,
     vatAmount:        totals.vatAmount,
     totalInclVat:     totals.totalInclVat,
+    discountAmount:   totals.discountAmount,
     bankAccount:      validated.bankAccount ?? null,
     mobilepayNumber:  validated.mobilepayNumber ?? null,
     notes:            validated.notes ?? null,
-    // Copy EAN from customer if available — fetched via relation in UI
     eanNumber:        null,
   })
 
   await replaceInvoiceItems(invoice.id, validated.items.map((item, i) => {
     const qty = parseFloat(item.quantity ?? "1")
     const price = parseFloat(item.unitPrice ?? "0")
-    const lineTotal = (qty * price).toFixed(2)
+    const gross = qty * price
+    const lineTotal = applyLineDiscount(gross, item.discountType, item.discountValue).toFixed(2)
     return {
-      itemType:    item.itemType,
-      description: item.description,
-      quantity:    item.quantity ?? null,
-      unitPrice:   item.unitPrice ?? null,
-      vatRate:     item.vatRate,
+      itemType:      item.itemType,
+      description:   item.description,
+      quantity:      item.quantity ?? null,
+      unitPrice:     item.unitPrice ?? null,
+      discountType:  item.discountType ?? null,
+      discountValue: item.discountValue ?? null,
+      vatRate:       item.vatRate,
       lineTotal,
-      sortOrder:   i,
+      sortOrder:     i,
     }
   }))
 
@@ -156,7 +181,7 @@ export async function createInvoiceFromJobAction(jobId: string) {
   const total = await countAllInvoicesEver(user.id)
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(14)
+  const dueDate = makeDueDate(15)
 
   // Create a basic invoice with one labour line item from the job
   const invoice = await createInvoice({
@@ -189,7 +214,8 @@ export async function createInvoiceFromJobAction(jobId: string) {
 }
 
 // One-tap: create invoice from accepted quote
-export async function createInvoiceFromQuoteAction(quoteId: string) {
+// Returns { existingInvoiceId } if a non-deleted invoice already exists for this quote (and force=false)
+export async function createInvoiceFromQuoteAction(quoteId: string, force = false): Promise<{ id: string } | { existingInvoiceId: string }> {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
@@ -201,18 +227,36 @@ export async function createInvoiceFromQuoteAction(quoteId: string) {
   const quote = await getQuoteById(quoteId, user.id)
   if (!quote) throw new Error("Quote not found")
 
+  // F-603: duplicate guard
+  if (!force) {
+    const existing = await getInvoiceByQuote(quoteId, user.id)
+    if (existing) return { existingInvoiceId: existing.id }
+  }
+
   const total = await countAllInvoicesEver(user.id)
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(14)
+  const dueDate = makeDueDate(15)
 
-  // Calculate totals from quote items
-  const subtotalExVat = quote.items.reduce((sum, item) => {
+  // F-602: Calculate totals from quote items (apply per-line discounts)
+  let subtotalExVat = quote.items.reduce((sum, item) => {
     const qty = parseFloat(item.quantity ?? "1")
     const price = parseFloat(item.unitPrice ?? "0")
     const markup = 1 + parseFloat(item.markupPercent ?? "0") / 100
-    return sum + qty * price * markup
+    const gross = qty * price * markup
+    return sum + applyLineDiscount(gross, item.discountType ?? undefined, item.discountValue ?? undefined)
   }, 0)
+
+  // F-602: Apply header discount from quote
+  let discountAmount = 0
+  if (quote.discountType && quote.discountValue) {
+    const dv = parseFloat(quote.discountValue) || 0
+    discountAmount = quote.discountType === "percent"
+      ? subtotalExVat * (dv / 100)
+      : Math.min(dv, subtotalExVat)
+    subtotalExVat -= discountAmount
+  }
+
   const vatAmount = subtotalExVat * 0.25
   const totalInclVat = subtotalExVat + vatAmount
 
@@ -225,35 +269,39 @@ export async function createInvoiceFromQuoteAction(quoteId: string) {
     status:           "draft",
     issueDate,
     dueDate,
-    paymentTermsDays: 14,
+    paymentTermsDays: 15,
     subtotalExVat:    subtotalExVat.toFixed(2),
     vatAmount:        vatAmount.toFixed(2),
     totalInclVat:     totalInclVat.toFixed(2),
+    discountAmount:   discountAmount.toFixed(2),
     bankAccount:      null,
     mobilepayNumber:  null,
     notes:            quote.notes ?? null,
     eanNumber:        quote.customer.eanNumber ?? null,
   })
 
-  // Map quote items to invoice items
+  // Map quote items to invoice items (carry per-line discounts)
   await replaceInvoiceItems(invoice.id, quote.items.map((item, i) => {
     const qty = parseFloat(item.quantity ?? "1")
     const price = parseFloat(item.unitPrice ?? "0")
     const markup = 1 + parseFloat(item.markupPercent ?? "0") / 100
-    const lineTotal = (qty * price * markup).toFixed(2)
+    const gross = qty * price * markup
+    const lineTotal = applyLineDiscount(gross, item.discountType ?? undefined, item.discountValue ?? undefined).toFixed(2)
     return {
-      itemType:    item.itemType,
-      description: item.description,
-      quantity:    item.quantity ?? null,
-      unitPrice:   item.unitPrice ?? null,
-      vatRate:     item.vatRate ?? "25.00",
+      itemType:      item.itemType,
+      description:   item.description,
+      quantity:      item.quantity ?? null,
+      unitPrice:     item.unitPrice ?? null,
+      discountType:  item.discountType ?? null,
+      discountValue: item.discountValue ?? null,
+      vatRate:       item.vatRate ?? "25.00",
       lineTotal,
-      sortOrder:   i,
+      sortOrder:     i,
     }
   }))
 
   revalidatePath("/invoices")
-  redirect(`/invoices/${invoice.id}`)
+  return { id: invoice.id }
 }
 
 export async function updateInvoiceAction(id: string, data: InvoiceFormData) {
@@ -277,6 +325,7 @@ export async function updateInvoiceAction(id: string, data: InvoiceFormData) {
     subtotalExVat:    totals.subtotalExVat,
     vatAmount:        totals.vatAmount,
     totalInclVat:     totals.totalInclVat,
+    discountAmount:   totals.discountAmount,
     bankAccount:      validated.bankAccount ?? null,
     mobilepayNumber:  validated.mobilepayNumber ?? null,
     notes:            validated.notes ?? null,
@@ -285,15 +334,18 @@ export async function updateInvoiceAction(id: string, data: InvoiceFormData) {
   await replaceInvoiceItems(id, validated.items.map((item, i) => {
     const qty = parseFloat(item.quantity ?? "1")
     const price = parseFloat(item.unitPrice ?? "0")
-    const lineTotal = (qty * price).toFixed(2)
+    const gross = qty * price
+    const lineTotal = applyLineDiscount(gross, item.discountType, item.discountValue).toFixed(2)
     return {
-      itemType:    item.itemType,
-      description: item.description,
-      quantity:    item.quantity ?? null,
-      unitPrice:   item.unitPrice ?? null,
-      vatRate:     item.vatRate,
+      itemType:      item.itemType,
+      description:   item.description,
+      quantity:      item.quantity ?? null,
+      unitPrice:     item.unitPrice ?? null,
+      discountType:  item.discountType ?? null,
+      discountValue: item.discountValue ?? null,
+      vatRate:       item.vatRate,
       lineTotal,
-      sortOrder:   i,
+      sortOrder:     i,
     }
   }))
 
@@ -440,7 +492,7 @@ export async function createCreditNoteAction(originalInvoiceId: string) {
   const total = await countAllInvoicesEver(user.id)
   const invoiceNumber = `KRE-${String(total + 1).padStart(4, "0")}`
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(14)
+  const dueDate = makeDueDate(15)
 
   // Negate all amounts
   const subtotalExVat = -(parseFloat(original.subtotalExVat ?? "0"))

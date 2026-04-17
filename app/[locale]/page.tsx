@@ -1,9 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback, Fragment } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
+import { useTranslations } from "next-intl"
+import { useParams } from "next/navigation"
+import { useRouter as useI18nRouter, usePathname as useI18nPathname } from "@/i18n/navigation"
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
@@ -29,1045 +32,1287 @@ function usePrefersReduced() {
   return reduced
 }
 
-// ── Pipeline SVG ──────────────────────────────────────────────────────────────
-
-const NODE_ICONS: Record<string, React.ReactNode> = {
-  person: (
-    <>
-      <circle cx="12" cy="7" r="4" />
-      <path d="M5 21a7 7 0 0 1 14 0" />
-    </>
-  ),
-  document: (
-    <>
-      <rect x="5" y="2" width="14" height="20" rx="2" />
-      <path d="M9 7h6M9 11h6M9 15h4" />
-    </>
-  ),
-  briefcase: (
-    <>
-      <rect x="2" y="7" width="20" height="14" rx="2" />
-      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </>
-  ),
-  invoice: (
-    <>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6M9 13h6M9 17h4" />
-    </>
-  ),
-  check: <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />,
+function useCountUp(target: number, duration = 1400) {
+  const [count, setCount] = useState(0)
+  const started = useRef(false)
+  const start = useCallback(() => {
+    if (started.current) return
+    started.current = true
+    const startTime = performance.now()
+    function tick(now: number) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setCount(Math.floor(eased * target))
+      if (t < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [target, duration])
+  return { count, start }
 }
 
-const NODES = [
-  { label: "CUSTOMER", icon: "person" },
-  { label: "QUOTE", icon: "document" },
-  { label: "JOB", icon: "briefcase" },
-  { label: "INVOICE", icon: "invoice" },
-  { label: "PAID", icon: "check" },
-]
+function useScrolled(threshold = 80) {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > threshold)
+    window.addEventListener("scroll", fn, { passive: true })
+    return () => window.removeEventListener("scroll", fn)
+  }, [threshold])
+  return scrolled
+}
 
-function PipelineSVG({ small = false }: { small?: boolean }) {
-  const { ref, inView } = useInView(0.1)
-  const prefersReduced = usePrefersReduced()
-  const nodeX = [60, 240, 450, 660, 840]
-  const cy = 50
-  const r = 24
+// ── Smooth scroll helper ───────────────────────────────────────────────────────
+
+function scrollTo(id: string) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+}
+
+// ── Shared ────────────────────────────────────────────────────────────────────
+
+const S = {
+  obsidian: "var(--slate-900)",
+  surface800: "var(--slate-800)",
+  s50: "var(--slate-50)",
+  s100: "var(--slate-100)",
+  s200: "var(--slate-200)",
+  s300: "var(--slate-300)",
+  s400: "var(--slate-400)",
+  s500: "var(--slate-500)",
+  s600: "var(--slate-600)",
+  s700: "var(--slate-700)",
+  amber: "var(--amber-500)",
+  amber400: "var(--amber-400)",
+  amber600: "var(--amber-600)",
+  border: "oklch(1 0 0 / 9%)",
+  borderStrong: "oklch(1 0 0 / 16%)",
+}
+
+const MAX_W = 1120
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      fontFamily: "var(--font-body)",
+      fontSize: 11,
+      fontWeight: 600,
+      letterSpacing: "0.10em",
+      textTransform: "uppercase",
+      color: S.amber,
+      marginBottom: 12,
+    }}>
+      {children}
+    </p>
+  )
+}
+
+// ── Language Switcher ──────────────────────────────────────────────────────────
+
+function LanguageSwitcher() {
+  const params = useParams()
+  const locale = (params?.locale as string) ?? "en"
+  const i18nRouter = useI18nRouter()
+  const i18nPathname = useI18nPathname()
+  const other = locale === "en" ? "da" : "en"
 
   return (
-    <div ref={ref} style={{ width: "100%", overflowX: "auto", paddingBottom: 8 }}>
-      <svg
-        viewBox="0 0 900 120"
-        style={{ width: "100%", maxWidth: small ? 400 : 900, minWidth: 480, overflow: "visible" }}
-        fill="none"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <defs>
-          <style>{`
-            @keyframes hp-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-            @keyframes hp-pulse { 0%,100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.2); } }
-          `}</style>
-        </defs>
+    <button
+      onClick={() => i18nRouter.replace(i18nPathname, { locale: other })}
+      style={{
+        fontFamily: "var(--font-body)",
+        fontSize: 13,
+        fontWeight: 600,
+        color: S.s400,
+        background: "transparent",
+        border: `1px solid ${S.border}`,
+        borderRadius: 6,
+        padding: "4px 10px",
+        cursor: "pointer",
+        letterSpacing: "0.06em",
+        transition: "color 120ms, border-color 120ms",
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLButtonElement).style.color = S.s50
+        ;(e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLButtonElement).style.color = S.s400
+        ;(e.currentTarget as HTMLButtonElement).style.borderColor = S.border
+      }}
+    >
+      {other.toUpperCase()}
+    </button>
+  )
+}
 
-        {/* Base connector */}
-        <line x1={nodeX[0]} y1={cy} x2={nodeX[4]} y2={cy} stroke="var(--workshop-700)" strokeWidth={1.5} />
+// ── Nav ───────────────────────────────────────────────────────────────────────
 
-        {/* Animated amber overlay */}
-        {(inView || prefersReduced) && (
-          <line
-            x1={nodeX[0]} y1={cy} x2={nodeX[4]} y2={cy}
-            stroke="var(--amber-500)"
-            strokeWidth={1.5}
-            pathLength={1}
-            strokeDasharray={1}
-            strokeDashoffset={prefersReduced ? 0 : 1}
-            style={prefersReduced ? undefined : { animation: "hp-draw 1.2s ease forwards" }}
-          />
-        )}
+function Nav() {
+  const scrolled = useScrolled(60)
+  const t = useTranslations("Landing")
 
-        {/* Nodes */}
-        {NODES.map((node, i) => (
-          <g key={node.label}>
-            <circle cx={nodeX[i]} cy={cy} r={r} fill="var(--workshop-800)" stroke="var(--workshop-600)" strokeWidth={1.5} />
-            <g
-              transform={`translate(${nodeX[i] - 10}, ${cy - 10})`}
-              stroke="var(--workshop-300)"
-              strokeWidth={1.5}
-              fill="none"
+  const navLinks = [
+    [t("nav.features"), "features"],
+    [t("nav.pricing"), "pricing"],
+    [t("nav.faq"), "faq"],
+  ]
+
+  return (
+    <nav
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        height: 60,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 32px",
+        backdropFilter: "blur(16px) saturate(180%)",
+        backgroundColor: scrolled ? "oklch(0.09 0.004 255 / 88%)" : "transparent",
+        borderBottom: scrolled ? `1px solid ${S.border}` : "1px solid transparent",
+        transition: "background-color 200ms ease, border-color 200ms ease",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+        <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, backgroundColor: S.amber, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+            </svg>
+          </div>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: S.s50 }}>
+            Håndværk Pro
+          </span>
+        </Link>
+        <div className="hidden md:flex" style={{ gap: 4 }}>
+          {navLinks.map(([label, id]) => (
+            <button
+              key={id}
+              onClick={() => scrollTo(id)}
+              style={{
+                fontFamily: "var(--font-body)", fontSize: 14, color: S.s400,
+                background: "transparent", border: "none", cursor: "pointer",
+                padding: "6px 12px", borderRadius: 6, transition: "color 120ms ease",
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = S.s50}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = S.s400}
             >
-              <svg width={20} height={20} viewBox="0 0 24 24">{NODE_ICONS[node.icon]}</svg>
-            </g>
-            <text
-              x={nodeX[i]} y={cy + r + 18}
-              textAnchor="middle"
-              fontSize={10}
-              letterSpacing={1.5}
-              fill="var(--workshop-500)"
-              fontFamily="var(--font-body)"
-              fontWeight={500}
-            >
-              {node.label}
-            </text>
-          </g>
-        ))}
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <LanguageSwitcher />
+        <Link
+          href="/sign-in"
+          style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, textDecoration: "none", padding: "6px 14px", borderRadius: 6, transition: "color 120ms ease" }}
+          onMouseEnter={e => (e.currentTarget.style.color = S.s50)}
+          onMouseLeave={e => (e.currentTarget.style.color = S.s400)}
+        >
+          {t("nav.signIn")}
+        </Link>
+        <Link
+          href="/sign-up"
+          style={{
+            fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500,
+            color: "oklch(0.10 0.005 52)", backgroundColor: S.amber,
+            padding: "7px 16px", borderRadius: 8, textDecoration: "none",
+            transition: "box-shadow 120ms, transform 120ms",
+            boxShadow: "var(--shadow-accent)",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 20px oklch(0.720 0.195 58 / 0.50)" }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-accent)" }}
+        >
+          {t("nav.tryFree")}
+        </Link>
+      </div>
+    </nav>
+  )
+}
 
-        {/* Pulse ring at Paid */}
-        {inView && !prefersReduced && (
-          <circle
-            cx={nodeX[4]} cy={cy} r={r + 8}
-            fill="none"
-            stroke="var(--amber-500)"
-            strokeWidth={1}
-            style={{
-              animation: "hp-pulse 2s ease-in-out infinite",
-              transformOrigin: `${nodeX[4]}px ${cy}px`,
-            }}
-          />
-        )}
-      </svg>
+// ── Hero ──────────────────────────────────────────────────────────────────────
+
+function FloatingCard({ text, icon, delay }: { text: string; icon: string; delay: number }) {
+  const { ref, inView } = useInView(0.01)
+  return (
+    <div ref={ref} style={{
+      display: "inline-flex", alignItems: "center", gap: 8,
+      padding: "8px 14px", borderRadius: 10,
+      background: "oklch(1 0 0 / 6%)", border: `1px solid ${S.border}`,
+      backdropFilter: "blur(8px)",
+      opacity: inView ? 1 : 0,
+      transform: inView ? "translateY(0)" : "translateY(12px)",
+      transition: `opacity 400ms ${delay}ms var(--ease-smooth), transform 400ms ${delay}ms var(--ease-smooth)`,
+      animation: inView ? `float${delay} 5s ease-in-out ${delay * 0.5}ms infinite` : "none",
+    }}>
+      <span style={{ fontSize: 14 }}>{icon}</span>
+      <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s300 }}>{text}</span>
     </div>
   )
 }
 
-// ── Section 1: Hero ───────────────────────────────────────────────────────────
-
 function Hero() {
-  return (
-    <section
-      style={{
-        position: "relative",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "var(--workshop-900)",
-        overflow: "hidden",
-      }}
-    >
-      {/* Background grid */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "linear-gradient(var(--workshop-800) 1px, transparent 1px), linear-gradient(90deg, var(--workshop-800) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-          WebkitMaskImage: "radial-gradient(ellipse 70% 70% at center, black 30%, transparent 75%)",
-          maskImage: "radial-gradient(ellipse 70% 70% at center, black 30%, transparent 75%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Top nav */}
-      <nav
-        style={{
-          position: "relative",
-          zIndex: 10,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "20px 32px",
-          maxWidth: 1120,
-          margin: "0 auto",
-          width: "100%",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 13,
-              fontWeight: 500,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--workshop-50)",
-            }}
-          >
-            Håndværk Pro
-          </span>
-          <div style={{ width: 1, height: 18, backgroundColor: "var(--amber-500)", opacity: 0.6 }} />
-          <span
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 12,
-              color: "var(--workshop-400)",
-            }}
-            className="hidden sm:inline"
-          >
-            Job management for Danish tradespeople
-          </span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link
-            href="/sign-in"
-            className="cursor-pointer"
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 14,
-              color: "var(--workshop-300)",
-              textDecoration: "none",
-              padding: "6px 12px",
-              transition: "color 150ms",
-            }}
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/sign-up"
-            className="cursor-pointer"
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--primary-foreground)",
-              backgroundColor: "var(--primary)",
-              padding: "8px 18px",
-              borderRadius: 8,
-              textDecoration: "none",
-              boxShadow: "var(--shadow-accent)",
-            }}
-          >
-            Start free
-          </Link>
-        </div>
-      </nav>
-
-      {/* Headline + CTA */}
-      <div
-        style={{
-          position: "relative",
-          zIndex: 10,
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "60px 24px 40px",
-          textAlign: "center",
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 800,
-            lineHeight: 1.05,
-            letterSpacing: "-0.02em",
-            marginBottom: 24,
-          }}
-          className="text-[52px] md:text-[96px]"
-        >
-          <span style={{ display: "block", color: "var(--workshop-50)" }}>Your invoice</span>
-          <span style={{ display: "block" }}>
-            <span style={{ color: "var(--workshop-50)" }}>in </span>
-            <span
-              style={{
-                background: "linear-gradient(90deg, var(--workshop-50) 0%, var(--amber-400) 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              {"45 seconds".split("").map((ch, i) => (
-                <span key={i} style={{ display: "inline-block" }}>
-                  {ch === " " ? "\u00A0" : ch}
-                </span>
-              ))}
-            </span>
-            <span style={{ color: "var(--workshop-50)" }}>.</span>
-          </span>
-        </h1>
-
-        <p
-          style={{
-            fontFamily: "var(--font-body)",
-            fontSize: 18,
-            color: "var(--workshop-400)",
-            marginBottom: 40,
-            maxWidth: 480,
-          }}
-        >
-          From quote to paid invoice — without the paperwork.
-        </p>
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-          <Link
-            href="/sign-up"
-            className="cursor-pointer"
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 16,
-              fontWeight: 500,
-              color: "var(--primary-foreground)",
-              backgroundColor: "var(--primary)",
-              padding: "14px 28px",
-              borderRadius: 10,
-              textDecoration: "none",
-              boxShadow: "var(--shadow-accent)",
-            }}
-          >
-            Start for free
-          </Link>
-          <a
-            href="#how"
-            className="cursor-pointer"
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 16,
-              color: "var(--workshop-400)",
-              backgroundColor: "transparent",
-              padding: "14px 28px",
-              borderRadius: 10,
-              border: "1px solid var(--workshop-700)",
-              textDecoration: "none",
-            }}
-          >
-            See how it works ↓
-          </a>
-        </div>
-
-        {/* Pipeline SVG */}
-        <div style={{ marginTop: 80, width: "100%", maxWidth: 900 }}>
-          <PipelineSVG />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Section 2: Problem ────────────────────────────────────────────────────────
-
-const PROBLEM_CARDS = [
-  {
-    title: "Quotes on paper",
-    body: "You quote verbally. The price lives in your head. By invoice time, you've forgotten half the materials.",
-    icon: (
-      <svg width={32} height={32} viewBox="0 0 32 32" fill="none" stroke="var(--amber-600)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={5} y={3} width={18} height={24} rx={2} />
-        <line x1={9} y1={10} x2={21} y2={10} />
-        <line x1={9} y1={15} x2={21} y2={15} />
-        <line x1={9} y1={20} x2={16} y2={20} />
-        <path d="M21 20l3-3 2 2-3 3-2.5.5z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Invoicing from memory",
-    body: "9pm on the couch. You're trying to remember what you used on Tuesday's job. Half the work goes unbilled.",
-    icon: (
-      <svg width={32} height={32} viewBox="0 0 32 32" fill="none" stroke="var(--amber-600)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 4C10 4 6 9 6 14c0 4 2 7 6 8v4h8v-4c4-1 6-4 6-8 0-5-4-10-10-10z" />
-        <line x1={16} y1={13} x2={16} y2={17} />
-        <circle cx={16} cy={12} r={0.75} fill="var(--amber-600)" />
-      </svg>
-    ),
-  },
-  {
-    title: "Chasing payments",
-    body: "You did the work. You sent the invoice. Now you're sending reminders and feeling like the bad guy.",
-    icon: (
-      <svg width={32} height={32} viewBox="0 0 32 32" fill="none" stroke="var(--amber-600)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={6} y={4} width={16} height={24} rx={2} />
-        <line x1={10} y1={10} x2={18} y2={10} />
-        <line x1={10} y1={15} x2={18} y2={15} />
-        <line x1={10} y1={20} x2={14} y2={20} />
-        <path d="M22 18c2-2 3-5 2-8" strokeLinecap="round" />
-        <path d="M24 10l-1 0 0 2" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-]
-
-function ProblemSection() {
-  const { ref: r0, inView: v0 } = useInView(0.1)
-  const { ref: r1, inView: v1 } = useInView(0.1)
-  const { ref: r2, inView: v2 } = useInView(0.1)
+  const heroRef = useRef<HTMLElement>(null)
+  const [wordsVisible, setWordsVisible] = useState(false)
   const prefersReduced = usePrefersReduced()
-  const cards = [
-    { ref: r0, inView: v0, indent: 0 },
-    { ref: r1, inView: v1, indent: 60 },
-    { ref: r2, inView: v2, indent: 120 },
-  ]
+  const t = useTranslations("Landing")
 
-  return (
-    <section style={{ backgroundColor: "var(--background)", padding: "80px 24px 100px" }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        {/* Stat header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 40, flexWrap: "wrap" }}>
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(80px, 12vw, 144px)",
-              fontWeight: 800,
-              color: "var(--primary)",
-              lineHeight: 1,
-            }}
-          >
-            3–4
-          </span>
-          <div>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2 }}>
-              hours lost
-            </p>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(15px, 2vw, 18px)", color: "var(--text-secondary)" }}>
-              every single week
-            </p>
-          </div>
-        </div>
+  const heroWords1 = t("hero.line1").split(" ")
+  const heroWords2 = t("hero.line2").split(" ")
 
-        {/* Amber rule */}
-        <div style={{ width: "100%", height: 1, backgroundColor: "var(--primary)", opacity: 0.4, marginBottom: 48 }} />
+  useEffect(() => {
+    const timer = setTimeout(() => setWordsVisible(true), 100)
+    return () => clearTimeout(timer)
+  }, [])
 
-        {/* Problem cards */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {PROBLEM_CARDS.map((card, i) => (
-            <div
-              key={card.title}
-              ref={cards[i].ref as React.RefObject<HTMLDivElement>}
-              style={{
-                backgroundColor: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderLeft: "3px solid var(--primary)",
-                borderRadius: 10,
-                padding: 24,
-                maxWidth: 680,
-                marginLeft: cards[i].indent,
-                opacity: cards[i].inView ? 1 : 0,
-                transform: cards[i].inView ? "translateX(0)" : "translateX(-20px)",
-                transition: prefersReduced ? "none" : `opacity 0.3s ${i * 120}ms ease, transform 0.3s ${i * 120}ms ease`,
-              }}
-              className="ml-0 md:ml-auto"
-            >
-              <div style={{ marginBottom: 12 }}>{card.icon}</div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 17, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>
-                {card.title}
-              </p>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                {card.body}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Section 3: Product ────────────────────────────────────────────────────────
-
-const STAGES = [
-  { status: "New", key: "new", bg: "--status-new-bg", text: "--status-new-text", border: "--status-new-border", desc: "Job received. Customer added. Clock starts." },
-  { status: "Scheduled", key: "scheduled", bg: "--status-scheduled-bg", text: "--status-scheduled-text", border: "--status-scheduled-border", desc: "Date set. Customer notified automatically." },
-  { status: "In progress", key: "in_progress", bg: "--status-progress-bg", text: "--status-progress-text", border: "--status-progress-border", desc: "On site. Photos attached. Notes added." },
-  { status: "Done", key: "done", bg: "--status-done-bg", text: "--status-done-text", border: "--status-done-border", desc: "Work complete. Materials logged." },
-  { status: "Invoiced", key: "invoiced", bg: "--status-invoiced-bg", text: "--status-invoiced-text", border: "--status-invoiced-border", desc: "Invoice generated in one tap. Sent instantly." },
-  { status: "Paid", key: "paid", bg: "--status-paid-bg", text: "--status-paid-text", border: "--status-paid-border", desc: "Money in. Job closed. On to the next." },
-]
-
-function ProductSection() {
-  const { ref, inView } = useInView(0.1)
-  const prefersReduced = usePrefersReduced()
-
-  return (
-    <section
-      id="how"
-      style={{
-        backgroundColor: "var(--background-subtle)",
-        padding: "80px 24px 100px",
-        borderTop: "1px solid var(--border)",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <div style={{ display: "flex", gap: 48, alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* Rotated label — desktop only */}
-          <div
-            style={{ width: 32, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 8 }}
-            className="hidden md:flex"
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: "0.15em",
-                textTransform: "uppercase",
-                color: "var(--text-tertiary)",
-                writingMode: "vertical-rl",
-                transform: "rotate(180deg)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              HOW IT WORKS
-            </span>
-            <div style={{ width: 1, flexGrow: 1, minHeight: 120, backgroundColor: "var(--primary)", marginTop: 16, opacity: 0.6 }} />
-          </div>
-
-          {/* Timeline */}
-          <div ref={ref} style={{ flex: 1, minWidth: 280, position: "relative" }}>
-            <p
-              className="flex md:hidden"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: "0.15em",
-                textTransform: "uppercase",
-                color: "var(--text-tertiary)",
-                marginBottom: 32,
-              }}
-            >
-              HOW IT WORKS
-            </p>
-
-            {/* Amber fill line */}
-            <div
-              style={{
-                position: "absolute",
-                left: 56,
-                top: 0,
-                width: 1,
-                height: inView ? "100%" : "0%",
-                backgroundColor: "var(--primary)",
-                zIndex: 1,
-                transition: prefersReduced ? "none" : "height 0.8s ease",
-                opacity: 0.5,
-              }}
-            />
-
-            {STAGES.map((stage, i) => (
-              <div
-                key={stage.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 24,
-                  marginBottom: 28,
-                  position: "relative",
-                  zIndex: 2,
-                  opacity: inView ? 1 : 0,
-                  transform: inView ? "translateY(0)" : "translateY(8px)",
-                  transition: prefersReduced ? "none" : `opacity 0.3s ${i * 80}ms ease, transform 0.3s ${i * 80}ms ease`,
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "4px 12px",
-                    height: 28,
-                    borderRadius: 999,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    fontFamily: "var(--font-body)",
-                    backgroundColor: `var(${stage.bg})`,
-                    color: `var(${stage.text})`,
-                    border: `1px solid var(${stage.border})`,
-                    whiteSpace: "nowrap",
-                    minWidth: 96,
-                    flexShrink: 0,
-                  }}
-                >
-                  {stage.status}
-                </span>
-                <span style={{ color: "var(--text-tertiary)", fontSize: 14, flexShrink: 0 }}>→</span>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  {stage.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Section 4: 45-Second Invoice ──────────────────────────────────────────────
-
-const INVOICE_DELAYS: Record<string, number> = {
-  header: 0, rule1: 80, company: 160, customer: 240,
-  item1: 320, item2: 400, item3: 480, rule2: 540,
-  subtotal: 560, moms: 580, total: 600, bar: 680,
-}
-
-function InvoiceSection() {
-  const { ref, inView } = useInView(0.25)
-  const prefersReduced = usePrefersReduced()
-
-  function ls(id: string): React.CSSProperties {
-    const d = INVOICE_DELAYS[id] ?? 0
-    return {
-      opacity: inView ? 1 : 0,
-      transform: inView ? "translateY(0)" : "translateY(4px)",
-      transition: prefersReduced ? "none" : `opacity 0.25s ${d}ms ease, transform 0.25s ${d}ms ease`,
-    }
+  function onMouseMove(e: React.MouseEvent) {
+    if (!heroRef.current) return
+    const rect = heroRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    heroRef.current.style.setProperty("--sx", `${x}%`)
+    heroRef.current.style.setProperty("--sy", `${y}%`)
   }
 
   return (
-    <section style={{ backgroundColor: "var(--workshop-900)", padding: "80px 24px 100px", textAlign: "center" }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: "clamp(72px, 12vw, 120px)", fontWeight: 600, color: "var(--amber-400)", lineHeight: 1, marginBottom: 16 }}>
-          0:45
-        </p>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 22, color: "var(--workshop-300)", marginBottom: 8 }}>
-          From completed job to sent invoice.
-        </p>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--workshop-500)", marginBottom: 64, letterSpacing: "0.02em" }}>
-          Not an exaggeration. Timed.
+    <section
+      ref={heroRef}
+      onMouseMove={onMouseMove}
+      style={{
+        position: "relative", minHeight: "100vh",
+        display: "flex", flexDirection: "column",
+        backgroundColor: S.obsidian, overflow: "hidden", paddingTop: 60,
+      }}
+    >
+      <div aria-hidden style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        backgroundImage: `linear-gradient(${S.border} 1px, transparent 1px), linear-gradient(90deg, ${S.border} 1px, transparent 1px)`,
+        backgroundSize: "48px 48px",
+        WebkitMaskImage: "radial-gradient(ellipse 80% 80% at center, black 20%, transparent 80%)",
+        maskImage: "radial-gradient(ellipse 80% 80% at center, black 20%, transparent 80%)",
+        opacity: 0.5,
+      }} />
+      <div aria-hidden style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "radial-gradient(600px circle at var(--sx, 50%) var(--sy, 40%), oklch(0.720 0.195 58 / 6%), transparent 65%)",
+      }} />
+      <div aria-hidden style={{
+        position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", pointerEvents: "none",
+        background: "radial-gradient(ellipse 100% 60% at 50% 100%, oklch(0.720 0.195 58 / 5%), transparent)",
+      }} />
+
+      <div style={{
+        position: "relative", zIndex: 10, flex: 1,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: "80px 24px 60px", textAlign: "center",
+      }}>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "5px 14px", borderRadius: 999, marginBottom: 32,
+          background: "oklch(0.720 0.195 58 / 10%)",
+          border: "1px solid oklch(0.720 0.195 58 / 30%)",
+          opacity: wordsVisible ? 1 : 0,
+          transform: wordsVisible ? "translateY(0)" : "translateY(-8px)",
+          transition: prefersReduced ? "none" : "opacity 300ms ease, transform 300ms ease",
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: S.amber, display: "inline-block", animation: "pulse 2s ease infinite" }} />
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.amber, fontWeight: 500 }}>
+            {t("hero.eyebrow")}
+          </span>
+        </div>
+
+        <h1 style={{
+          fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1.04,
+          letterSpacing: "-0.025em", marginBottom: 8,
+          fontSize: "clamp(44px, 8vw, 88px)",
+        }}>
+          {heroWords1.map((word, i) => (
+            <span key={`w1-${i}`} style={{
+              display: "inline-block", color: S.s50, marginRight: "0.22em",
+              opacity: wordsVisible ? 1 : 0,
+              transform: wordsVisible ? "translateY(0)" : "translateY(14px)",
+              transition: prefersReduced ? "none" : `opacity 400ms ${i * 60}ms var(--ease-spring), transform 400ms ${i * 60}ms var(--ease-spring)`,
+            }}>{word}</span>
+          ))}
+          <br />
+          {heroWords2.map((word, i) => (
+            <span key={`w2-${i}`} style={{
+              display: "inline-block",
+              color: i === 1 ? S.amber400 : S.s50,
+              marginRight: "0.22em",
+              opacity: wordsVisible ? 1 : 0,
+              transform: wordsVisible ? "translateY(0)" : "translateY(14px)",
+              transition: prefersReduced ? "none" : `opacity 400ms ${(heroWords1.length + i) * 60 + 80}ms var(--ease-spring), transform 400ms ${(heroWords1.length + i) * 60 + 80}ms var(--ease-spring)`,
+            }}>{word}</span>
+          ))}
+        </h1>
+
+        <p style={{
+          fontFamily: "var(--font-body)", fontSize: "clamp(17px, 2.2vw, 21px)",
+          color: S.s400, maxWidth: 520, lineHeight: 1.55, marginBottom: 40,
+          opacity: wordsVisible ? 1 : 0,
+          transform: wordsVisible ? "translateY(0)" : "translateY(8px)",
+          transition: prefersReduced ? "none" : "opacity 400ms 500ms ease, transform 400ms 500ms ease",
+        }}>
+          {t("hero.sub")}
         </p>
 
-        {/* Mock invoice */}
-        <div
-          ref={ref}
-          style={{
-            maxWidth: 520,
-            margin: "0 auto",
-            backgroundColor: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            boxShadow: "0 20px 40px oklch(0.05 0.005 50 / 0.6), 0 8px 16px oklch(0.05 0.005 50 / 0.3)",
-            transform: "rotate(-1deg)",
-            transition: "transform 200ms ease",
-            overflow: "hidden",
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginBottom: 12 }}>
+          <Link href="/sign-up" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            height: 50, padding: "0 28px", borderRadius: 10,
+            fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 500,
+            color: "oklch(0.10 0.005 52)", backgroundColor: S.amber,
+            textDecoration: "none", boxShadow: "var(--shadow-accent)",
+            transition: "box-shadow 120ms, transform 120ms",
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "rotate(0deg)" }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "rotate(-1deg)" }}
-        >
-          <div style={{ padding: "24px 28px 20px" }}>
-            {/* FAKTURA / #1042 */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, ...ls("header") }}>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-tertiary)" }}>
-                FAKTURA
-              </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--text-primary)" }}>#1042</span>
-            </div>
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 8px 24px oklch(0.720 0.195 58 / 0.55)" }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-accent)" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "oklch(0.10 0.005 52)", opacity: 0.6, animation: "pulse 2s ease infinite" }} />
+            {t("hero.ctaPrimary")}
+          </Link>
+          <button onClick={() => scrollTo("features")} style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            height: 50, padding: "0 28px", borderRadius: 10,
+            fontFamily: "var(--font-body)", fontSize: 16, color: S.s300,
+            backgroundColor: "transparent", border: `1px solid ${S.borderStrong}`,
+            cursor: "pointer", transition: "border-color 120ms, color 120ms",
+          }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = S.s400; (e.currentTarget as HTMLButtonElement).style.color = S.s50 }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong; (e.currentTarget as HTMLButtonElement).style.color = S.s300 }}>
+            {t("hero.ctaSecondary")}
+          </button>
+        </div>
 
-            <div style={{ height: 1, backgroundColor: "var(--border)", marginBottom: 16, ...ls("rule1") }} />
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600, letterSpacing: "0.02em" }}>
+          {t("hero.noCredit")}
+        </p>
 
-            {/* Company */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, ...ls("company") }}>
-              <div style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: "var(--primary)", flexShrink: 0 }} />
-              <div>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2 }}>Klaus El-Service ApS</p>
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)" }}>CVR: 39781689</p>
-              </div>
-            </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginTop: 56 }}>
+          <FloatingCard text={t("hero.proof1")} icon="✓" delay={0} />
+          <FloatingCard text={t("hero.proof2")} icon="💰" delay={150} />
+          <FloatingCard text={t("hero.proof3")} icon="📍" delay={300} />
+        </div>
+      </div>
 
-            {/* Customer */}
-            <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 20, ...ls("customer") }}>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-tertiary)" }}>Til:</span>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-primary)" }}>Morten Andersen, Aarhus</span>
-            </div>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:0.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+        @keyframes float0 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-6px)} }
+        @keyframes float150 { 0%,100%{transform:translateY(-3px)} 50%{transform:translateY(-8px)} }
+        @keyframes float300 { 0%,100%{transform:translateY(-1px)} 50%{transform:translateY(-7px)} }
+        @keyframes progress { from{width:0%} to{width:100%} }
+        html { scroll-behavior: smooth; }
+      `}</style>
+    </section>
+  )
+}
 
-            {/* Line items */}
-            {([
-              { id: "item1", label: "Arbejdsløn", detail: "4 timer × 650 kr.", amount: "2.600,00 kr." },
-              { id: "item2", label: "Materialer", detail: "Kobberrør Ø22mm", amount: "480,00 kr." },
-              { id: "item3", label: "Kørsel", detail: "20 km", amount: "120,00 kr." },
-            ] as const).map((item) => (
-              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, ...ls(item.id) }}>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-primary)", flex: 1 }}>{item.label}</span>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-secondary)", flex: 1, textAlign: "center" }}>{item.detail}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-primary)" }}>{item.amount}</span>
-              </div>
-            ))}
+// ── Stats Bar ─────────────────────────────────────────────────────────────────
 
-            <div style={{ height: 1, backgroundColor: "var(--border)", margin: "16px 0", ...ls("rule2") }} />
+function StatItem({ target, suffix, label }: { target: number; suffix: string; label: string }) {
+  const { ref, inView } = useInView(0.3)
+  const { count, start } = useCountUp(target)
+  useEffect(() => { if (inView) start() }, [inView, start])
+  const display = count >= 1000 ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1).replace(".", ",")}` : count.toString()
 
-            {/* Totals */}
-            {([
-              { id: "subtotal", label: "Subtotal ex. moms:", amount: "3.200,00 kr.", bold: false },
-              { id: "moms", label: "Moms 25%:", amount: "800,00 kr.", bold: false },
-              { id: "total", label: "Total inkl. moms:", amount: "4.000,00 kr.", bold: true },
-            ] as const).map((row) => (
-              <div key={row.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, ...ls(row.id) }}>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: row.bold ? 14 : 13, fontWeight: row.bold ? 600 : 400, color: row.bold ? "var(--text-primary)" : "var(--text-secondary)" }}>
-                  {row.label}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: row.bold ? 14 : 13, fontWeight: row.bold ? 700 : 400, color: row.bold ? "var(--text-primary)" : "var(--text-secondary)" }}>
-                  {row.amount}
-                </span>
-              </div>
-            ))}
-          </div>
+  return (
+    <div ref={ref} style={{ textAlign: "center", flex: 1 }}>
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700, color: S.s50, lineHeight: 1 }}>
+        {display}{suffix}
+      </p>
+      <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s500, marginTop: 6 }}>{label}</p>
+    </div>
+  )
+}
 
-          {/* Amber bottom bar */}
-          <div
-            style={{
-              height: 4,
-              backgroundColor: "var(--primary)",
-              width: inView ? "100%" : "0%",
-              transition: prefersReduced ? "none" : "width 0.35s 680ms ease",
+function StatsBar() {
+  const t = useTranslations("Landing")
+  return (
+    <div style={{ backgroundColor: S.obsidian, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "32px 24px", display: "flex", alignItems: "center", gap: 0 }}>
+        <StatItem target={2400} suffix="+" label={t("stats.tradespeople")} />
+        <div style={{ width: 1, height: 40, background: S.border, flexShrink: 0 }} />
+        <StatItem target={48000} suffix="+" label={t("stats.invoicesSent")} />
+        <div style={{ width: 1, height: 40, background: S.border, flexShrink: 0 }} />
+        <StatItem target={1200} suffix=" mio. kr" label={t("stats.invoicedVia")} />
+      </div>
+    </div>
+  )
+}
+
+// ── Problem Section ───────────────────────────────────────────────────────────
+
+function ProblemSection() {
+  const { ref, inView } = useInView(0.1)
+  const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const problems = [
+    {
+      n: "01",
+      title: t("problem.p1Title"),
+      body: t("problem.p1Body"),
+      icon: (
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <rect x={3} y={3} width={18} height={18} rx={2} /><path d="M3 9h18M9 21V9" />
+        </svg>
+      ),
+    },
+    {
+      n: "02",
+      title: t("problem.p2Title"),
+      body: t("problem.p2Body"),
+      icon: (
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx={12} cy={12} r={10} /><polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+    },
+    {
+      n: "03",
+      title: t("problem.p3Title"),
+      body: t("problem.p3Body"),
+      icon: (
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <line x1={3} y1={12} x2={21} y2={12} /><line x1={3} y1={6} x2={21} y2={6} /><line x1={3} y1={18} x2={15} y2={18} />
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <section style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("problem.label")}</SectionLabel>
+        <h2 style={{
+          fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)",
+          fontWeight: 800, color: S.s50, letterSpacing: "-0.02em",
+          maxWidth: 560, lineHeight: 1.1, marginBottom: 56,
+        }}>
+          {t("problem.headline")}
+        </h2>
+
+        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          {problems.map((p, i) => (
+            <div key={p.n} style={{
+              backgroundColor: "var(--slate-800)",
+              border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, position: "relative",
+              opacity: inView ? 1 : 0,
+              transform: inView ? "translateY(0)" : "translateY(16px)",
+              transition: prefersReduced ? "none" : `opacity 300ms ${i * 80}ms var(--ease-smooth), transform 300ms ${i * 80}ms var(--ease-smooth)`,
             }}
-          />
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-md)" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = "none" }}>
+              <span style={{ position: "absolute", top: 16, right: 16, fontFamily: "var(--font-mono)", fontSize: 11, color: S.s600 }}>{p.n}</span>
+              <div style={{ color: S.s500, marginBottom: 14 }}>{p.icon}</div>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600, color: S.s200, marginBottom: 8 }}>{p.title}</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500, lineHeight: 1.6 }}>{p.body}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
   )
 }
 
-// ── Section 5: Who It's For ───────────────────────────────────────────────────
+// ── Feature Mockups ───────────────────────────────────────────────────────────
 
-const TRADES = [
-  {
-    name: "Elektriker",
-    yOffset: 0,
-    icon: (
-      <svg width={40} height={40} viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 5L13 21h9l-4 14 15-19H22L25 5z" />
-      </svg>
-    ),
-  },
-  {
-    name: "VVS",
-    yOffset: -12,
-    icon: (
-      <svg width={40} height={40} viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={6} y={16} width={10} height={16} rx={2} />
-        <rect x={24} y={8} width={10} height={10} rx={2} />
-        <path d="M16 24H21a4 4 0 0 0 4-4v-2" />
-      </svg>
-    ),
-  },
-  {
-    name: "Tømrer",
-    yOffset: -20,
-    icon: (
-      <svg width={40} height={40} viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={5} y={14} width={22} height={10} rx={2} />
-        <path d="M27 16l8-4v12l-8-4" />
-        <line x1={11} y1={24} x2={10} y2={32} />
-        <line x1={20} y1={24} x2={20} y2={32} />
-      </svg>
-    ),
-  },
-  {
-    name: "Maler",
-    yOffset: -12,
-    icon: (
-      <svg width={40} height={40} viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={8} y={8} width={18} height={10} rx={2} />
-        <rect x={10} y={18} width={14} height={3} rx={1} />
-        <line x1={17} y1={21} x2={17} y2={33} />
-        <rect x={7} y={33} width={20} height={4} rx={2} />
-      </svg>
-    ),
-  },
-  {
-    name: "Murer",
-    yOffset: 0,
-    icon: (
-      <svg width={40} height={40} viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={7} y={9} width={10} height={6} rx={1} />
-        <rect x={21} y={9} width={10} height={6} rx={1} />
-        <rect x={14} y={17} width={10} height={6} rx={1} />
-        <rect x={7} y={25} width={10} height={6} rx={1} />
-        <rect x={21} y={25} width={10} height={6} rx={1} />
-      </svg>
-    ),
-  },
-]
+function JobsMockup() {
+  const ITEMS = [
+    { status: "Igangværende", color: "var(--status-progress-text)", bg: "var(--status-progress-bg)", title: "Badeværelse — Jensens vej 12", customer: "Erik Hansen", amount: "8.400 kr" },
+    { status: "Ny", color: "var(--status-new-text)", bg: "var(--status-new-bg)", title: "Tagudskiftning — Magleby", customer: "Morten Lund", amount: "42.000 kr" },
+    { status: "Planlagt", color: "var(--status-scheduled-text)", bg: "var(--status-scheduled-bg)", title: "El-installation — sommerhus", customer: "Kirsten Bach", amount: "5.200 kr" },
+    { status: "Betalt", color: "var(--status-paid-text)", bg: "var(--status-paid-bg)", title: "VVS-eftersyn kontor", customer: "Lasse Møller", amount: "1.800 kr" },
+  ]
+  return (
+    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 360 }}>
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: S.s50 }}>Jobs</span>
+        <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, background: S.amber, color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-body)", fontWeight: 600 }}>+ Nyt job</span>
+      </div>
+      {ITEMS.map((item, i) => (
+        <div key={item.title} style={{ display: "flex", alignItems: "center", gap: 0, borderBottom: i < ITEMS.length - 1 ? `1px solid ${S.border}` : "none", transition: "background 80ms" }}
+          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 3%)"}
+          onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = ""}>
+          <div style={{ width: 3, alignSelf: "stretch", backgroundColor: item.color, flexShrink: 0 }} />
+          <div style={{ flex: 1, padding: "10px 14px", minWidth: 0 }}>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500, color: S.s200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+              <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 999, background: item.bg, color: item.color, fontFamily: "var(--font-body)", fontWeight: 500 }}>{item.status}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.s500 }}>{item.customer}</span>
+            </div>
+          </div>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.s400, padding: "0 14px", flexShrink: 0 }}>{item.amount}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
-function WhoSection() {
-  const { ref, inView } = useInView(0.2)
+function QuoteMockup() {
+  const rows = [
+    ["Arbejdsløn", "4 timer", "2.600 kr"],
+    ["Materialer", "Kobberrør Ø22", "480 kr"],
+    ["Kørsel", "20 km", "120 kr"],
+  ]
+  return (
+    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 440 }}>
+      <div style={{ padding: "12px 16px 10px", borderBottom: `1px solid ${S.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.s500 }}>TILBUD</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.s400, marginLeft: 8 }}>#T-0042</span>
+        </div>
+        <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.amber, padding: "2px 8px", borderRadius: 999, background: "oklch(0.720 0.195 58 / 12%)" }}>Udkast</span>
+      </div>
+      <div style={{ padding: "12px 16px" }}>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500, marginBottom: 10 }}>Til: Morten Andersen, Aarhus</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "6px 12px", alignItems: "baseline" }}>
+          {rows.map(([label, detail, amount], i) => (
+            <Fragment key={i}>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s200 }}>{label}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500, textAlign: "right" }}>{detail}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.s200, textAlign: "right" }}>{amount}</span>
+            </Fragment>
+          ))}
+        </div>
+        <div style={{ borderTop: `1px solid ${S.border}`, marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.s100 }}>Total inkl. moms</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: S.amber }}>3.950 kr</span>
+        </div>
+      </div>
+      <div style={{ padding: "10px 16px", borderTop: `1px solid ${S.border}`, display: "flex", gap: 8 }}>
+        <button style={{ flex: 1, height: 32, borderRadius: 7, border: `1px solid ${S.border}`, background: "transparent", color: S.s400, fontFamily: "var(--font-body)", fontSize: 13, cursor: "pointer" }}>Gem udkast</button>
+        <button style={{ flex: 1, height: 32, borderRadius: 7, border: "none", background: S.amber, color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Send tilbud →</button>
+      </div>
+    </div>
+  )
+}
+
+function InvoiceMockup() {
+  return (
+    <div style={{
+      backgroundColor: "oklch(1 0 0)", border: `1px solid oklch(0.88 0.007 255)`,
+      borderRadius: 14, overflow: "hidden", boxShadow: "0 20px 40px oklch(0 0 0 / 0.5)",
+      maxWidth: 400, transform: "rotate(-1deg)", transition: "transform 200ms var(--ease-smooth)",
+    }}
+      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = "rotate(0deg)"}
+      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = "rotate(-1deg)"}>
+      <div style={{ background: "linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 100%)", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600, color: "oklch(0.20 0.005 52)", letterSpacing: "0.1em", textTransform: "uppercase" }}>FAKTURA</p>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "oklch(0.12 0.005 52)", fontWeight: 700 }}>#F-1042</p>
+        </div>
+        <div style={{ width: 36, height: 36, borderRadius: 8, background: "oklch(0.10 0.005 52 / 20%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+          </svg>
+        </div>
+      </div>
+      <div style={{ padding: "16px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+          <div>
+            <p style={{ fontSize: 11, color: "oklch(0.50 0.011 255)", fontFamily: "var(--font-body)" }}>Fra</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "oklch(0.12 0.005 255)", fontFamily: "var(--font-body)" }}>Klaus El-Service ApS</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: 11, color: "oklch(0.50 0.011 255)", fontFamily: "var(--font-body)" }}>Forfaldsdato</p>
+            <p style={{ fontSize: 13, color: "oklch(0.12 0.005 255)", fontFamily: "var(--font-mono)" }}>30. april 2026</p>
+          </div>
+        </div>
+        {[["Arbejdsløn", "2.600 kr"], ["Materialer", "480 kr"], ["Kørsel", "120 kr"]].map(([l, v]) => (
+          <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid oklch(0.94 0.004 255)" }}>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "oklch(0.35 0.009 255)" }}>{l}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "oklch(0.20 0.007 255)" }}>{v}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, padding: "8px 0", borderTop: "2px solid oklch(0.88 0.007 255)" }}>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 700, color: "oklch(0.12 0.005 255)" }}>Total inkl. moms</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "oklch(0.53 0.155 52)" }}>4.000 kr</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CustomerMockup() {
+  return (
+    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 380 }}>
+      <div style={{ padding: "16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--amber-500)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>EH</span>
+        </div>
+        <div>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: S.s50 }}>Erik Hansen</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500 }}>+45 23 45 67 89 · Aarhus</p>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", padding: "12px 16px", gap: 8, borderBottom: `1px solid ${S.border}` }}>
+        {[["Faktureret", "142.400 kr", S.s200], ["Udestående", "12.800 kr", "oklch(0.78 0.18 25)"], ["Betalt", "129.600 kr", "oklch(0.75 0.14 145)"]].map(([l, v, c]) => (
+          <div key={l as string}>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: S.s500, marginBottom: 2 }}>{l}</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: c as string }}>{v}</p>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: "8px 16px" }}>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.s500, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Seneste jobs</p>
+        {[
+          { title: "Badeværelse renovation", status: "Betalt", c: "var(--status-paid-text)", bg: "var(--status-paid-bg)" },
+          { title: "El-installation køkken", status: "Faktureret", c: "var(--status-invoiced-text)", bg: "var(--status-invoiced-bg)" },
+        ].map((job, i) => (
+          <div key={job.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i === 0 ? `1px solid ${S.border}` : "none" }}>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s300 }}>{job.title}</span>
+            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: job.bg, color: job.c, fontFamily: "var(--font-body)", fontWeight: 500 }}>{job.status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Feature Sections ──────────────────────────────────────────────────────────
+
+function FeatureRow({
+  label, headline, bullets, mockup, reverse, id,
+}: {
+  label: string; headline: string; bullets: string[]; mockup: React.ReactNode; reverse?: boolean; id?: string
+}) {
+  const { ref, inView } = useInView(0.15)
   const prefersReduced = usePrefersReduced()
+  const textAnim: React.CSSProperties = {
+    opacity: inView ? 1 : 0,
+    transform: inView ? "translateX(0)" : `translateX(${reverse ? "24px" : "-24px"})`,
+    transition: prefersReduced ? "none" : "opacity 280ms 60ms var(--ease-smooth), transform 280ms 60ms var(--ease-smooth)",
+  }
+  const imgAnim: React.CSSProperties = {
+    opacity: inView ? 1 : 0,
+    transform: inView ? "translateX(0)" : `translateX(${reverse ? "-24px" : "24px"})`,
+    transition: prefersReduced ? "none" : "opacity 280ms var(--ease-smooth), transform 280ms var(--ease-smooth)",
+  }
 
   return (
-    <section style={{ backgroundColor: "var(--background)", padding: "80px 24px 100px", textAlign: "center" }}>
-      <div ref={ref} style={{ maxWidth: 1120, margin: "0 auto" }}>
-        {/* Trade icons arc */}
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: "clamp(16px, 4vw, 48px)", marginBottom: 48 }}>
-          {TRADES.map((trade, i) => (
-            <div
-              key={trade.name}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 8,
-                transform: `translateY(${trade.yOffset}px)`,
-                transition: "color 200ms, transform 200ms",
-                cursor: "pointer",
-                color: "var(--text-tertiary)",
-                opacity: inView ? 1 : 0,
-                transitionDelay: prefersReduced ? "0ms" : `${i * 80}ms`,
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLDivElement
-                el.style.color = "var(--primary)"
-                el.style.transform = `translateY(${trade.yOffset - 4}px) scale(1.1)`
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLDivElement
-                el.style.color = "var(--text-tertiary)"
-                el.style.transform = `translateY(${trade.yOffset}px) scale(1)`
-              }}
-            >
-              {trade.icon}
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "inherit" }}>
-                {trade.name}
+    <section id={id} style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div ref={ref} style={{
+        maxWidth: MAX_W, margin: "0 auto", width: "100%",
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: 64, alignItems: "center",
+      }}>
+        <div style={{ order: reverse ? 2 : 1, ...textAnim }}>
+          <SectionLabel>{label}</SectionLabel>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: 24 }}>
+            {headline}
+          </h2>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+            {bullets.map((b) => (
+              <li key={b} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, color: S.s400, lineHeight: 1.5 }}>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div style={{ order: reverse ? 1 : 2, display: "flex", justifyContent: "center", ...imgAnim }}>
+          {mockup}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── Demo Section ──────────────────────────────────────────────────────────────
+
+function DemoSection() {
+  const [active, setActive] = useState(0)
+  const { ref, inView } = useInView(0.2)
+  const t = useTranslations("Landing")
+
+  const stages = [0, 1, 2, 3, 4, 5].map(i => ({
+    label: t(`demo.s${i}label` as Parameters<typeof t>[0]),
+    desc: t(`demo.s${i}desc` as Parameters<typeof t>[0]),
+    color: ["var(--status-new-bg)", "var(--status-scheduled-bg)", "var(--status-invoiced-bg)", "var(--status-progress-bg)", "var(--status-done-bg)", "var(--status-paid-bg)"][i],
+    textColor: ["var(--status-new-text)", "var(--status-scheduled-text)", "var(--status-invoiced-text)", "var(--status-progress-text)", "var(--status-done-text)", "var(--status-paid-text)"][i],
+  }))
+
+  useEffect(() => {
+    if (!inView) return
+    const timer = setInterval(() => setActive(a => (a + 1) % stages.length), 3000)
+    return () => clearInterval(timer)
+  }, [inView, stages.length])
+
+  const stage = stages[active]
+
+  return (
+    <section id="how" style={{
+      backgroundColor: "var(--slate-800)",
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", width: "100%" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <SectionLabel>{t("demo.label")}</SectionLabel>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em" }}>
+            {t("demo.headline")}
+          </h2>
+        </div>
+
+        <div ref={ref} style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 40 }}>
+          {stages.map((s, i) => (
+            <button key={i} onClick={() => setActive(i)} style={{
+              padding: "6px 14px", borderRadius: 999, cursor: "pointer",
+              fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
+              backgroundColor: active === i ? s.color : "transparent",
+              color: active === i ? s.textColor : S.s500,
+              border: active === i ? `1px solid transparent` : `1px solid ${S.border}`,
+              transition: "all 180ms var(--ease-snap)",
+            }}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{
+          backgroundColor: S.obsidian, border: `1px solid ${S.border}`,
+          borderRadius: 16, padding: "40px 48px", textAlign: "center", minHeight: 120,
+          transition: "all 180ms var(--ease-snap)",
+        }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "4px 12px", borderRadius: 999, marginBottom: 16,
+            background: stage.color, color: stage.textColor,
+            fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
+          }}>
+            {active + 1} / {stages.length} — {stage.label}
+          </span>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 2.5vw, 20px)", color: S.s300, lineHeight: 1.5 }}>
+            {stage.desc}
+          </p>
+        </div>
+
+        <div style={{ height: 2, background: S.border, borderRadius: 999, marginTop: 16, overflow: "hidden" }}>
+          <div key={active} style={{ height: "100%", background: S.amber, borderRadius: 999, animation: "progress 3s linear forwards" }} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── Who It's For ──────────────────────────────────────────────────────────────
+
+function WhoSection() {
+  const { ref, inView } = useInView(0.15)
+  const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const trades = [
+    { key: "t1", icon: <path d="M13 2L4.5 13.5H11L9 22l11-13.5H14z" strokeWidth={1.75} /> },
+    { key: "t2", icon: <><rect x="5" y="13" width="8" height="8" rx="1.5" /><rect x="16" y="5" width="6" height="6" rx="1.5" /><path d="M13 17H15a3 3 0 003-3V8" /></> },
+    { key: "t3", icon: <><rect x="3" y="11" width="16" height="8" rx="1.5" /><path d="M19 13l5-3v8l-5-3" /><line x1="7" y1="19" x2="6" y2="23" /><line x1="14" y1="19" x2="14" y2="23" /></> },
+    { key: "t4", icon: <><rect x="5" y="5" width="14" height="8" rx="1.5" /><rect x="8" y="13" width="8" height="2" rx="1" /><line x1="12" y1="15" x2="12" y2="22" /><rect x="5" y="22" width="14" height="2" rx="1" /></> },
+    { key: "t5", icon: <><rect x="4" y="6" width="7" height="5" rx="1" /><rect x="13" y="6" width="7" height="5" rx="1" /><rect x="9" y="12" width="7" height="5" rx="1" /><rect x="4" y="18" width="7" height="4" rx="1" /><rect x="13" y="18" width="7" height="4" rx="1" /></> },
+    { key: "t6", icon: <><path d="M14.5 4.5L9.5 9.5M20 9.5l-3-3" /><path d="M4.5 19.5l8-8" /><circle cx="17" cy="7" r="3" /></> },
+    { key: "t7", icon: <><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" /></> },
+    { key: "t8", icon: <><path d="M3 18L12 6l9 12" /><path d="M7 18h10" /><path d="M10 18v-5h4v5" /></> },
+  ]
+
+  return (
+    <section style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%", textAlign: "center" }}>
+        <SectionLabel>{t("who.label")}</SectionLabel>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 48 }}>
+          {t("who.headline")}
+        </h2>
+
+        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, maxWidth: 720, margin: "0 auto 64px", justifyItems: "center" }}>
+          {trades.map((trade, i) => (
+            <div key={trade.key} style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 8, cursor: "pointer",
+              color: S.s500,
+              opacity: inView ? 1 : 0,
+              transform: inView ? "translateY(0)" : "translateY(12px)",
+              transition: prefersReduced ? "none" : `opacity 280ms ${i * 50}ms var(--ease-smooth), transform 280ms ${i * 50}ms var(--ease-smooth), color 120ms`,
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.color = S.amber; (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px) scale(1.05)" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.color = S.s500; (e.currentTarget as HTMLDivElement).style.transform = "translateY(0) scale(1)" }}>
+              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                {trade.icon}
+              </svg>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                {t(`who.${trade.key}` as Parameters<typeof t>[0])}
               </span>
             </div>
           ))}
         </div>
 
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 5vw, 42px)", fontWeight: 700, color: "var(--text-primary)", marginBottom: 16, letterSpacing: "-0.01em" }}>
-          Built for the trades. Not accountants.
-        </h2>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 16, color: "var(--text-secondary)", maxWidth: 480, margin: "0 auto 56px", lineHeight: 1.6 }}>
-          Håndværk Pro speaks your language. Jobs, not ledgers. Quotes, not journal entries. You work — it handles the rest.
-        </p>
-
-        {/* Pull quote */}
-        <div style={{ maxWidth: 560, margin: "0 auto", position: "relative", textAlign: "left", padding: "32px 32px 32px 60px" }}>
-          <svg
-            width={48} height={48} viewBox="0 0 48 48" fill="none"
-            style={{ position: "absolute", top: 20, left: 4, opacity: 0.3 }}
-          >
-            <path d="M8 36C8 24 14 16 24 12l-4 6C16 22 14 26 14 30l6 0V36H8z" fill="var(--primary)" />
-            <path d="M26 36C26 24 32 16 42 12l-4 6C34 22 32 26 32 30l6 0V36H26z" fill="var(--primary)" />
-          </svg>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 3vw, 24px)", fontStyle: "italic", color: "var(--text-primary)", lineHeight: 1.5, marginBottom: 16 }}>
-            "I used to spend Sunday evenings doing invoices. Now it takes me ten minutes on Friday."
+        <div style={{ maxWidth: 540, margin: "0 auto", position: "relative", padding: "0 20px" }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 80, fontWeight: 800, color: S.amber, opacity: 0.2, lineHeight: 0.8, display: "block", marginBottom: -20 }}>"</span>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.5vw, 22px)", fontStyle: "italic", color: S.s300, lineHeight: 1.55, marginBottom: 20 }}>
+            "{t("who.quote")}"
           </p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-secondary)" }}>
-            — Mikkel, Elektriker, Aarhus
-          </p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>{t("who.quoteAuthor")}</p>
         </div>
       </div>
     </section>
   )
 }
 
-// ── Section 6: Pricing ────────────────────────────────────────────────────────
+// ── Comparison Table ──────────────────────────────────────────────────────────
 
-function CheckMark() {
+function ComparisonTable() {
+  const { ref, inView } = useInView(0.1)
+  const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const rows = [
+    [t("comparison.row0"), true, false, "Delvist", false],
+    [t("comparison.row1"), true, false, false, false],
+    [t("comparison.row2"), true, false, true, false],
+    [t("comparison.row3"), true, false, false, false],
+    [t("comparison.row4"), true, false, false, false],
+    [t("comparison.row5"), t("comparison.col1price"), t("comparison.col2price"), t("comparison.col3price"), t("comparison.col4price")],
+  ]
+  const cols = [" ", "Håndværk Pro", "Excel/Word", "Billy / e-conomic", "Pen & papir"]
+
   return (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <path d="M5 13l4 4L19 7" />
-    </svg>
+    <section style={{
+      backgroundColor: "var(--slate-800)",
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("comparison.label")}</SectionLabel>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 40 }}>
+          {t("comparison.headline")}
+        </h2>
+
+        <div ref={ref} style={{
+          overflowX: "auto",
+          opacity: inView ? 1 : 0,
+          transform: inView ? "translateY(0)" : "translateY(16px)",
+          transition: prefersReduced ? "none" : "opacity 300ms var(--ease-smooth), transform 300ms var(--ease-smooth)",
+        }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+            <thead>
+              <tr>
+                {cols.map((col, i) => (
+                  <th key={col} style={{
+                    padding: "10px 16px", textAlign: i === 0 ? "left" : "center",
+                    fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
+                    textTransform: "uppercase", letterSpacing: "0.06em",
+                    color: i === 1 ? S.amber : S.s500,
+                    borderBottom: `1px solid ${i === 1 ? S.amber : S.border}`,
+                    borderTop: i === 1 ? `2px solid ${S.amber}` : "none",
+                    backgroundColor: i === 1 ? "oklch(0.720 0.195 58 / 6%)" : "transparent",
+                    borderRadius: i === 1 ? "6px 6px 0 0" : 0,
+                  }}>
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => (
+                <tr key={ri} style={{ borderBottom: `1px solid ${S.border}` }}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} style={{
+                      padding: "11px 16px", textAlign: ci === 0 ? "left" : "center",
+                      fontFamily: ci === 0 ? "var(--font-body)" : (cell === true || cell === false) ? "inherit" : "var(--font-mono)",
+                      fontSize: 13, color: ci === 0 ? S.s300 : S.s400,
+                      backgroundColor: ci === 1 ? "oklch(0.720 0.195 58 / 4%)" : "transparent",
+                    }}>
+                      {cell === true ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 auto", display: "block" }}>
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : cell === false ? (
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.s600} strokeWidth={2} strokeLinecap="round" style={{ margin: "0 auto", display: "block" }}>
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                      ) : cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   )
 }
 
-const PLANS = [
-  {
-    name: "Gratis",
-    price: "0",
-    featured: true,
-    badge: "Start here",
-    features: ["3 active jobs", "Invoices", "Quote builder"],
-    cta: "Create free account",
-    href: "/sign-up",
-  },
-  {
-    name: "Solo",
-    price: "149",
-    featured: false,
-    badge: null,
-    features: ["Unlimited jobs", "Invoices", "Quote builder", "Materials tracker"],
-    cta: "Start Solo",
-    href: "/sign-up",
-  },
-  {
-    name: "Hold",
-    price: "299",
-    featured: false,
-    badge: null,
-    features: ["Up to 5 users", "Everything in Solo", "Team dashboard", "Priority support"],
-    cta: "Start Hold",
-    href: "/sign-up",
-  },
-]
+// ── Testimonials ──────────────────────────────────────────────────────────────
+
+function TestimonialsSection() {
+  const { ref, inView } = useInView(0.1)
+  const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const testimonials = [
+    { initials: "MK", name: t("testimonials.t1name"), role: t("testimonials.t1role"), quote: t("testimonials.t1quote") },
+    { initials: "LT", name: t("testimonials.t2name"), role: t("testimonials.t2role"), quote: t("testimonials.t2quote") },
+    { initials: "PH", name: t("testimonials.t3name"), role: t("testimonials.t3role"), quote: t("testimonials.t3quote") },
+  ]
+
+  return (
+    <section style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("testimonials.label")}</SectionLabel>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 48 }}>
+          {t("testimonials.headline")}
+        </h2>
+        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          {testimonials.map((t_, i) => (
+            <div key={t_.name} style={{
+              backgroundColor: "var(--slate-800)", border: `1px solid ${S.border}`,
+              borderRadius: 14, padding: 28, position: "relative",
+              opacity: inView ? 1 : 0,
+              transform: inView ? "translateY(0)" : "translateY(16px)",
+              transition: prefersReduced ? "none" : `opacity 280ms ${i * 80}ms var(--ease-smooth), transform 280ms ${i * 80}ms var(--ease-smooth)`,
+            }}>
+              <span style={{ position: "absolute", top: 16, left: 20, fontFamily: "var(--font-display)", fontSize: 56, fontWeight: 800, color: S.amber, opacity: 0.25, lineHeight: 1 }}>"</span>
+              <div style={{ display: "flex", marginBottom: 12 }}>
+                {[1, 2, 3, 4, 5].map(s => (
+                  <svg key={s} width={14} height={14} viewBox="0 0 24 24" fill={S.amber} stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                ))}
+              </div>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, lineHeight: 1.65, marginBottom: 20, fontStyle: "italic" }}>
+                "{t_.quote}"
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: S.amber, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>{t_.initials}</span>
+                </div>
+                <div>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: S.s100 }}>{t_.name}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500 }}>{t_.role}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── Pricing ───────────────────────────────────────────────────────────────────
 
 function PricingSection() {
-  return (
-    <section
-      style={{
-        backgroundColor: "var(--background-subtle)",
-        padding: "80px 24px 100px",
-        borderTop: "1px solid var(--border)",
-      }}
-    >
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 12 }}>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 72px)", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-            Simple{" "}
-          </span>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: "clamp(48px, 7vw, 72px)", fontWeight: 800, WebkitTextStroke: "2px var(--primary)", color: "transparent", letterSpacing: "-0.02em" }}>
-            pricing.
-          </span>
-        </div>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 16, color: "var(--text-secondary)", textAlign: "center", marginBottom: 56 }}>
-          Start free. Upgrade when you're ready. Always via MobilePay.
-        </p>
+  const [annual, setAnnual] = useState(true)
+  const t = useTranslations("Landing")
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
-          {PLANS.map((plan) => (
-            <div
-              key={plan.name}
-              style={{
-                backgroundColor: "var(--surface)",
-                border: plan.featured ? "2px solid var(--primary)" : "1px solid var(--border)",
-                borderRadius: 12,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {plan.featured && <div style={{ height: 4, backgroundColor: "var(--primary)" }} />}
+  const plans = [
+    {
+      name: t("pricing.freeName"),
+      monthly: "0", annual: "0",
+      badge: null, featured: false,
+      features: [t("pricing.freeF1"), t("pricing.freeF2"), t("pricing.freeF3"), t("pricing.freeF4")],
+      locked: [t("pricing.freeL1"), t("pricing.freeL2"), t("pricing.freeL3"), t("pricing.freeL4")],
+      cta: t("pricing.freeCta"), href: "/sign-up",
+    },
+    {
+      name: t("pricing.soloName"),
+      monthly: "149", annual: "119",
+      badge: t("pricing.recommended"), featured: true,
+      features: [t("pricing.soloF1"), t("pricing.soloF2"), t("pricing.soloF3"), t("pricing.soloF4"), t("pricing.soloF5"), t("pricing.soloF6")],
+      locked: [],
+      cta: t("pricing.soloCta"), href: "/sign-up",
+    },
+    {
+      name: t("pricing.holdName"),
+      monthly: "299", annual: "239",
+      badge: null, featured: false,
+      features: [t("pricing.holdF1"), t("pricing.holdF2"), t("pricing.holdF3"), t("pricing.holdF4")],
+      locked: [],
+      cta: t("pricing.holdCta"), href: "/sign-up",
+    },
+  ]
+
+  return (
+    <section id="pricing" style={{
+      backgroundColor: "var(--slate-800)",
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <SectionLabel>{t("pricing.label")}</SectionLabel>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 8 }}>
+            {t("pricing.headline")}
+          </h2>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginTop: 20, padding: "4px", borderRadius: 10, background: "oklch(1 0 0 / 5%)", border: `1px solid ${S.border}` }}>
+            {[{ label: t("pricing.monthly"), val: false }, { label: t("pricing.annual"), val: true }].map(({ label, val }) => (
+              <button key={String(val)} onClick={() => setAnnual(val)} style={{
+                padding: "6px 16px", borderRadius: 7, border: "none", cursor: "pointer",
+                fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
+                backgroundColor: annual === val ? S.amber : "transparent",
+                color: annual === val ? "oklch(0.10 0.005 52)" : S.s400,
+                transition: "all 150ms var(--ease-snap)",
+              }}>
+                {label}{val ? <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.8 }}>{t("pricing.save20")}</span> : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          {plans.map((plan) => (
+            <div key={plan.name} style={{
+              backgroundColor: S.obsidian,
+              border: plan.featured ? `1px solid ${S.amber}` : `1px solid ${S.border}`,
+              borderRadius: 16, overflow: "hidden",
+              display: "flex", flexDirection: "column",
+              boxShadow: plan.featured ? `0 0 48px oklch(0.720 0.195 58 / 18%)` : "none",
+              position: "relative",
+            }}>
+              {plan.featured && <div style={{ height: 2, background: `linear-gradient(90deg, ${S.amber600}, ${S.amber}, ${S.amber400})` }} />}
+              {plan.badge && (
+                <div style={{
+                  position: "absolute", top: plan.featured ? 18 : 14, right: 16,
+                  padding: "3px 10px", borderRadius: 999, background: S.amber,
+                  fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600,
+                  color: "oklch(0.10 0.005 52)",
+                }}>{plan.badge}</div>
+              )}
               <div style={{ padding: "24px 24px 28px", flex: 1, display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>{plan.name}</span>
-                  {plan.badge && (
-                    <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600, backgroundColor: "var(--primary)", color: "var(--primary-foreground)", padding: "3px 10px", borderRadius: 999 }}>
-                      {plan.badge}
-                    </span>
-                  )}
+                <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: S.s50, marginBottom: 12 }}>{plan.name}</p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 700, color: S.s50, lineHeight: 1 }}>
+                    {annual ? plan.annual : plan.monthly}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>{t("pricing.perMonth")}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 20 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1 }}>{plan.price}</span>
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-secondary)" }}>kr./måned</span>
-                </div>
-                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 28px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+                {annual && plan.featured && <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.amber, marginBottom: 16 }}>{t("pricing.billedAnnually")}</p>}
+                <div style={{ height: 1, background: S.border, margin: "20px 0" }} />
+                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
                   {plan.features.map((f) => (
-                    <li key={f} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <CheckMark />
-                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-primary)" }}>{f}</span>
+                    <li key={f} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s300 }}>{f}</span>
+                    </li>
+                  ))}
+                  {plan.locked.map((f) => (
+                    <li key={f} style={{ display: "flex", alignItems: "center", gap: 9, opacity: 0.35 }}>
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.s600} strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s600 }}>{f}</span>
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href={plan.href}
-                  className="cursor-pointer"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: 44,
-                    borderRadius: 10,
-                    fontFamily: "var(--font-body)",
-                    fontSize: 15,
-                    fontWeight: 500,
-                    textDecoration: "none",
-                    backgroundColor: plan.featured ? "var(--primary)" : "transparent",
-                    color: plan.featured ? "var(--primary-foreground)" : "var(--primary)",
-                    border: plan.featured ? "none" : "1.5px solid var(--primary)",
-                    boxShadow: plan.featured ? "var(--shadow-accent)" : "none",
-                  }}
-                >
+                <Link href={plan.href} style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  height: 46, borderRadius: 10,
+                  fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 500,
+                  textDecoration: "none",
+                  backgroundColor: plan.featured ? S.amber : "transparent",
+                  color: plan.featured ? "oklch(0.10 0.005 52)" : S.s300,
+                  border: plan.featured ? "none" : `1.5px solid ${S.border}`,
+                  boxShadow: plan.featured ? "var(--shadow-accent)" : "none",
+                  transition: "opacity 120ms",
+                }}
+                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"}
+                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "1"}>
                   {plan.cta}
                 </Link>
               </div>
             </div>
           ))}
         </div>
-
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-tertiary)", textAlign: "center", marginTop: 28 }}>
-          💛 Subscription billing via MobilePay — coming soon
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s600, textAlign: "center", marginTop: 24 }}>
+          {t("pricing.noBinding")}
         </p>
       </div>
     </section>
   )
 }
 
-// ── Section 7: Footer CTA ─────────────────────────────────────────────────────
+// ── FAQ ───────────────────────────────────────────────────────────────────────
 
-function FooterCTA() {
+function FAQSection() {
+  const [open, setOpen] = useState<number | null>(null)
+  const t = useTranslations("Landing")
+
+  const faqs = [0, 1, 2, 3, 4, 5, 6, 7].map(i => ({
+    q: t(`faq.q${i}` as Parameters<typeof t>[0]),
+    a: t(`faq.a${i}` as Parameters<typeof t>[0]),
+  }))
+
   return (
-    <section style={{ backgroundColor: "var(--workshop-900)", padding: "120px 24px", textAlign: "center" }}>
-      <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <h2
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(32px, 5vw, 56px)",
-            fontWeight: 800,
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-            marginBottom: 24,
-          }}
-        >
-          <span style={{ display: "block", color: "var(--workshop-50)" }}>Stop chasing invoices.</span>
-          <span style={{ display: "block" }}>
-            <span style={{ color: "var(--workshop-50)" }}>Start running </span>
-            <span style={{ color: "var(--primary)" }}>your business.</span>
-          </span>
+    <section id="faq" style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("faq.label")}</SectionLabel>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 40 }}>
+          {t("faq.headline")}
         </h2>
-
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 16, color: "var(--workshop-400)", marginBottom: 40 }}>
-          Free to start. No credit card. Setup in 4 minutes.
-        </p>
-
-        <Link
-          href="/sign-up"
-          className="cursor-pointer"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: 52,
-            padding: "0 32px",
-            borderRadius: 10,
-            fontFamily: "var(--font-display)",
-            fontSize: 18,
-            fontWeight: 600,
-            color: "var(--primary-foreground)",
-            backgroundColor: "var(--primary)",
-            boxShadow: "var(--shadow-accent)",
-            textDecoration: "none",
-            transition: "transform 150ms",
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1.02)" }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)" }}
-        >
-          Create your free account
-        </Link>
-
-        {/* Footer pipeline SVG */}
-        <div style={{ marginTop: 72, maxWidth: 400, margin: "72px auto 0" }}>
-          <PipelineSVG small />
-        </div>
-
-        {/* Copyright */}
-        <div
-          style={{
-            marginTop: 64,
-            paddingTop: 24,
-            borderTop: "1px solid var(--workshop-700)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--workshop-600)" }}>Håndværk Pro</span>
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--workshop-600)" }}>© 2026 · Built for Danish tradespeople</span>
+        <div>
+          {faqs.map((faq, i) => (
+            <div key={i} style={{ borderBottom: `1px solid ${S.border}` }}>
+              <button onClick={() => setOpen(open === i ? null : i)} style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "18px 0", gap: 16, background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+              }}>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: open === i ? S.s50 : S.s200, flex: 1, lineHeight: 1.4 }}>
+                  {faq.q}
+                </span>
+                <span style={{
+                  width: 24, height: 24, borderRadius: "50%",
+                  border: `1px solid ${open === i ? S.amber : S.border}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: open === i ? S.amber : S.s500, flexShrink: 0,
+                  transition: "all 180ms var(--ease-snap)",
+                  transform: open === i ? "rotate(45deg)" : "none",
+                }}>
+                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                </span>
+              </button>
+              <div style={{ overflow: "hidden", maxHeight: open === i ? 300 : 0, transition: "max-height 200ms var(--ease-smooth)" }}>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, lineHeight: 1.7, paddingBottom: 18 }}>
+                  {faq.a}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
+  )
+}
+
+// ── Trust Bar ─────────────────────────────────────────────────────────────────
+
+function TrustBar() {
+  const t = useTranslations("Landing")
+  const items = [
+    { icon: "🔒", text: t("trust.gdpr") },
+    { icon: "🇩🇰", text: t("trust.support") },
+    { icon: "💳", text: t("trust.noCard") },
+    { icon: "⚡", text: t("trust.setup") },
+  ]
+  return (
+    <div style={{ backgroundColor: "var(--slate-800)", borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "12px 32px" }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {i > 0 && <span className="hidden md:inline" style={{ color: S.s700, marginRight: 20 }}>|</span>}
+            <span style={{ fontSize: 15 }}>{item.icon}</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s400 }}>{item.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Footer CTA ────────────────────────────────────────────────────────────────
+
+function FooterCTA() {
+  const t = useTranslations("Landing")
+  return (
+    <footer>
+      <div style={{ background: `linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 55%, var(--amber-400) 100%)`, padding: "100px 24px", textAlign: "center" }}>
+        <div style={{ maxWidth: 600, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 800, color: "oklch(0.12 0.005 52)", letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 16 }}>
+            {t("footerCta.headline")}
+          </h2>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 18, color: "oklch(0.25 0.008 52)", marginBottom: 36 }}>
+            {t("footerCta.sub")}
+          </p>
+          <Link href="/sign-up" style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            height: 52, padding: "0 36px", borderRadius: 12,
+            fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 600,
+            color: S.s50, backgroundColor: "oklch(0.09 0.004 255)",
+            textDecoration: "none", transition: "opacity 120ms",
+          }}
+            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"}
+            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "1"}>
+            {t("footerCta.cta")}
+          </Link>
+        </div>
+      </div>
+
+      <div style={{ backgroundColor: S.obsidian, borderTop: `1px solid ${S.border}`, padding: "48px 24px 32px" }}>
+        <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 32, marginBottom: 48 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+                <div style={{ width: 24, height: 24, borderRadius: 5, background: S.amber, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" /></svg>
+                </div>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: S.s50 }}>Håndværk Pro</span>
+              </div>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s600, lineHeight: 1.6 }}>{t("footer.tagline")}</p>
+            </div>
+            {[
+              { heading: t("footer.product"), links: [t("footer.features"), t("footer.pricing"), t("footer.changelog")] },
+              { heading: t("footer.company"), links: [t("footer.about"), t("footer.contact"), t("footer.blog")] },
+              { heading: t("footer.legal"), links: [t("footer.privacy"), t("footer.cookies"), t("footer.terms")] },
+            ].map(col => (
+              <div key={col.heading}>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: S.s500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>{col.heading}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {col.links.map(link => (
+                    <a key={link} href="#" style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500, textDecoration: "none", transition: "color 120ms" }}
+                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = S.s300}
+                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = S.s500}>
+                      {link}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ borderTop: `1px solid ${S.border}`, paddingTop: 24, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>{t("footer.copyright")}</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>{t("footer.tagline")}</span>
+          </div>
+        </div>
+      </div>
+    </footer>
   )
 }
 
@@ -1076,19 +1321,53 @@ function FooterCTA() {
 export default function LandingPage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
+  const t = useTranslations("Landing")
 
   useEffect(() => {
     if (isLoaded && user) router.replace("/overview")
   }, [isLoaded, user, router])
 
   return (
-    <div style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)", backgroundColor: "var(--background)" }}>
+    <div style={{ fontFamily: "var(--font-body)", backgroundColor: S.obsidian }}>
+      <Nav />
       <Hero />
+      <StatsBar />
       <ProblemSection />
-      <ProductSection />
-      <InvoiceSection />
+      <div id="features">
+        <FeatureRow
+          label={t("feat.jobs.label")}
+          headline={t("feat.jobs.headline")}
+          bullets={[t("feat.jobs.b1"), t("feat.jobs.b2"), t("feat.jobs.b3")]}
+          mockup={<JobsMockup />}
+        />
+        <FeatureRow
+          label={t("feat.quotes.label")}
+          headline={t("feat.quotes.headline")}
+          bullets={[t("feat.quotes.b1"), t("feat.quotes.b2"), t("feat.quotes.b3")]}
+          mockup={<QuoteMockup />}
+          reverse
+        />
+        <FeatureRow
+          label={t("feat.invoices.label")}
+          headline={t("feat.invoices.headline")}
+          bullets={[t("feat.invoices.b1"), t("feat.invoices.b2"), t("feat.invoices.b3")]}
+          mockup={<InvoiceMockup />}
+        />
+        <FeatureRow
+          label={t("feat.customers.label")}
+          headline={t("feat.customers.headline")}
+          bullets={[t("feat.customers.b1"), t("feat.customers.b2"), t("feat.customers.b3")]}
+          mockup={<CustomerMockup />}
+          reverse
+        />
+      </div>
+      <DemoSection />
       <WhoSection />
+      <ComparisonTable />
+      <TestimonialsSection />
       <PricingSection />
+      <FAQSection />
+      <TrustBar />
       <FooterCTA />
     </div>
   )

@@ -1,64 +1,207 @@
 {
   "Landing": {
     "nav": {
-      "signIn": "Sign in"
+      "features": "Features",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "signIn": "Sign in",
+      "tryFree": "Try free"
     },
     "hero": {
-      "eyebrow": "For Danish tradespeople",
-      "headline": "Run your trade business from your phone",
-      "sub": "Quotes, jobs, and invoices in one place. Built for Danish electricians, plumbers, and carpenters.",
-      "cta": "Create free account",
-      "ctaSecondary": "Sign in"
+      "eyebrow": "New: Invoices sent automatically",
+      "line1": "Save 3 hours a week.",
+      "line2": "Focus on the craft.",
+      "sub": "Quotes, jobs, invoices and customers — all in one place. Up and running in 5 minutes.",
+      "ctaPrimary": "Start free today",
+      "ctaSecondary": "See how it works ↓",
+      "noCredit": "No credit card · Free to start · Danish support",
+      "proof1": "Quote T-0042 accepted — Erik Hansen",
+      "proof2": "Invoice paid · 12,800 kr",
+      "proof3": "Job completed · Frederiksberg"
     },
-    "features": {
-      "headline": "Everything you need. Nothing you don't.",
+    "stats": {
+      "tradespeople": "Tradespeople",
+      "invoicesSent": "Invoices sent",
+      "invoicedVia": "Invoiced via platform"
+    },
+    "problem": {
+      "label": "Sound familiar?",
+      "headline": "The paperwork isn't worth carrying around.",
+      "p1Title": "The spreadsheet fails again",
+      "p1Body": "You lose track of materials, forget hours, and send invoices with wrong totals. It costs you money.",
+      "p2Title": "The invoice arrived too late",
+      "p2Body": "You sent the invoice 3 weeks after the job. The customer has forgotten. Reminders feel awkward. Money waits.",
+      "p3Title": "You lose the overview",
+      "p3Body": "3 apps, 2 binders, 1 cluttered inbox. You don't know what needs payment, who you owe a quote, or when the job ends."
+    },
+    "feat": {
       "jobs": {
-        "title": "Track every job",
-        "desc": "From first site visit to final invoice. Never lose track of work in progress."
+        "label": "Jobs",
+        "headline": "All jobs. Complete overview.",
+        "b1": "Create and schedule jobs in under 30 seconds",
+        "b2": "6-step status — from New to Paid",
+        "b3": "Upload photos directly from the job site"
       },
       "quotes": {
-        "title": "Professional quotes",
-        "desc": "Generate PDF quotes on the spot. Send them directly from the job site."
+        "label": "Quotes",
+        "headline": "A quote in 45 seconds.",
+        "b1": "Pre-filled line items from your materials library",
+        "b2": "Send directly to the customer — they accept with one click",
+        "b3": "Quote automatically converts to invoice"
       },
       "invoices": {
-        "title": "Get paid faster",
-        "desc": "Send invoices and track what's owed. Danish VAT handled automatically."
+        "label": "Invoices",
+        "headline": "From job to paid — automatically.",
+        "b1": "Professional PDF invoices with your logo",
+        "b2": "Automatic reminder after 8 and 15 days",
+        "b3": "Complies with Danish accounting law"
+      },
+      "customers": {
+        "label": "Customers",
+        "headline": "Know your customer. Remember everything.",
+        "b1": "CVR lookup fills company and address automatically",
+        "b2": "Complete history: jobs, quotes, invoices",
+        "b3": "See exactly what a customer owes you"
       }
+    },
+    "demo": {
+      "label": "See it in practice",
+      "headline": "From call to payment.",
+      "s0label": "Call",
+      "s0desc": "Customer calls. You create the job in 20 seconds.",
+      "s1label": "Quote sent",
+      "s1desc": "Quote generated and sent directly from your phone.",
+      "s2label": "Accepted",
+      "s2desc": "Customer approves with one click. You get notified.",
+      "s3label": "Job in progress",
+      "s3desc": "Photos, notes and material usage logged on site.",
+      "s4label": "Invoice sent",
+      "s4desc": "Invoice generated automatically from the job. Sent with PDF.",
+      "s5label": "Paid",
+      "s5desc": "Payment received. Books closed. On to the next."
+    },
+    "who": {
+      "label": "Who it's for",
+      "headline": "Built for those who build Denmark.",
+      "t1": "Electrician",
+      "t2": "Plumber",
+      "t3": "Carpenter",
+      "t4": "Painter",
+      "t5": "Bricklayer",
+      "t6": "Blacksmith",
+      "t7": "Floor layer",
+      "t8": "Roofer",
+      "quote": "I used Sunday evenings for invoices. Now it takes me ten minutes on Friday from the job site.",
+      "quoteAuthor": "— Mikkel R., Electrician, Aarhus"
+    },
+    "comparison": {
+      "label": "Comparison",
+      "headline": "Why not just Excel?",
+      "row0": "Mobile-friendly",
+      "row1": "Job management",
+      "row2": "Auto-reminders",
+      "row3": "CVR lookup",
+      "row4": "Built for tradespeople",
+      "row5": "Price/month",
+      "col1price": "From 0 kr",
+      "col2price": "0 kr",
+      "col3price": "From 149 kr",
+      "col4price": "0 kr"
+    },
+    "testimonials": {
+      "label": "Testimonials",
+      "headline": "What tradespeople say.",
+      "t1quote": "I sent my first invoice from the job site. The customer paid the same day. Never done it faster.",
+      "t1name": "Mads Kristiansen",
+      "t1role": "Plumber, Odense",
+      "t2quote": "Quotes took an hour in Word. Now they're done in 5 minutes and look ten times more professional.",
+      "t2name": "Lene Thomsen",
+      "t2role": "Painting contractor, Copenhagen",
+      "t3quote": "Reminders send themselves. I received 3 payments that week I otherwise would have forgotten to follow up on.",
+      "t3name": "Peter Holm",
+      "t3role": "Carpenter, Aalborg"
     },
     "pricing": {
-      "headline": "Simple, transparent pricing",
-      "sub": "Start free. Upgrade when you're ready.",
-      "perMonth": "kr./month",
-      "free": {
-        "name": "Gratis",
-        "price": "0",
-        "desc": "Try it free",
-        "f1": "1 user",
-        "f2": "10 active jobs",
-        "f3": "Basic invoicing",
-        "cta": "Get started free"
-      },
-      "solo": {
-        "name": "Solo",
-        "price": "149",
-        "desc": "For the solo operator",
-        "f1": "1 user",
-        "f2": "Unlimited jobs",
-        "f3": "PDF quotes & invoices",
-        "cta": "Start Solo"
-      },
-      "hold": {
-        "name": "Hold",
-        "price": "299",
-        "desc": "For small teams",
-        "f1": "Up to 5 users",
-        "f2": "Unlimited jobs",
-        "f3": "Everything in Solo",
-        "cta": "Start Hold"
-      }
+      "label": "Pricing",
+      "headline": "Simple prices. No surprises.",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "save20": "Save 20%",
+      "perMonth": "kr./mo",
+      "billedAnnually": "Billed annually",
+      "recommended": "Recommended",
+      "noBinding": "No commitment · Cancel anytime · Data always exportable",
+      "freeName": "Free",
+      "freeCta": "Create free account",
+      "freeF1": "Up to 10 active jobs",
+      "freeF2": "Invoices & quotes",
+      "freeF3": "Customer directory",
+      "freeF4": "Mobile app",
+      "freeL1": "Unlimited jobs",
+      "freeL2": "PDF branding (your logo)",
+      "freeL3": "Auto-reminders",
+      "freeL4": "Priority support",
+      "soloName": "Solo",
+      "soloCta": "Start Solo",
+      "soloF1": "Unlimited jobs",
+      "soloF2": "Invoices & quotes",
+      "soloF3": "PDF with your logo",
+      "soloF4": "Auto-reminders +8d/+15d",
+      "soloF5": "Materials library",
+      "soloF6": "CVR lookup",
+      "holdName": "Team",
+      "holdCta": "Start Team",
+      "holdF1": "Everything in Solo",
+      "holdF2": "Up to 5 users",
+      "holdF3": "Team dashboard",
+      "holdF4": "Priority support"
+    },
+    "faq": {
+      "label": "FAQ",
+      "headline": "Frequently asked questions",
+      "q0": "Is it safe to store my customer data here?",
+      "a0": "Yes. We use encrypted storage and comply with GDPR. Your data is stored on European servers and is never shared with third parties.",
+      "q1": "Does it require technical expertise?",
+      "a1": "Not at all. Håndværk Pro is built for people who work with their hands — not computers. You'll be up and running in under 5 minutes.",
+      "q2": "What happens to my data if I stop?",
+      "a2": "You can export all your customers, jobs, invoices and quotes as CSV at any time. We never own your data.",
+      "q3": "Do the invoices comply with the Bookkeeping Act?",
+      "a3": "Yes. Our invoices include CVR number, EAN, VAT specification and all fields required under Danish bookkeeping law.",
+      "q4": "Can I use it on my phone at the job site?",
+      "a4": "Yes — that's the primary use case. The app is built mobile-first. Create jobs, take photos and send invoices directly from the site.",
+      "q5": "What's the difference between Free and Solo?",
+      "a5": "Free gives up to 10 active jobs and basic features. Solo removes the limit, adds your own logo on PDF, automatic reminders and materials library.",
+      "q6": "Can I import my existing customers?",
+      "a6": "Yes, you can import customers via CSV file. We're also working on direct import from Billy and e-conomic.",
+      "q7": "What does it cost to stop?",
+      "a7": "Nothing. You only pay for active months. You can cancel at any time, and your account remains active until the end of the period."
+    },
+    "trust": {
+      "gdpr": "GDPR-compliant",
+      "support": "Danish support",
+      "noCard": "No credit card required",
+      "setup": "Set up in 5 min"
+    },
+    "footerCta": {
+      "headline": "Start today.",
+      "sub": "First job free. No commitment.",
+      "cta": "Create free account →"
     },
     "footer": {
-      "tagline": "Built for Danish tradespeople"
+      "tagline": "Built for Danish tradespeople",
+      "copyright": "© 2026 Håndværk Pro",
+      "product": "Product",
+      "company": "Company",
+      "legal": "Legal",
+      "features": "Features",
+      "pricing": "Pricing",
+      "changelog": "Changelog",
+      "about": "About us",
+      "contact": "Contact",
+      "blog": "Blog",
+      "privacy": "Privacy Policy",
+      "cookies": "Cookie Policy",
+      "terms": "Terms"
     }
   },
   "Overview": {
@@ -80,10 +223,20 @@
     "recentActivity": "Recent activity",
     "greeting": "Hey, {name}",
     "greetingSub": "Here's what's happening today.",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "summaryJobsToday": "{count, plural, one {# job today} other {# jobs today}}",
+    "summaryPendingQuotes": "{count, plural, one {# quote awaiting response} other {# quotes awaiting response}}",
+    "summaryQuiet": "All quiet — have a great day.",
     "statsCustomers": "Customers",
     "statsActiveJobs": "Active jobs",
     "statsInProgress": "In progress",
     "statsDone": "Completed",
+    "statOpenQuotes": "Open quotes",
+    "statPendingInvoices": "Outstanding invoices",
+    "financeOutstanding": "Outstanding",
+    "financePaidThisMonth": "Paid this month",
     "jobsByStatus": "Jobs by status",
     "recentJobs": "Recent jobs",
     "viewAll": "View all",
@@ -201,16 +354,30 @@
     "title": "Jobs",
     "pageTitle": "Jobs | Håndværk Pro",
     "newJob": "New job",
-    "searchPlaceholder": "Search by title, customer or number…",
+    "searchPlaceholder": "Search jobs…",
+    "statusFilter": "Status",
+    "clearFilter": "Clear filter",
+    "jobCount": "{count, plural, one {# job} other {# jobs}}",
     "empty": {
       "title": "No jobs yet",
       "description": "Create your first job to get started.",
       "cta": "Create job"
     },
     "emptySearch": {
-      "title": "No results",
-      "description": "No jobs match your search."
+      "title": "No jobs match the filter",
+      "description": "Try changing your filters."
     }
+  },
+  "JobStatus": {
+    "new": "New",
+    "scheduled": "Scheduled",
+    "in_progress": "In progress",
+    "done": "Completed",
+    "invoiced": "Invoiced",
+    "paid": "Paid",
+    "confirmChange": "Change to {label}?",
+    "confirm": "Confirm ↵",
+    "errorUpdate": "Could not update status"
   },
   "JobForm": {
     "newTitle": "New job",
@@ -255,7 +422,22 @@
     "detailsSection": "Details",
     "jobTypeLabel": "Type",
     "notesSection": "Internal notes",
-    "photosSection": "Photos"
+    "photosSection": "Photos",
+    "jobTypeService": "Service",
+    "jobTypeProject": "Project",
+    "jobTypeRecurring": "Recurring",
+    "quickActions": "Quick actions",
+    "newQuote": "New quote",
+    "newInvoice": "New invoice",
+    "quotesSection": "Quotes",
+    "invoicesSection": "Invoices",
+    "noQuotes": "No quotes yet",
+    "noInvoices": "No invoices yet",
+    "notesPlaceholder": "Add notes about the job…",
+    "notesEmpty": "Click to add notes…",
+    "notesSaving": "Saving…",
+    "notesSaved": "Saved ✓",
+    "notesError": "Could not save notes"
   },
   "CustomerForm": {
     "nameLabel": "Name",

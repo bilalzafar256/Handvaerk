@@ -37,33 +37,30 @@ export async function CriticalZone() {
       {overdue.map((item) => (
         <div
           key={item.id}
-          className="rounded-xl border p-4 flex items-center justify-between gap-4"
+          className="rounded-xl border-l-4 p-4 flex items-center justify-between gap-4"
           style={{
-            backgroundColor: "var(--amber-50)",
-            borderColor: "var(--amber-300)",
+            backgroundColor: "var(--status-overdue-bg)",
+            borderLeftColor: "var(--status-overdue-text)",
+            border: "1px solid var(--status-overdue-border)",
+            borderLeft: "4px solid var(--status-overdue-text)",
           }}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "var(--amber-100)" }}
-            >
-              <AlertTriangle className="w-4 h-4" style={{ color: "var(--amber-700)" }} />
-            </div>
+            <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "var(--status-overdue-text)" }} />
             <div className="min-w-0">
               <p
                 className="text-sm font-semibold truncate"
-                style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}
+                style={{ color: "var(--foreground)", fontFamily: "var(--font-body)" }}
               >
                 {item.customer}
               </p>
               <p
                 className="text-xs mt-0.5"
-                style={{ color: "var(--amber-700)", fontFamily: "var(--font-body)" }}
+                style={{ color: "var(--status-overdue-text)", fontFamily: "var(--font-body)" }}
               >
-                <span className="font-mono">{formatDKK(item.amount)}</span>
+                <span style={{ fontFamily: "var(--font-mono)" }}>{formatDKK(item.amount)}</span>
                 {" · "}
-                {item.daysOverdue} days overdue
+                {item.daysOverdue} dage forfalden
               </p>
             </div>
           </div>

@@ -1,12 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Link } from "@/i18n/navigation"
+import { Link, useRouter } from "@/i18n/navigation"
 import { motion } from "motion/react"
-import { ChevronRight, ChevronLeft, Search, Plus, FileText, Calendar, Receipt } from "lucide-react"
+import {
+  ChevronRight, Search, Plus, FileText, Receipt, Edit2, Trash2,
+  Send, Download, BookmarkPlus, Copy, LayoutList, LayoutGrid, Loader2,
+} from "lucide-react"
+import { toast } from "sonner"
 import { formatDKK } from "@/lib/utils/currency"
-import { ViewToggle } from "@/components/shared/view-toggle"
-import { useViewPreference } from "@/hooks/use-view-preference"
+import { deleteQuoteAction, sendQuoteEmailAction, saveQuoteAsTemplateAction } from "@/lib/actions/quotes"
+import { createInvoiceFromQuoteAction } from "@/lib/actions/invoices"
 import type { Quote, QuoteItem } from "@/lib/db/schema/quotes"
 import type { Customer } from "@/lib/db/schema/customers"
 
@@ -20,11 +24,19 @@ const STATUS_CONFIG = {
   expired:  { bg: "--status-invoiced-bg",  text: "--status-invoiced-text",  border: "--status-invoiced-border",  label: "Expired" },
 }
 
+const STATUS_BAR: Record<string, string> = {
+  draft:    "var(--muted-foreground)",
+  sent:     "oklch(0.55 0.15 240)",
+  accepted: "oklch(0.52 0.14 145)",
+  rejected: "var(--status-overdue-text)",
+  expired:  "var(--muted-foreground)",
+}
+
 function QuoteStatusBadge({ status }: { status: string }) {
   const s = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.draft
   return (
     <span
-      className="inline-flex items-center px-2.5 h-6 rounded-[--radius-pill] text-xs font-medium border"
+      className="inline-flex items-center px-2 h-5 rounded-full text-[11px] font-medium border flex-shrink-0"
       style={{ backgroundColor: `var(${s.bg})`, color: `var(${s.text})`, borderColor: `var(${s.border})` }}
     >
       {s.label}
@@ -37,16 +49,114 @@ function calcTotal(items: QuoteItem[]): number {
     const qty    = parseFloat(item.quantity ?? "1")
     const price  = parseFloat(item.unitPrice ?? "0")
     const markup = 1 + parseFloat(item.markupPercent ?? "0") / 100
-    return s + qty * price * markup
+    const gross  = qty * price * markup
+    if (!item.discountType || !item.discountValue) return s + gross
+    const dv = parseFloat(item.discountValue) || 0
+    return s + (item.discountType === "percent" ? gross * (1 - dv / 100) : gross - dv)
   }, 0)
 }
 
 const PER_PAGE = 15
 
+const iconBtn = "w-8 h-8 flex items-center justify-center rounded-lg border bg-[var(--background)] hover:bg-[var(--accent)] transition-colors cursor-pointer disabled:opacity-40 flex-shrink-0"
+const iconBtnStyle = { borderColor: "var(--border)", color: "var(--foreground)" }
+
+function QuoteActions({ quote }: { quote: QuoteWithRelations }) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const status = quote.status ?? "draft"
+  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/en/q/${quote.shareToken}` : ""
+
+  async function handleSend() {
+    setBusy(true)
+    try { await sendQuoteEmailAction(quote.id); toast.success("Quote sent") } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
+    setBusy(false)
+  }
+
+  async function handleInvoice() {
+    setBusy(true)
+    try {
+      const result = await createInvoiceFromQuoteAction(quote.id)
+      if ("existingInvoiceId" in result) {
+        if (confirm("An invoice already exists. View it?")) router.push(`/invoices/${result.existingInvoiceId}`)
+      } else {
+        router.push(`/invoices/${result.id}`)
+      }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
+    setBusy(false)
+  }
+
+  async function handleTemplate() {
+    const name = prompt("Template name:")
+    if (!name) return
+    setBusy(true)
+    try { await saveQuoteAsTemplateAction(quote.id, name); toast.success("Saved as template") } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
+    setBusy(false)
+  }
+
+  async function handleDelete() {
+    setBusy(true)
+    setConfirming(false)
+    try { await deleteQuoteAction(quote.id); router.refresh() } catch { toast.error("Failed to delete") }
+    setBusy(false)
+  }
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {status === "draft" && (
+        <Link href={`/quotes/${quote.id}/edit`} className={iconBtn} style={iconBtnStyle} title="Edit">
+          <Edit2 className="w-3.5 h-3.5" />
+        </Link>
+      )}
+      {(status === "draft" || status === "sent") && (
+        <button onClick={handleSend} disabled={busy} className={iconBtn} style={iconBtnStyle} title={status === "sent" ? "Resend" : "Send"}>
+          <Send className="w-3.5 h-3.5" />
+        </button>
+      )}
+      {status === "accepted" && (
+        <button onClick={handleInvoice} disabled={busy} className={iconBtn} style={iconBtnStyle} title="Create invoice">
+          <Receipt className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <a href={`/api/quotes/${quote.id}/pdf`} download className={iconBtn} style={iconBtnStyle} title="Download PDF">
+        <Download className="w-3.5 h-3.5" />
+      </a>
+      {shareUrl && (
+        <button
+          onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied") }}
+          className={iconBtn} style={iconBtnStyle} title="Copy link"
+        >
+          <Copy className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <button onClick={handleTemplate} disabled={busy} className={iconBtn} style={iconBtnStyle} title="Save as template">
+        <BookmarkPlus className="w-3.5 h-3.5" />
+      </button>
+      {status === "draft" && (
+        confirming ? (
+          <button onClick={handleDelete} disabled={busy}
+            className="h-8 px-2.5 flex items-center gap-1.5 rounded-lg border text-xs font-medium cursor-pointer disabled:opacity-50 flex-shrink-0"
+            style={{ backgroundColor: "var(--error-light)", borderColor: "var(--error)", color: "var(--error)", fontFamily: "var(--font-body)" }}>
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            Confirm
+          </button>
+        ) : (
+          <button onClick={() => setConfirming(true)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-[var(--background)] hover:bg-[var(--error-light)] transition-colors cursor-pointer flex-shrink-0"
+            style={{ borderColor: "var(--border)", color: "var(--error)" }} title="Delete">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )
+      )}
+    </div>
+  )
+}
+
 export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
   const [query, setQuery] = useState("")
   const [page, setPage]   = useState(1)
-  const [view, setView]   = useViewPreference("quotes", "list")
+  const [view, setView]   = useState<"list" | "grid">("list")
 
   const filtered = query.trim()
     ? quotes.filter(q => {
@@ -59,227 +169,185 @@ export function QuoteList({ quotes }: { quotes: QuoteWithRelations[] }) {
   const safePage   = Math.min(page, totalPages)
   const paged      = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE)
 
-  function handleQueryChange(q: string) {
-    setQuery(q)
-    setPage(1)
-  }
-
   return (
     <div>
       {/* Toolbar */}
-      <div className="px-4 pt-4 pb-3 flex items-center gap-2">
+      <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b" style={{ borderColor: "var(--border)" }}>
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
           <input
             type="search"
             value={query}
-            onChange={(e) => handleQueryChange(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
             placeholder="Search quotes…"
-            className="w-full h-11 pl-10 pr-4 rounded-[--radius-sm] border text-sm bg-[--surface] placeholder:text-[--text-tertiary] focus:outline-none focus:border-[--primary] focus:ring-2 focus:ring-[--primary]/20 transition-colors"
-            style={{ fontFamily: "var(--font-body)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+            className="w-full h-8 pl-8 pr-3 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-colors"
+            style={{
+              fontFamily: "var(--font-body)",
+              borderColor: "var(--border)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
+              ["--tw-ring-color" as string]: "oklch(0.720 0.195 58 / 20%)",
+            }}
           />
         </div>
-        <ViewToggle mode={view} onChange={setView} />
+        <div className="flex items-center gap-0.5 rounded-lg border p-0.5 ml-auto flex-shrink-0" style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}>
+          <button
+            onClick={() => setView("list")}
+            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
+            style={{ backgroundColor: view === "list" ? "var(--accent)" : "transparent", color: view === "list" ? "var(--foreground)" : "var(--muted-foreground)" }}
+          >
+            <LayoutList className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setView("grid")}
+            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
+            style={{ backgroundColor: view === "grid" ? "var(--accent)" : "transparent", color: view === "grid" ? "var(--foreground)" : "var(--muted-foreground)" }}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState searching={query.trim().length > 0} />
       ) : (
         <>
-          {view === "list"  && <ListView  quotes={paged} />}
-          {view === "card"  && <CardView  quotes={paged} />}
-          {view === "table" && <TableView quotes={paged} />}
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 pb-24 pt-2">
-              <button
-                onClick={() => setPage(p => p - 1)}
-                disabled={safePage <= 1}
-                className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <p className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                {safePage} / {totalPages}
-              </p>
-              <button
-                onClick={() => setPage(p => p + 1)}
-                disabled={safePage >= totalPages}
-                className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+          {view === "list" && (
+            <div>
+              {paged.map((quote, i) => <QuoteRow key={quote.id} quote={quote} index={i} />)}
             </div>
           )}
+          {view === "grid" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+              {paged.map((quote, i) => <QuoteCard key={quote.id} quote={quote} index={i} />)}
+            </div>
+          )}
+          {totalPages > 1 && <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />}
         </>
       )}
     </div>
   )
 }
 
-/* ── List view ── */
-function ListView({ quotes }: { quotes: QuoteWithRelations[] }) {
+function QuoteRow({ quote, index }: { quote: QuoteWithRelations; index: number }) {
+  const [hovered, setHovered] = useState(false)
+  const status = quote.status ?? "draft"
+  const barColor = STATUS_BAR[status] ?? "var(--muted-foreground)"
+  const subtotal = calcTotal(quote.items)
+
   return (
-    <ul className="px-4 space-y-2 pb-4">
-      {quotes.map((quote, i) => {
-        const subtotal = calcTotal(quote.items)
-        return (
-          <motion.li
-            key={quote.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
-          >
-            <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}>
-              <Link
-                href={`/quotes/${quote.id}`}
-                className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
-                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
-              >
-                <div className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--accent-light)" }}>
-                  <FileText className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                    {quote.quoteNumber}
-                  </p>
-                  <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                    {quote.customer.name}
-                  </p>
-                  {quote.validUntil && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Calendar className="w-3 h-3" style={{ color: "var(--text-tertiary)" }} />
-                      <span className="text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}>
-                        Valid until {new Date(quote.validUntil).toLocaleDateString("da-DK")}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  <QuoteStatusBadge status={quote.status ?? "draft"} />
-                  <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                    {formatDKK(subtotal)}
-                  </span>
-                  <ChevronRight className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
-                </div>
-              </Link>
-            </motion.div>
-          </motion.li>
-        )
-      })}
-    </ul>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.18), ease: [0.16, 1, 0.3, 1] }}
+      className="flex border-b"
+      style={{
+        borderColor: "var(--border)",
+        backgroundColor: hovered ? "var(--accent)" : "transparent",
+        transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="flex-shrink-0 self-stretch" style={{ width: hovered ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
+      <div className="flex-1 min-w-0">
+        <Link href={`/quotes/${quote.id}`} className="flex items-center gap-3 px-4 py-3 min-w-0">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
+              {quote.quoteNumber}
+            </p>
+            <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+              {quote.customer.name}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <QuoteStatusBadge status={status} />
+            <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+              {formatDKK(subtotal)}
+            </span>
+          </div>
+          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
+        </Link>
+        <div className="flex items-center gap-1 px-4 py-2 border-t flex-wrap" style={{ borderColor: "var(--border)" }}>
+          <QuoteActions quote={quote} />
+        </div>
+      </div>
+    </motion.div>
   )
 }
 
-/* ── Card view ── */
-function CardView({ quotes }: { quotes: QuoteWithRelations[] }) {
+function QuoteCard({ quote, index }: { quote: QuoteWithRelations; index: number }) {
+  const [hovered, setHovered] = useState(false)
+  const status = quote.status ?? "draft"
+  const barColor = STATUS_BAR[status] ?? "var(--muted-foreground)"
+  const subtotal = calcTotal(quote.items)
+
   return (
-    <div className="px-4 grid grid-cols-2 gap-3 pb-4">
-      {quotes.map((quote, i) => {
-        const subtotal = calcTotal(quote.items)
-        return (
-          <motion.div
-            key={quote.id}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <Link
-              href={`/quotes/${quote.id}`}
-              className="flex flex-col gap-3 p-4 rounded-[--radius-lg] border h-full transition-colors duration-150"
-              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
-            >
-              <div className="w-10 h-10 rounded-[--radius-sm] flex items-center justify-center" style={{ backgroundColor: "var(--accent-light)" }}>
-                <FileText className="w-5 h-5" style={{ color: "var(--primary)" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                  {quote.quoteNumber}
-                </p>
-                <p className="text-xs truncate mt-0.5" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                  {quote.customer.name}
-                </p>
-              </div>
-              <div className="flex items-center justify-between">
-                <QuoteStatusBadge status={quote.status ?? "draft"} />
-                <span className="text-xs font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                  {formatDKK(subtotal)}
-                </span>
-              </div>
-            </Link>
-          </motion.div>
-        )
-      })}
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div
+        className="flex flex-col rounded-xl border overflow-hidden"
+        style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+      >
+        <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
+        <Link href={`/quotes/${quote.id}`} className="p-3 flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
+              {quote.quoteNumber}
+            </p>
+            <QuoteStatusBadge status={status} />
+          </div>
+          <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+            {quote.customer.name}
+          </p>
+          <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
+            {formatDKK(subtotal)}
+          </p>
+          {quote.validUntil && (
+            <p className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+              Valid until {new Date(quote.validUntil).toLocaleDateString("da-DK")}
+            </p>
+          )}
+        </Link>
+        <div className="flex items-center gap-1 px-3 pb-3 border-t pt-2 flex-wrap" style={{ borderColor: "var(--border)" }}>
+          <QuoteActions quote={quote} />
+        </div>
+      </div>
+    </motion.div>
   )
 }
 
-/* ── Table view ── */
-function TableView({ quotes }: { quotes: QuoteWithRelations[] }) {
+function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
   return (
-    <div className="px-4 pb-4 overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr style={{ borderBottom: "1px solid var(--border)" }}>
-            {["Number", "Customer", "Valid until", "Amount", "Status", ""].map((h, i) => (
-              <th
-                key={i}
-                className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wider first:pl-0"
-                style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {quotes.map((quote) => {
-            const subtotal = calcTotal(quote.items)
-            return (
-              <tr
-                key={quote.id}
-                className="transition-colors duration-100 hover:bg-[--background-subtle]"
-                style={{ borderBottom: "1px solid var(--border)" }}
-              >
-                <td className="py-3 px-3 first:pl-0">
-                  <Link href={`/quotes/${quote.id}`} className="flex items-center gap-2">
-                    <Receipt className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
-                    <span className="font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                      {quote.quoteNumber}
-                    </span>
-                  </Link>
-                </td>
-                <td className="py-3 px-3">
-                  <span className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                    {quote.customer.name}
-                  </span>
-                </td>
-                <td className="py-3 px-3">
-                  <span className="text-xs" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                    {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString("da-DK") : "—"}
-                  </span>
-                </td>
-                <td className="py-3 px-3">
-                  <span className="text-xs font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                    {formatDKK(subtotal)}
-                  </span>
-                </td>
-                <td className="py-3 px-3">
-                  <QuoteStatusBadge status={quote.status ?? "draft"} />
-                </td>
-                <td className="py-3 px-3">
-                  <Link href={`/quotes/${quote.id}`} style={{ color: "var(--text-tertiary)" }}>
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div className="flex items-center justify-center gap-3 py-6">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page <= 1}
+        className="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", backgroundColor: "var(--background)" }}
+        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--accent)"}
+        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--background)"}
+      >
+        <ChevronRight className="w-4 h-4 rotate-180" />
+      </button>
+      <p className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+        {page} / {totalPages}
+      </p>
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page >= totalPages}
+        className="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", backgroundColor: "var(--background)" }}
+        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--accent)"}
+        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--background)"}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
     </div>
   )
 }
@@ -287,28 +355,28 @@ function TableView({ quotes }: { quotes: QuoteWithRelations[] }) {
 function EmptyState({ searching }: { searching: boolean }) {
   if (searching) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-8 gap-3 text-center">
-        <div className="w-14 h-14 rounded-[--radius-xl] flex items-center justify-center" style={{ backgroundColor: "var(--accent-light)" }}>
-          <Search className="w-7 h-7" style={{ color: "var(--primary)" }} />
+      <div className="flex flex-col items-center justify-center py-20 px-8 gap-3 text-center">
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: "var(--accent)" }}>
+          <Search className="w-6 h-6" style={{ color: "var(--muted-foreground)" }} />
         </div>
-        <p className="text-base font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}>No results</p>
-        <p className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>Try a different search term</p>
+        <p className="text-base font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>No results</p>
+        <p className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>Try a different search term</p>
       </div>
     )
   }
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-8 gap-4 text-center">
-      <div className="w-14 h-14 rounded-[--radius-xl] flex items-center justify-center" style={{ backgroundColor: "var(--accent-light)" }}>
-        <FileText className="w-7 h-7" style={{ color: "var(--primary)" }} />
+    <div className="flex flex-col items-center justify-center py-20 px-8 gap-4 text-center">
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: "var(--accent)" }}>
+        <FileText className="w-6 h-6" style={{ color: "var(--muted-foreground)" }} />
       </div>
       <div className="space-y-1">
-        <p className="text-[17px] font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}>No quotes yet</p>
-        <p className="text-sm max-w-[240px]" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>Create your first quote and send it to a customer</p>
+        <p className="text-[17px] font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>No quotes yet</p>
+        <p className="text-sm max-w-[240px]" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>Create your first quote and send it to a customer</p>
       </div>
       <Link
         href="/quotes/new"
-        className="flex items-center gap-2 h-11 px-5 rounded-[--radius-md] text-sm font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer"
-        style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)", boxShadow: "var(--shadow-accent)" }}
+        className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium bg-[var(--primary)] hover:bg-[var(--amber-600)] transition-colors active:scale-[0.98] cursor-pointer"
+        style={{ color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
       >
         <Plus className="w-4 h-4" />
         New quote
