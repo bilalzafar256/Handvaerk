@@ -61,8 +61,8 @@ export default async function JobDetailPage({ params }: Props) {
           <div className="flex items-center gap-2">
             <Link
               href={`/jobs/${id}/edit`}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border transition-colors hover:bg-[--accent]"
-              style={{ borderColor: "var(--border)", color: "var(--foreground)", fontFamily: "var(--font-body)", backgroundColor: "var(--background)" }}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border bg-[var(--background)] hover:bg-[var(--accent)] transition-colors"
+              style={{ borderColor: "var(--border)", color: "var(--foreground)", fontFamily: "var(--font-body)" }}
             >
               <Pencil className="w-3.5 h-3.5" />
               {t("editButton")}
@@ -72,10 +72,10 @@ export default async function JobDetailPage({ params }: Props) {
         }
       />
 
-      <div className="pt-12 pb-16">
-        <div className="px-4 lg:px-6 max-w-6xl mx-auto">
+      <div className="pt-12 pb-8 overflow-x-hidden">
+        <div className="px-4 lg:px-6 max-w-5xl mx-auto">
           {/* Back */}
-          <div className="pt-4 pb-3">
+          <div className="pt-3 pb-2">
             <Link
               href="/jobs"
               className="inline-flex items-center gap-1 text-sm transition-opacity hover:opacity-70"
@@ -87,7 +87,7 @@ export default async function JobDetailPage({ params }: Props) {
           </div>
 
           {/* Job header */}
-          <div className="pb-4 border-b" style={{ borderColor: "var(--border)" }}>
+          <div className="pb-3 border-b" style={{ borderColor: "var(--border)" }}>
             <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
               {job.title}
             </h1>
@@ -97,14 +97,14 @@ export default async function JobDetailPage({ params }: Props) {
           </div>
 
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 pt-5">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 pt-4">
 
             {/* ── Left column: content ── */}
             <div className="space-y-4 min-w-0">
 
               {/* Description */}
               {job.description && (
-                <Card title={t("descriptionSection")}>
+                <Card title={t("descriptionSection")} accent="blue">
                   <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
                     {job.description}
                   </p>
@@ -113,7 +113,7 @@ export default async function JobDetailPage({ params }: Props) {
 
               {/* Dates */}
               {(job.scheduledDate || job.endDate || job.completedDate) && (
-                <Card title={t("datesSection")}>
+                <Card title={t("datesSection")} accent="amber">
                   <div className="space-y-3">
                     {job.scheduledDate && (
                       <DateRow icon={Calendar} label={t("scheduledDateLabel")}
@@ -135,12 +135,12 @@ export default async function JobDetailPage({ params }: Props) {
               )}
 
               {/* Notes — inline editable */}
-              <Card title={t("notesSection")}>
+              <Card title={t("notesSection")} accent="purple">
                 <InlineNotes jobId={job.id} initialNotes={job.notes} />
               </Card>
 
               {/* Photos */}
-              <Card title={t("photosSection")}>
+              <Card title={t("photosSection")} accent="green">
                 <PhotoUpload jobId={job.id} photos={job.photos} />
               </Card>
             </div>
@@ -164,7 +164,7 @@ export default async function JobDetailPage({ params }: Props) {
                 <div className="p-2 flex flex-col gap-1">
                   <Link
                     href={`/quotes/new?jobId=${job.id}&customerId=${job.customer.id}`}
-                    className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-sm font-medium hover:bg-[var(--accent)] transition-colors"
                     style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
                   >
                     <FileText className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
@@ -173,7 +173,7 @@ export default async function JobDetailPage({ params }: Props) {
                   </Link>
                   <Link
                     href={`/invoices/new?jobId=${job.id}&customerId=${job.customer.id}`}
-                    className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-sm font-medium hover:bg-[var(--accent)] transition-colors"
                     style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
                   >
                     <Receipt className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
@@ -186,8 +186,8 @@ export default async function JobDetailPage({ params }: Props) {
               {/* Customer card */}
               <Link
                 href={`/customers/${job.customer.id}`}
-                className="flex items-center gap-3 rounded-xl border p-3 transition-colors group"
-                style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+                className="flex items-center gap-3 rounded-xl border p-3 bg-[var(--card)] hover:bg-[var(--accent)] transition-colors group"
+                style={{ borderColor: "var(--border)" }}
               >
                 <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[15px] font-bold"
                   style={{ backgroundColor: "var(--amber-500)", color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-display)" }}>
@@ -249,11 +249,19 @@ export default async function JobDetailPage({ params }: Props) {
 
 /* ── Sub-components ── */
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+const CARD_ACCENTS: Record<string, string> = {
+  blue:   "oklch(0.55 0.15 240)",
+  amber:  "var(--amber-500)",
+  purple: "oklch(0.55 0.12 290)",
+  green:  "oklch(0.52 0.14 145)",
+}
+
+function Card({ title, children, accent = "blue" }: { title: string; children: React.ReactNode; accent?: keyof typeof CARD_ACCENTS }) {
   return (
     <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-      <div className="px-4 py-2.5 border-b" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
-        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+      <div className="px-4 py-2.5 border-b flex items-center gap-2.5" style={{ borderColor: "var(--border)" }}>
+        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CARD_ACCENTS[accent] }} />
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           {title}
         </p>
       </div>
@@ -307,9 +315,8 @@ function RelatedDocs({
             <Link
               key={item.id}
               href={item.href}
-              className="flex items-center gap-2 px-3 py-2.5 transition-colors"
+              className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--accent)] transition-colors"
               style={{ fontFamily: "var(--font-body)" }}
-              onMouseEnter={undefined}
             >
               <DocIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
               <div className="flex-1 min-w-0">

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Link } from "@/i18n/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import {
-  Search, Plus, Briefcase, ChevronRight, ChevronDown, Check, X,
+  Search, Plus, Briefcase, ChevronRight, ChevronDown, Check, X, LayoutList, LayoutGrid,
 } from "lucide-react"
 import { StatusBadge } from "@/components/jobs/status-changer"
 import { useTranslations } from "next-intl"
@@ -34,6 +34,7 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
   const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([])
   const [statusOpen, setStatusOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
 
   const filtered = jobs.filter((j) => {
     const q = query.toLowerCase().trim()
@@ -107,7 +108,7 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
                 <motion.div
-                  className="absolute top-full left-0 mt-1 z-20 w-48 rounded-xl border overflow-hidden"
+                  className="absolute top-full right-0 mt-1 z-20 w-48 rounded-xl border overflow-hidden"
                   style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-lg)" }}
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -157,6 +158,24 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
           </AnimatePresence>
         </div>
 
+        {/* View toggle */}
+        <div className="flex items-center gap-0.5 rounded-lg border p-0.5 ml-auto flex-shrink-0" style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}>
+          <button
+            onClick={() => setViewMode("list")}
+            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
+            style={{ backgroundColor: viewMode === "list" ? "var(--accent)" : "transparent", color: viewMode === "list" ? "var(--foreground)" : "var(--muted-foreground)" }}
+          >
+            <LayoutList className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setViewMode("grid")}
+            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
+            style={{ backgroundColor: viewMode === "grid" ? "var(--accent)" : "transparent", color: viewMode === "grid" ? "var(--foreground)" : "var(--muted-foreground)" }}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         {/* Active filter pills */}
         {selectedStatuses.map(s => (
           <button
@@ -182,11 +201,19 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
         <EmptyState hasFilters={query.trim().length > 0 || activeFilters} />
       ) : (
         <>
-          <div>
-            {paged.map((job, i) => (
-              <JobRow key={job.id} job={job} index={i} />
-            ))}
-          </div>
+          {viewMode === "list" ? (
+            <div>
+              {paged.map((job, i) => (
+                <JobRow key={job.id} job={job} index={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+              {paged.map((job, i) => (
+                <JobCard key={job.id} job={job} index={i} />
+              ))}
+            </div>
+          )}
           {totalPages > 1 && <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />}
         </>
       )}
@@ -201,14 +228,14 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.14, delay: Math.min(index * 0.02, 0.14) }}
+      transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.18), ease: [0.16, 1, 0.3, 1] }}
       className="flex border-b"
       style={{
         borderColor: "var(--border)",
         backgroundColor: hovered ? "var(--accent)" : "transparent",
-        transition: "background-color 80ms ease",
+        transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -219,7 +246,7 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
         style={{
           width: hovered ? 4 : 3,
           backgroundColor: barColor,
-          transition: "width 80ms ease",
+          transition: "width 120ms cubic-bezier(0.4,0,0.2,1)",
         }}
       />
 
@@ -251,6 +278,50 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
           )}
           <StatusBadge status={status} />
           <ChevronRight className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+        </div>
+      </Link>
+    </motion.div>
+  )
+}
+
+function JobCard({ job, index }: { job: JobWithCustomer; index: number }) {
+  const tStatus = useTranslations("JobStatus")
+  const status = job.status as Status
+  const barColor = STATUS_COLORS[status] ?? "var(--muted-foreground)"
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+    >
+      <Link
+        href={`/jobs/${job.id}`}
+        className="flex flex-col rounded-xl border overflow-hidden hover:bg-[var(--accent)] transition-colors"
+        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+      >
+        {/* Status bar top */}
+        <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
+        <div className="p-3 flex flex-col gap-2">
+          <div>
+            <p className="text-sm font-semibold leading-snug" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+              {job.title}
+            </p>
+            <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+              {job.customer.name}
+            </p>
+          </div>
+          <div className="flex items-center justify-between">
+            <StatusBadge status={status} />
+            <p className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+              #{job.jobNumber}
+            </p>
+          </div>
+          {job.scheduledDate && (
+            <p className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+              {new Date(job.scheduledDate).toLocaleDateString("da-DK", { day: "numeric", month: "short", year: "numeric" })}
+            </p>
+          )}
         </div>
       </Link>
     </motion.div>

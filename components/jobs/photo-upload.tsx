@@ -91,7 +91,7 @@ export function PhotoUpload({ jobId, photos: initialPhotos }: PhotoUploadProps) 
       />
       <label
         htmlFor={`photo-upload-${jobId}`}
-        className="flex items-center gap-2 h-11 px-4 rounded-[--radius-sm] border text-sm font-medium transition-colors duration-150 cursor-pointer w-fit bg-[--surface] hover:bg-[--background-subtle]"
+        className="flex items-center gap-2 h-11 px-4 rounded-[--radius-sm] border text-sm font-medium transition-colors duration-150 cursor-pointer w-fit bg-[var(--card)] hover:bg-[var(--accent)]"
         style={{
           borderColor: "var(--border)",
           color: "var(--text-secondary)",
