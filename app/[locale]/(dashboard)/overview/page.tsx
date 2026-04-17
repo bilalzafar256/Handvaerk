@@ -57,7 +57,7 @@ export default async function OverviewPage({ params }: Props) {
     <>
       <Topbar title={t("title")} />
 
-      <main className="pt-16 pb-24 md:pb-10 px-4 md:px-6 max-w-5xl mx-auto space-y-5">
+      <main className="pt-4 pb-24 md:pb-10 px-4 lg:px-6 space-y-5">
 
         {/* Greeting */}
         <div className="pt-4">
@@ -280,7 +280,7 @@ function RecentJobRow({ job }: { job: Job & { customer: Customer } }) {
     <li>
       <Link
         href={`/jobs/${job.id}`}
-        className="flex items-center gap-3 px-4 py-3 transition-colors duration-120 hover:bg-[--muted]"
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--accent)]"
       >
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate"

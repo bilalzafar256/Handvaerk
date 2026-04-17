@@ -27,12 +27,11 @@ interface QuoteFormProps {
 
 const inputCls = `
   w-full h-12 px-4
-  bg-[--surface] text-[--text-primary]
-  border border-[--border]
-  rounded-[--radius-sm]
-  placeholder:text-[--text-tertiary]
-  focus:outline-none focus:border-[--primary]
-  focus:ring-2 focus:ring-[--primary]/20
+  bg-[var(--background)] text-[var(--foreground)]
+  border border-[var(--border)]
+  rounded-lg
+  placeholder:opacity-50
+  focus:outline-none focus:ring-2
   transition-colors duration-150 text-base
 `
 const labelCls = "block text-sm font-medium mb-1.5"
@@ -190,15 +189,15 @@ export function QuoteForm({
           {showTemplates && (
             <div
               className="absolute z-20 left-0 right-0 mt-1 rounded-[--radius-md] border shadow-lg overflow-hidden"
-              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
+              style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
             >
               {templates.map(t => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => applyTemplate(t)}
-                  className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 transition-colors duration-100 hover:bg-[--background-subtle] cursor-pointer"
-                  style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+                  className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 transition-colors duration-100 hover:bg-[var(--accent)] cursor-pointer"
+                  style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
                 >
                   <LayoutTemplate className="w-4 h-4 flex-shrink-0" style={{ color: "var(--primary)" }} />
                   {t.name}
@@ -211,14 +210,14 @@ export function QuoteForm({
 
       {/* Customer */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Customer <span style={{ color: "var(--error)" }}>*</span>
         </label>
         <select
           value={customerId}
           onChange={(e) => setCustomerId(e.target.value)}
           className={inputCls}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           <option value="">Select customer…</option>
           {customers.map(c => (
@@ -230,14 +229,14 @@ export function QuoteForm({
       {/* Link to job (optional) */}
       {jobs && jobs.length > 0 && (
         <div>
-          <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+          <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
             Link to job (optional)
           </label>
           <select
             value={jobId}
             onChange={(e) => setJobId(e.target.value)}
             className={inputCls}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             <option value="">No linked job</option>
             {jobs.map(j => (
@@ -249,7 +248,7 @@ export function QuoteForm({
 
       {/* Valid until */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Valid until
         </label>
         <input
@@ -262,7 +261,7 @@ export function QuoteForm({
 
       {/* Discount */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Discount
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -270,7 +269,7 @@ export function QuoteForm({
             value={discountType}
             onChange={(e) => setDiscountType(e.target.value as "percent" | "fixed" | "")}
             className={inputCls}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             <option value="">No discount</option>
             <option value="percent">Percentage (%)</option>
@@ -293,7 +292,7 @@ export function QuoteForm({
 
       {/* Line items */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Line items
         </label>
         <LineItemBuilder
@@ -305,7 +304,7 @@ export function QuoteForm({
 
       {/* Notes to customer */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Notes (shown to customer)
         </label>
         <textarea
@@ -319,7 +318,7 @@ export function QuoteForm({
 
       {/* Internal notes */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
+        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           Internal notes
         </label>
         <textarea

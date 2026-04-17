@@ -2,6 +2,33 @@
 
 import { useUIStore } from "@/stores/ui-store"
 import { Menu } from "lucide-react"
+import { useParams } from "next/navigation"
+import { useRouter, usePathname } from "@/i18n/navigation"
+
+function LangToggle() {
+  const params = useParams()
+  const locale = (params?.locale as string) ?? "en"
+  const router = useRouter()
+  const pathname = usePathname()
+  const other = locale === "en" ? "da" : "en"
+
+  return (
+    <button
+      onClick={() => router.replace(pathname, { locale: other })}
+      className="h-7 px-2.5 rounded-md text-xs font-semibold tracking-wider transition-colors duration-120 cursor-pointer"
+      style={{
+        fontFamily: "var(--font-body)",
+        color: "var(--muted-foreground)",
+        border: "1px solid var(--border)",
+        background: "transparent",
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = "var(--foreground)"}
+      onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = "var(--muted-foreground)"}
+    >
+      {other.toUpperCase()}
+    </button>
+  )
+}
 
 interface TopbarProps {
   title: string
@@ -40,7 +67,10 @@ export function Topbar({ title, action }: TopbarProps) {
         {title}
       </h1>
 
-      {action}
+      <div className="flex items-center gap-2">
+        <LangToggle />
+        {action}
+      </div>
     </header>
   )
 }

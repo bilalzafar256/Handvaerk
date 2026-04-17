@@ -41,19 +41,15 @@ export default async function JobsPage({ params }: Props) {
         action={
           <Link
             href="/jobs/new"
-            className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer hover:opacity-90"
-            style={{
-              backgroundColor: "var(--primary)",
-              color: "var(--primary-foreground)",
-              fontFamily: "var(--font-body)",
-            }}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium bg-[var(--primary)] hover:bg-[var(--amber-600)] transition-colors active:scale-[0.98] cursor-pointer"
+            style={{ color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
           >
             <Plus className="w-4 h-4" />
             {t("newJob")}
           </Link>
         }
       />
-      <div className="pt-14">
+      <div>
         <JobList jobs={jobs} />
       </div>
     </>

@@ -38,14 +38,14 @@ export default async function QuoteDetailPage({ params }: Props) {
         action={
           <Link
             href="/quotes"
-            className="flex items-center gap-1 text-sm h-9 px-2 rounded-[--radius-sm] transition-colors duration-150 cursor-pointer"
-            style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
+            className="flex items-center gap-1 text-sm h-8 px-2 rounded-lg transition-colors hover:bg-[var(--accent)] cursor-pointer"
+            style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
           >
             <ChevronLeft className="w-4 h-4" />
           </Link>
         }
       />
-      <div className="pt-14">
+      <div>
         <QuoteDetail quote={quote} user={user} linkedInvoice={linkedInvoice ?? null} />
       </div>
     </>

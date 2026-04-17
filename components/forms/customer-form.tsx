@@ -70,13 +70,12 @@ export function CustomerForm({ customer }: CustomerFormProps) {
 
   const inputClass = `
     w-full h-12 px-4
-    bg-[--surface] text-[--text-primary]
+    bg-[var(--background)] text-[var(--foreground)]
     font-body text-base
-    border border-[--border]
-    rounded-[--radius-sm]
-    placeholder:text-[--text-tertiary]
-    focus:outline-none focus:border-[--accent]
-    focus:ring-2 focus:ring-[--accent]/20
+    border border-[var(--border)]
+    rounded-lg
+    placeholder:opacity-50
+    focus:outline-none focus:ring-2
     transition-colors duration-150
   `
 
@@ -88,7 +87,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("nameLabel")} <span style={{ color: "var(--error)" }}>*</span>
         </label>
@@ -108,7 +107,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("phoneLabel")}
         </label>
@@ -124,7 +123,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("emailLabel")}
         </label>
@@ -145,7 +144,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("addressLabel")}
         </label>
@@ -160,7 +159,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
         <div>
           <label
             className={labelClass}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             {t("zipLabel")}
           </label>
@@ -173,7 +172,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
         <div>
           <label
             className={labelClass}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             {t("cityLabel")}
           </label>
@@ -189,7 +188,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("cvrLabel")}
         </label>
@@ -205,7 +204,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("notesLabel")}
         </label>

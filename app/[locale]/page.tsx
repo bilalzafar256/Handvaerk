@@ -1,9 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, Fragment } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
+import { useTranslations } from "next-intl"
+import { useParams } from "next/navigation"
+import { useRouter as useI18nRouter, usePathname as useI18nPathname } from "@/i18n/navigation"
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
@@ -57,12 +60,18 @@ function useScrolled(threshold = 80) {
   return scrolled
 }
 
+// ── Smooth scroll helper ───────────────────────────────────────────────────────
+
+function scrollTo(id: string) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+}
+
 // ── Shared ────────────────────────────────────────────────────────────────────
 
 const S = {
   obsidian: "var(--slate-900)",
   surface800: "var(--slate-800)",
-  surface700: "var(--slate-700)",
   s50: "var(--slate-50)",
   s100: "var(--slate-100)",
   s200: "var(--slate-200)",
@@ -74,10 +83,11 @@ const S = {
   amber: "var(--amber-500)",
   amber400: "var(--amber-400)",
   amber600: "var(--amber-600)",
-  amber50: "var(--amber-50)",
   border: "oklch(1 0 0 / 9%)",
   borderStrong: "oklch(1 0 0 / 16%)",
 }
+
+const MAX_W = 1120
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -95,10 +105,57 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+// ── Language Switcher ──────────────────────────────────────────────────────────
+
+function LanguageSwitcher() {
+  const params = useParams()
+  const locale = (params?.locale as string) ?? "en"
+  const i18nRouter = useI18nRouter()
+  const i18nPathname = useI18nPathname()
+  const other = locale === "en" ? "da" : "en"
+
+  return (
+    <button
+      onClick={() => i18nRouter.replace(i18nPathname, { locale: other })}
+      style={{
+        fontFamily: "var(--font-body)",
+        fontSize: 13,
+        fontWeight: 600,
+        color: S.s400,
+        background: "transparent",
+        border: `1px solid ${S.border}`,
+        borderRadius: 6,
+        padding: "4px 10px",
+        cursor: "pointer",
+        letterSpacing: "0.06em",
+        transition: "color 120ms, border-color 120ms",
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLButtonElement).style.color = S.s50
+        ;(e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLButtonElement).style.color = S.s400
+        ;(e.currentTarget as HTMLButtonElement).style.borderColor = S.border
+      }}
+    >
+      {other.toUpperCase()}
+    </button>
+  )
+}
+
 // ── Nav ───────────────────────────────────────────────────────────────────────
 
 function Nav() {
   const scrolled = useScrolled(60)
+  const t = useTranslations("Landing")
+
+  const navLinks = [
+    [t("nav.features"), "features"],
+    [t("nav.pricing"), "pricing"],
+    [t("nav.faq"), "faq"],
+  ]
+
   return (
     <nav
       style={{
@@ -130,36 +187,46 @@ function Nav() {
           </span>
         </Link>
         <div className="hidden md:flex" style={{ gap: 4 }}>
-          {[["Funktioner", "#features"], ["Priser", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
-            <a key={href} href={href} style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, textDecoration: "none", padding: "6px 12px", borderRadius: 6, transition: "color 120ms ease" }}
-              onMouseEnter={e => (e.currentTarget.style.color = S.s50)}
-              onMouseLeave={e => (e.currentTarget.style.color = S.s400)}>
+          {navLinks.map(([label, id]) => (
+            <button
+              key={id}
+              onClick={() => scrollTo(id)}
+              style={{
+                fontFamily: "var(--font-body)", fontSize: 14, color: S.s400,
+                background: "transparent", border: "none", cursor: "pointer",
+                padding: "6px 12px", borderRadius: 6, transition: "color 120ms ease",
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = S.s50}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = S.s400}
+            >
               {label}
-            </a>
+            </button>
           ))}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Link href="/sign-in" style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, textDecoration: "none", padding: "6px 14px", borderRadius: 6, transition: "color 120ms ease" }}
+        <LanguageSwitcher />
+        <Link
+          href="/sign-in"
+          style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, textDecoration: "none", padding: "6px 14px", borderRadius: 6, transition: "color 120ms ease" }}
           onMouseEnter={e => (e.currentTarget.style.color = S.s50)}
-          onMouseLeave={e => (e.currentTarget.style.color = S.s400)}>
-          Log ind
+          onMouseLeave={e => (e.currentTarget.style.color = S.s400)}
+        >
+          {t("nav.signIn")}
         </Link>
-        <Link href="/sign-up" style={{
-          fontFamily: "var(--font-body)",
-          fontSize: 14,
-          fontWeight: 500,
-          color: "oklch(0.10 0.005 52)",
-          backgroundColor: S.amber,
-          padding: "7px 16px",
-          borderRadius: 8,
-          textDecoration: "none",
-          transition: "box-shadow 120ms, transform 120ms",
-          boxShadow: "var(--shadow-accent)",
-        }}
+        <Link
+          href="/sign-up"
+          style={{
+            fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500,
+            color: "oklch(0.10 0.005 52)", backgroundColor: S.amber,
+            padding: "7px 16px", borderRadius: 8, textDecoration: "none",
+            transition: "box-shadow 120ms, transform 120ms",
+            boxShadow: "var(--shadow-accent)",
+          }}
           onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 20px oklch(0.720 0.195 58 / 0.50)" }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-accent)" }}>
-          Prøv gratis
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-accent)" }}
+        >
+          {t("nav.tryFree")}
         </Link>
       </div>
     </nav>
@@ -168,20 +235,13 @@ function Nav() {
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
-const HERO_WORDS = ["Spar", "3", "timer", "om", "ugen."]
-const HERO_WORDS2 = ["Fokusér", "på", "håndværket."]
-
 function FloatingCard({ text, icon, delay }: { text: string; icon: string; delay: number }) {
   const { ref, inView } = useInView(0.01)
   return (
     <div ref={ref} style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "8px 14px",
-      borderRadius: 10,
-      background: "oklch(1 0 0 / 6%)",
-      border: `1px solid ${S.border}`,
+      display: "inline-flex", alignItems: "center", gap: 8,
+      padding: "8px 14px", borderRadius: 10,
+      background: "oklch(1 0 0 / 6%)", border: `1px solid ${S.border}`,
       backdropFilter: "blur(8px)",
       opacity: inView ? 1 : 0,
       transform: inView ? "translateY(0)" : "translateY(12px)",
@@ -198,10 +258,14 @@ function Hero() {
   const heroRef = useRef<HTMLElement>(null)
   const [wordsVisible, setWordsVisible] = useState(false)
   const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const heroWords1 = t("hero.line1").split(" ")
+  const heroWords2 = t("hero.line2").split(" ")
 
   useEffect(() => {
-    const t = setTimeout(() => setWordsVisible(true), 100)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setWordsVisible(true), 100)
+    return () => clearTimeout(timer)
   }, [])
 
   function onMouseMove(e: React.MouseEvent) {
@@ -218,16 +282,11 @@ function Hero() {
       ref={heroRef}
       onMouseMove={onMouseMove}
       style={{
-        position: "relative",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: S.obsidian,
-        overflow: "hidden",
-        paddingTop: 60,
+        position: "relative", minHeight: "100vh",
+        display: "flex", flexDirection: "column",
+        backgroundColor: S.obsidian, overflow: "hidden", paddingTop: 60,
       }}
     >
-      {/* Background grid */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         backgroundImage: `linear-gradient(${S.border} 1px, transparent 1px), linear-gradient(90deg, ${S.border} 1px, transparent 1px)`,
@@ -236,26 +295,20 @@ function Hero() {
         maskImage: "radial-gradient(ellipse 80% 80% at center, black 20%, transparent 80%)",
         opacity: 0.5,
       }} />
-
-      {/* Cursor spotlight */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         background: "radial-gradient(600px circle at var(--sx, 50%) var(--sy, 40%), oklch(0.720 0.195 58 / 6%), transparent 65%)",
       }} />
-
-      {/* Ambient floor glow */}
       <div aria-hidden style={{
         position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", pointerEvents: "none",
         background: "radial-gradient(ellipse 100% 60% at 50% 100%, oklch(0.720 0.195 58 / 5%), transparent)",
       }} />
 
-      {/* Content */}
       <div style={{
         position: "relative", zIndex: 10, flex: 1,
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: "80px 24px 60px", textAlign: "center",
       }}>
-        {/* Eyebrow badge */}
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 8,
           padding: "5px 14px", borderRadius: 999, marginBottom: 32,
@@ -267,57 +320,46 @@ function Hero() {
         }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: S.amber, display: "inline-block", animation: "pulse 2s ease infinite" }} />
           <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.amber, fontWeight: 500 }}>
-            Ny: Fakturaer sendes automatisk
+            {t("hero.eyebrow")}
           </span>
         </div>
 
-        {/* Animated headline */}
         <h1 style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 800,
-          lineHeight: 1.04,
-          letterSpacing: "-0.025em",
-          marginBottom: 8,
+          fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1.04,
+          letterSpacing: "-0.025em", marginBottom: 8,
           fontSize: "clamp(44px, 8vw, 88px)",
         }}>
-          {HERO_WORDS.map((word, i) => (
-            <span key={word} style={{
-              display: "inline-block",
-              color: S.s50,
-              marginRight: "0.22em",
+          {heroWords1.map((word, i) => (
+            <span key={`w1-${i}`} style={{
+              display: "inline-block", color: S.s50, marginRight: "0.22em",
               opacity: wordsVisible ? 1 : 0,
               transform: wordsVisible ? "translateY(0)" : "translateY(14px)",
               transition: prefersReduced ? "none" : `opacity 400ms ${i * 60}ms var(--ease-spring), transform 400ms ${i * 60}ms var(--ease-spring)`,
             }}>{word}</span>
           ))}
           <br />
-          {HERO_WORDS2.map((word, i) => (
-            <span key={word} style={{
+          {heroWords2.map((word, i) => (
+            <span key={`w2-${i}`} style={{
               display: "inline-block",
               color: i === 1 ? S.amber400 : S.s50,
               marginRight: "0.22em",
               opacity: wordsVisible ? 1 : 0,
               transform: wordsVisible ? "translateY(0)" : "translateY(14px)",
-              transition: prefersReduced ? "none" : `opacity 400ms ${(HERO_WORDS.length + i) * 60 + 80}ms var(--ease-spring), transform 400ms ${(HERO_WORDS.length + i) * 60 + 80}ms var(--ease-spring)`,
+              transition: prefersReduced ? "none" : `opacity 400ms ${(heroWords1.length + i) * 60 + 80}ms var(--ease-spring), transform 400ms ${(heroWords1.length + i) * 60 + 80}ms var(--ease-spring)`,
             }}>{word}</span>
           ))}
         </h1>
 
         <p style={{
-          fontFamily: "var(--font-body)",
-          fontSize: "clamp(17px, 2.2vw, 21px)",
-          color: S.s400,
-          maxWidth: 520,
-          lineHeight: 1.55,
-          marginBottom: 40,
+          fontFamily: "var(--font-body)", fontSize: "clamp(17px, 2.2vw, 21px)",
+          color: S.s400, maxWidth: 520, lineHeight: 1.55, marginBottom: 40,
           opacity: wordsVisible ? 1 : 0,
           transform: wordsVisible ? "translateY(0)" : "translateY(8px)",
           transition: prefersReduced ? "none" : "opacity 400ms 500ms ease, transform 400ms 500ms ease",
         }}>
-          Tilbud, jobs, fakturaer og kunder — alt samlet. Op og køre på 5 minutter.
+          {t("hero.sub")}
         </p>
 
-        {/* CTAs */}
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginBottom: 12 }}>
           <Link href="/sign-up" style={{
             display: "inline-flex", alignItems: "center", gap: 8,
@@ -330,30 +372,29 @@ function Hero() {
             onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 8px 24px oklch(0.720 0.195 58 / 0.55)" }}
             onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-accent)" }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "oklch(0.10 0.005 52)", opacity: 0.6, animation: "pulse 2s ease infinite" }} />
-            Start gratis i dag
+            {t("hero.ctaPrimary")}
           </Link>
-          <a href="#features" style={{
+          <button onClick={() => scrollTo("features")} style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             height: 50, padding: "0 28px", borderRadius: 10,
             fontFamily: "var(--font-body)", fontSize: 16, color: S.s300,
             backgroundColor: "transparent", border: `1px solid ${S.borderStrong}`,
-            textDecoration: "none", transition: "border-color 120ms, color 120ms",
+            cursor: "pointer", transition: "border-color 120ms, color 120ms",
           }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = S.s400; (e.currentTarget as HTMLAnchorElement).style.color = S.s50 }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = S.borderStrong; (e.currentTarget as HTMLAnchorElement).style.color = S.s300 }}>
-            Se hvordan det virker ↓
-          </a>
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = S.s400; (e.currentTarget as HTMLButtonElement).style.color = S.s50 }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong; (e.currentTarget as HTMLButtonElement).style.color = S.s300 }}>
+            {t("hero.ctaSecondary")}
+          </button>
         </div>
 
         <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600, letterSpacing: "0.02em" }}>
-          Ingen kreditkort · Gratis at starte · Dansk support
+          {t("hero.noCredit")}
         </p>
 
-        {/* Floating proof cards */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginTop: 56 }}>
-          <FloatingCard text="Tilbud T-0042 accepteret — Erik Hansen" icon="✓" delay={0} />
-          <FloatingCard text="Faktura betalt · 12.800 kr" icon="💰" delay={150} />
-          <FloatingCard text="Job afsluttet · Frederiksberg" icon="📍" delay={300} />
+          <FloatingCard text={t("hero.proof1")} icon="✓" delay={0} />
+          <FloatingCard text={t("hero.proof2")} icon="💰" delay={150} />
+          <FloatingCard text={t("hero.proof3")} icon="📍" delay={300} />
         </div>
       </div>
 
@@ -362,6 +403,8 @@ function Hero() {
         @keyframes float0 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-6px)} }
         @keyframes float150 { 0%,100%{transform:translateY(-3px)} 50%{transform:translateY(-8px)} }
         @keyframes float300 { 0%,100%{transform:translateY(-1px)} 50%{transform:translateY(-7px)} }
+        @keyframes progress { from{width:0%} to{width:100%} }
+        html { scroll-behavior: smooth; }
       `}</style>
     </section>
   )
@@ -386,21 +429,15 @@ function StatItem({ target, suffix, label }: { target: number; suffix: string; l
 }
 
 function StatsBar() {
+  const t = useTranslations("Landing")
   return (
-    <div style={{
-      backgroundColor: S.obsidian,
-      borderTop: `1px solid ${S.border}`,
-      borderBottom: `1px solid ${S.border}`,
-    }}>
-      <div style={{
-        maxWidth: 900, margin: "0 auto", padding: "32px 24px",
-        display: "flex", alignItems: "center", gap: 0,
-      }}>
-        <StatItem target={2400} suffix="+" label="Håndværkere" />
+    <div style={{ backgroundColor: S.obsidian, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "32px 24px", display: "flex", alignItems: "center", gap: 0 }}>
+        <StatItem target={2400} suffix="+" label={t("stats.tradespeople")} />
         <div style={{ width: 1, height: 40, background: S.border, flexShrink: 0 }} />
-        <StatItem target={48000} suffix="+" label="Fakturaer sendt" />
+        <StatItem target={48000} suffix="+" label={t("stats.invoicesSent")} />
         <div style={{ width: 1, height: 40, background: S.border, flexShrink: 0 }} />
-        <StatItem target={1200} suffix=" mio. kr" label="Faktureret via platformen" />
+        <StatItem target={1200} suffix=" mio. kr" label={t("stats.invoicedVia")} />
       </div>
     </div>
   )
@@ -408,82 +445,74 @@ function StatsBar() {
 
 // ── Problem Section ───────────────────────────────────────────────────────────
 
-const PROBLEMS = [
-  {
-    n: "01",
-    title: "Excel-arket fejler igen",
-    body: "Du taber spor af materialer, glemmer timer og sender fakturaer med forkerte totaler. Det koster dig penge.",
-    icon: (
-      <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={3} y={3} width={18} height={18} rx={2} />
-        <path d="M3 9h18M9 21V9" />
-      </svg>
-    ),
-  },
-  {
-    n: "02",
-    title: "Fakturaen ankom for sent",
-    body: "Du sendte fakturaen 3 uger efter jobbet. Kunden har glemt det. Rykkerne føles akavet. Pengene venter.",
-    icon: (
-      <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx={12} cy={12} r={10} />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-    ),
-  },
-  {
-    n: "03",
-    title: "Du mister overblikket",
-    body: "3 apps, 2 ringbind, 1 rodet indbakke. Du ved ikke hvad der mangler betaling, hvem du skyldte et tilbud, eller hvornår jobbet slutter.",
-    icon: (
-      <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-        <line x1={3} y1={12} x2={21} y2={12} />
-        <line x1={3} y1={6} x2={21} y2={6} />
-        <line x1={3} y1={18} x2={15} y2={18} />
-      </svg>
-    ),
-  },
-]
-
 function ProblemSection() {
   const { ref, inView } = useInView(0.1)
   const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const problems = [
+    {
+      n: "01",
+      title: t("problem.p1Title"),
+      body: t("problem.p1Body"),
+      icon: (
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <rect x={3} y={3} width={18} height={18} rx={2} /><path d="M3 9h18M9 21V9" />
+        </svg>
+      ),
+    },
+    {
+      n: "02",
+      title: t("problem.p2Title"),
+      body: t("problem.p2Body"),
+      icon: (
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx={12} cy={12} r={10} /><polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+    },
+    {
+      n: "03",
+      title: t("problem.p3Title"),
+      body: t("problem.p3Body"),
+      icon: (
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <line x1={3} y1={12} x2={21} y2={12} /><line x1={3} y1={6} x2={21} y2={6} /><line x1={3} y1={18} x2={15} y2={18} />
+        </svg>
+      ),
+    },
+  ]
 
   return (
-    <section style={{ backgroundColor: S.obsidian, padding: "100px 24px" }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <SectionLabel>Lyder det bekendt?</SectionLabel>
+    <section style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("problem.label")}</SectionLabel>
         <h2 style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "clamp(28px, 4vw, 44px)",
-          fontWeight: 800,
-          color: S.s50,
-          letterSpacing: "-0.02em",
-          maxWidth: 560,
-          lineHeight: 1.1,
-          marginBottom: 56,
+          fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)",
+          fontWeight: 800, color: S.s50, letterSpacing: "-0.02em",
+          maxWidth: 560, lineHeight: 1.1, marginBottom: 56,
         }}>
-          Papirbunkerne er ikke værd at slæbe med.
+          {t("problem.headline")}
         </h2>
 
         <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {PROBLEMS.map((p, i) => (
+          {problems.map((p, i) => (
             <div key={p.n} style={{
-              backgroundColor: S.surface800,
-              border: `1px solid ${S.border}`,
-              borderRadius: 12,
-              padding: 24,
-              position: "relative",
+              backgroundColor: "var(--slate-800)",
+              border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, position: "relative",
               opacity: inView ? 1 : 0,
               transform: inView ? "translateY(0)" : "translateY(16px)",
               transition: prefersReduced ? "none" : `opacity 300ms ${i * 80}ms var(--ease-smooth), transform 300ms ${i * 80}ms var(--ease-smooth)`,
             }}
               onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-md)" }}
               onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = "none" }}>
-              <span style={{
-                position: "absolute", top: 16, right: 16,
-                fontFamily: "var(--font-mono)", fontSize: 11, color: S.s600,
-              }}>{p.n}</span>
+              <span style={{ position: "absolute", top: 16, right: 16, fontFamily: "var(--font-mono)", fontSize: 11, color: S.s600 }}>{p.n}</span>
               <div style={{ color: S.s500, marginBottom: 14 }}>{p.icon}</div>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600, color: S.s200, marginBottom: 8 }}>{p.title}</p>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500, lineHeight: 1.6 }}>{p.body}</p>
@@ -495,7 +524,7 @@ function ProblemSection() {
   )
 }
 
-// ── Feature Sections ──────────────────────────────────────────────────────────
+// ── Feature Mockups ───────────────────────────────────────────────────────────
 
 function JobsMockup() {
   const ITEMS = [
@@ -505,20 +534,13 @@ function JobsMockup() {
     { status: "Betalt", color: "var(--status-paid-text)", bg: "var(--status-paid-bg)", title: "VVS-eftersyn kontor", customer: "Lasse Møller", amount: "1.800 kr" },
   ]
   return (
-    <div style={{
-      backgroundColor: S.surface800,
-      border: `1px solid ${S.borderStrong}`,
-      borderRadius: 14,
-      overflow: "hidden",
-      boxShadow: "var(--shadow-lg)",
-      maxWidth: 360,
-    }}>
+    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 360 }}>
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: S.s50 }}>Jobs</span>
         <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, background: S.amber, color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-body)", fontWeight: 600 }}>+ Nyt job</span>
       </div>
       {ITEMS.map((item, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 0, borderBottom: i < ITEMS.length - 1 ? `1px solid ${S.border}` : "none", transition: "background 80ms" }}
+        <div key={item.title} style={{ display: "flex", alignItems: "center", gap: 0, borderBottom: i < ITEMS.length - 1 ? `1px solid ${S.border}` : "none", transition: "background 80ms" }}
           onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 3%)"}
           onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = ""}>
           <div style={{ width: 3, alignSelf: "stretch", backgroundColor: item.color, flexShrink: 0 }} />
@@ -537,15 +559,13 @@ function JobsMockup() {
 }
 
 function QuoteMockup() {
+  const rows = [
+    ["Arbejdsløn", "4 timer", "2.600 kr"],
+    ["Materialer", "Kobberrør Ø22", "480 kr"],
+    ["Kørsel", "20 km", "120 kr"],
+  ]
   return (
-    <div style={{
-      backgroundColor: S.surface800,
-      border: `1px solid ${S.borderStrong}`,
-      borderRadius: 14,
-      overflow: "hidden",
-      boxShadow: "var(--shadow-lg)",
-      maxWidth: 440,
-    }}>
+    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 440 }}>
       <div style={{ padding: "12px 16px 10px", borderBottom: `1px solid ${S.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.s500 }}>TILBUD</span>
@@ -556,16 +576,12 @@ function QuoteMockup() {
       <div style={{ padding: "12px 16px" }}>
         <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500, marginBottom: 10 }}>Til: Morten Andersen, Aarhus</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "6px 12px", alignItems: "baseline" }}>
-          {[
-            ["Arbejdsløn", "4 timer", "2.600 kr"],
-            ["Materialer", "Kobberrør Ø22", "480 kr"],
-            ["Kørsel", "20 km", "120 kr"],
-          ].map(([label, detail, amount], i) => (
-            <>
-              <span key={`l${i}`} style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s200 }}>{label}</span>
-              <span key={`d${i}`} style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500, textAlign: "right" }}>{detail}</span>
-              <span key={`a${i}`} style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.s200, textAlign: "right" }}>{amount}</span>
-            </>
+          {rows.map(([label, detail, amount], i) => (
+            <Fragment key={i}>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s200 }}>{label}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500, textAlign: "right" }}>{detail}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.s200, textAlign: "right" }}>{amount}</span>
+            </Fragment>
           ))}
         </div>
         <div style={{ borderTop: `1px solid ${S.border}`, marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -584,14 +600,9 @@ function QuoteMockup() {
 function InvoiceMockup() {
   return (
     <div style={{
-      backgroundColor: "oklch(1 0 0)",
-      border: `1px solid oklch(0.88 0.007 255)`,
-      borderRadius: 14,
-      overflow: "hidden",
-      boxShadow: "0 20px 40px oklch(0 0 0 / 0.5)",
-      maxWidth: 400,
-      transform: "rotate(-1deg)",
-      transition: "transform 200ms var(--ease-smooth)",
+      backgroundColor: "oklch(1 0 0)", border: `1px solid oklch(0.88 0.007 255)`,
+      borderRadius: 14, overflow: "hidden", boxShadow: "0 20px 40px oklch(0 0 0 / 0.5)",
+      maxWidth: 400, transform: "rotate(-1deg)", transition: "transform 200ms var(--ease-smooth)",
     }}
       onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = "rotate(0deg)"}
       onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = "rotate(-1deg)"}>
@@ -617,8 +628,8 @@ function InvoiceMockup() {
             <p style={{ fontSize: 13, color: "oklch(0.12 0.005 255)", fontFamily: "var(--font-mono)" }}>30. april 2026</p>
           </div>
         </div>
-        {[["Arbejdsløn", "2.600 kr"], ["Materialer", "480 kr"], ["Kørsel", "120 kr"]].map(([l, v], i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid oklch(0.94 0.004 255)" }}>
+        {[["Arbejdsløn", "2.600 kr"], ["Materialer", "480 kr"], ["Kørsel", "120 kr"]].map(([l, v]) => (
+          <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid oklch(0.94 0.004 255)" }}>
             <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "oklch(0.35 0.009 255)" }}>{l}</span>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "oklch(0.20 0.007 255)" }}>{v}</span>
           </div>
@@ -634,7 +645,7 @@ function InvoiceMockup() {
 
 function CustomerMockup() {
   return (
-    <div style={{ backgroundColor: S.surface800, border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 380 }}>
+    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 380 }}>
       <div style={{ padding: "16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--amber-500)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>EH</span>
@@ -658,7 +669,7 @@ function CustomerMockup() {
           { title: "Badeværelse renovation", status: "Betalt", c: "var(--status-paid-text)", bg: "var(--status-paid-bg)" },
           { title: "El-installation køkken", status: "Faktureret", c: "var(--status-invoiced-text)", bg: "var(--status-invoiced-bg)" },
         ].map((job, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i === 0 ? `1px solid ${S.border}` : "none" }}>
+          <div key={job.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i === 0 ? `1px solid ${S.border}` : "none" }}>
             <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s300 }}>{job.title}</span>
             <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: job.bg, color: job.c, fontFamily: "var(--font-body)", fontWeight: 500 }}>{job.status}</span>
           </div>
@@ -667,6 +678,8 @@ function CustomerMockup() {
     </div>
   )
 }
+
+// ── Feature Sections ──────────────────────────────────────────────────────────
 
 function FeatureRow({
   label, headline, bullets, mockup, reverse, id,
@@ -687,25 +700,26 @@ function FeatureRow({
   }
 
   return (
-    <section id={id} style={{ backgroundColor: S.obsidian, padding: "80px 24px", borderTop: `1px solid ${S.border}` }}>
-      <div
-        ref={ref}
-        style={{
-          maxWidth: 1120, margin: "0 auto",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 64,
-          alignItems: "center",
-        }}
-      >
+    <section id={id} style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div ref={ref} style={{
+        maxWidth: MAX_W, margin: "0 auto", width: "100%",
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: 64, alignItems: "center",
+      }}>
         <div style={{ order: reverse ? 2 : 1, ...textAnim }}>
           <SectionLabel>{label}</SectionLabel>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: 24 }}>
             {headline}
           </h2>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-            {bullets.map((b, i) => (
-              <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            {bullets.map((b) => (
+              <li key={b} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
                   <path d="M5 13l4 4L19 7" />
                 </svg>
@@ -724,64 +738,60 @@ function FeatureRow({
 
 // ── Demo Section ──────────────────────────────────────────────────────────────
 
-const STAGES = [
-  { label: "Opkald", desc: "Kunden ringer. Du opretter jobbet på 20 sekunder.", color: "var(--status-new-bg)", textColor: "var(--status-new-text)" },
-  { label: "Tilbud sendt", desc: "Tilbud genereret og sendt direkte fra din telefon.", color: "var(--status-scheduled-bg)", textColor: "var(--status-scheduled-text)" },
-  { label: "Accepteret", desc: "Kunden godkender med ét klik. Dig notificeres.", color: "var(--status-invoiced-bg)", textColor: "var(--status-invoiced-text)" },
-  { label: "Job udføres", desc: "Photos, noter og materialeforbrug logges på stedet.", color: "var(--status-progress-bg)", textColor: "var(--status-progress-text)" },
-  { label: "Faktura sendt", desc: "Faktura genereres automatisk fra jobbet. Sendes med PDF.", color: "var(--status-done-bg)", textColor: "var(--status-done-text)" },
-  { label: "Betalt", desc: "Betaling modtaget. Bogen lukket. Videre til næste.", color: "var(--status-paid-bg)", textColor: "var(--status-paid-text)" },
-]
-
 function DemoSection() {
   const [active, setActive] = useState(0)
   const { ref, inView } = useInView(0.2)
+  const t = useTranslations("Landing")
+
+  const stages = [0, 1, 2, 3, 4, 5].map(i => ({
+    label: t(`demo.s${i}label` as Parameters<typeof t>[0]),
+    desc: t(`demo.s${i}desc` as Parameters<typeof t>[0]),
+    color: ["var(--status-new-bg)", "var(--status-scheduled-bg)", "var(--status-invoiced-bg)", "var(--status-progress-bg)", "var(--status-done-bg)", "var(--status-paid-bg)"][i],
+    textColor: ["var(--status-new-text)", "var(--status-scheduled-text)", "var(--status-invoiced-text)", "var(--status-progress-text)", "var(--status-done-text)", "var(--status-paid-text)"][i],
+  }))
 
   useEffect(() => {
     if (!inView) return
-    const t = setInterval(() => setActive(a => (a + 1) % STAGES.length), 3000)
-    return () => clearInterval(t)
-  }, [inView])
+    const timer = setInterval(() => setActive(a => (a + 1) % stages.length), 3000)
+    return () => clearInterval(timer)
+  }, [inView, stages.length])
 
-  const stage = STAGES[active]
+  const stage = stages[active]
 
   return (
-    <section id="how" style={{ backgroundColor: S.surface800, padding: "100px 24px", borderTop: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: 960, margin: "0 auto" }}>
+    <section id="how" style={{
+      backgroundColor: "var(--slate-800)",
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <SectionLabel>Se det i praksis</SectionLabel>
+          <SectionLabel>{t("demo.label")}</SectionLabel>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em" }}>
-            Fra opkald til betaling.
+            {t("demo.headline")}
           </h2>
         </div>
 
-        {/* Stepper */}
         <div ref={ref} style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 40 }}>
-          {STAGES.map((s, i) => (
-            <button
-              key={i}
-              onClick={() => setActive(i)}
-              style={{
-                padding: "6px 14px", borderRadius: 999, cursor: "pointer",
-                fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
-                backgroundColor: active === i ? s.color : "transparent",
-                color: active === i ? s.textColor : S.s500,
-                border: active === i ? `1px solid transparent` : `1px solid ${S.border}`,
-                transition: "all 180ms var(--ease-snap)",
-              }}>
+          {stages.map((s, i) => (
+            <button key={i} onClick={() => setActive(i)} style={{
+              padding: "6px 14px", borderRadius: 999, cursor: "pointer",
+              fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
+              backgroundColor: active === i ? s.color : "transparent",
+              color: active === i ? s.textColor : S.s500,
+              border: active === i ? `1px solid transparent` : `1px solid ${S.border}`,
+              transition: "all 180ms var(--ease-snap)",
+            }}>
               {s.label}
             </button>
           ))}
         </div>
 
-        {/* Content panel */}
         <div style={{
-          backgroundColor: S.obsidian,
-          border: `1px solid ${S.border}`,
-          borderRadius: 16,
-          padding: "40px 48px",
-          textAlign: "center",
-          minHeight: 120,
+          backgroundColor: S.obsidian, border: `1px solid ${S.border}`,
+          borderRadius: 16, padding: "40px 48px", textAlign: "center", minHeight: 120,
           transition: "all 180ms var(--ease-snap)",
         }}>
           <span style={{
@@ -790,54 +800,56 @@ function DemoSection() {
             background: stage.color, color: stage.textColor,
             fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
           }}>
-            {active + 1} / {STAGES.length} — {stage.label}
+            {active + 1} / {stages.length} — {stage.label}
           </span>
           <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 2.5vw, 20px)", color: S.s300, lineHeight: 1.5 }}>
             {stage.desc}
           </p>
         </div>
 
-        {/* Progress bar */}
         <div style={{ height: 2, background: S.border, borderRadius: 999, marginTop: 16, overflow: "hidden" }}>
-          <div key={active} style={{
-            height: "100%", background: S.amber, borderRadius: 999,
-            animation: "progress 3s linear forwards",
-          }} />
+          <div key={active} style={{ height: "100%", background: S.amber, borderRadius: 999, animation: "progress 3s linear forwards" }} />
         </div>
       </div>
-      <style>{`@keyframes progress { from{width:0%} to{width:100%} }`}</style>
     </section>
   )
 }
 
 // ── Who It's For ──────────────────────────────────────────────────────────────
 
-const TRADES = [
-  { name: "Elektriker", icon: <path d="M13 2L4.5 13.5H11L9 22l11-13.5H14z" strokeWidth={1.75} /> },
-  { name: "VVS", icon: <><rect x="5" y="13" width="8" height="8" rx="1.5" /><rect x="16" y="5" width="6" height="6" rx="1.5" /><path d="M13 17H15a3 3 0 003-3V8" /></> },
-  { name: "Tømrer", icon: <><rect x="3" y="11" width="16" height="8" rx="1.5" /><path d="M19 13l5-3v8l-5-3" /><line x1="7" y1="19" x2="6" y2="23" /><line x1="14" y1="19" x2="14" y2="23" /></> },
-  { name: "Maler", icon: <><rect x="5" y="5" width="14" height="8" rx="1.5" /><rect x="8" y="13" width="8" height="2" rx="1" /><line x1="12" y1="15" x2="12" y2="22" /><rect x="5" y="22" width="14" height="2" rx="1" /></> },
-  { name: "Murer", icon: <><rect x="4" y="6" width="7" height="5" rx="1" /><rect x="13" y="6" width="7" height="5" rx="1" /><rect x="9" y="12" width="7" height="5" rx="1" /><rect x="4" y="18" width="7" height="4" rx="1" /><rect x="13" y="18" width="7" height="4" rx="1" /></> },
-  { name: "Smed", icon: <><path d="M14.5 4.5L9.5 9.5M20 9.5l-3-3" /><path d="M4.5 19.5l8-8" /><circle cx="17" cy="7" r="3" /></> },
-  { name: "Gulvlægger", icon: <><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" /></> },
-  { name: "Tagdækker", icon: <><path d="M3 18L12 6l9 12" /><path d="M7 18h10" /><path d="M10 18v-5h4v5" /></> },
-]
-
 function WhoSection() {
   const { ref, inView } = useInView(0.15)
   const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const trades = [
+    { key: "t1", icon: <path d="M13 2L4.5 13.5H11L9 22l11-13.5H14z" strokeWidth={1.75} /> },
+    { key: "t2", icon: <><rect x="5" y="13" width="8" height="8" rx="1.5" /><rect x="16" y="5" width="6" height="6" rx="1.5" /><path d="M13 17H15a3 3 0 003-3V8" /></> },
+    { key: "t3", icon: <><rect x="3" y="11" width="16" height="8" rx="1.5" /><path d="M19 13l5-3v8l-5-3" /><line x1="7" y1="19" x2="6" y2="23" /><line x1="14" y1="19" x2="14" y2="23" /></> },
+    { key: "t4", icon: <><rect x="5" y="5" width="14" height="8" rx="1.5" /><rect x="8" y="13" width="8" height="2" rx="1" /><line x1="12" y1="15" x2="12" y2="22" /><rect x="5" y="22" width="14" height="2" rx="1" /></> },
+    { key: "t5", icon: <><rect x="4" y="6" width="7" height="5" rx="1" /><rect x="13" y="6" width="7" height="5" rx="1" /><rect x="9" y="12" width="7" height="5" rx="1" /><rect x="4" y="18" width="7" height="4" rx="1" /><rect x="13" y="18" width="7" height="4" rx="1" /></> },
+    { key: "t6", icon: <><path d="M14.5 4.5L9.5 9.5M20 9.5l-3-3" /><path d="M4.5 19.5l8-8" /><circle cx="17" cy="7" r="3" /></> },
+    { key: "t7", icon: <><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" /></> },
+    { key: "t8", icon: <><path d="M3 18L12 6l9 12" /><path d="M7 18h10" /><path d="M10 18v-5h4v5" /></> },
+  ]
 
   return (
-    <section style={{ backgroundColor: S.obsidian, padding: "100px 24px", borderTop: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto", textAlign: "center" }}>
-        <SectionLabel>Hvem er det for</SectionLabel>
+    <section style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%", textAlign: "center" }}>
+        <SectionLabel>{t("who.label")}</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 48 }}>
-          Bygget til dem der bygger Danmark.
+          {t("who.headline")}
         </h2>
 
         <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, maxWidth: 720, margin: "0 auto 64px", justifyItems: "center" }}>
-          {TRADES.map((trade, i) => (
-            <div key={trade.name} style={{
+          {trades.map((trade, i) => (
+            <div key={trade.key} style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 8, cursor: "pointer",
               color: S.s500,
               opacity: inView ? 1 : 0,
@@ -849,18 +861,19 @@ function WhoSection() {
               <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                 {trade.icon}
               </svg>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>{trade.name}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                {t(`who.${trade.key}` as Parameters<typeof t>[0])}
+              </span>
             </div>
           ))}
         </div>
 
-        {/* Testimonial */}
         <div style={{ maxWidth: 540, margin: "0 auto", position: "relative", padding: "0 20px" }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: 80, fontWeight: 800, color: S.amber, opacity: 0.2, lineHeight: 0.8, display: "block", marginBottom: -20 }}>"</span>
           <p style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.5vw, 22px)", fontStyle: "italic", color: S.s300, lineHeight: 1.55, marginBottom: 20 }}>
-            "Jeg brugte søndagsaftener på fakturaer. Nu tager det mig ti minutter på fredag fra jobstedet."
+            "{t("who.quote")}"
           </p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>— Mikkel R., Elektriker, Aarhus</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>{t("who.quoteAuthor")}</p>
         </div>
       </div>
     </section>
@@ -872,22 +885,30 @@ function WhoSection() {
 function ComparisonTable() {
   const { ref, inView } = useInView(0.1)
   const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
   const rows = [
-    ["Mobilvenlig", true, false, "Delvist", false],
-    ["Jobstyring", true, false, false, false],
-    ["Auto-rykkere", true, false, true, false],
-    ["CVR-opslag", true, false, false, false],
-    ["Bygget til håndværkere", true, false, false, false],
-    ["Pris/md", "Fra 0 kr", "0 kr", "Fra 149 kr", "0 kr"],
+    [t("comparison.row0"), true, false, "Delvist", false],
+    [t("comparison.row1"), true, false, false, false],
+    [t("comparison.row2"), true, false, true, false],
+    [t("comparison.row3"), true, false, false, false],
+    [t("comparison.row4"), true, false, false, false],
+    [t("comparison.row5"), t("comparison.col1price"), t("comparison.col2price"), t("comparison.col3price"), t("comparison.col4price")],
   ]
-  const cols = ["Funktion", "Håndværk Pro", "Excel/Word", "Billy / e-conomic", "Pen & papir"]
+  const cols = [" ", "Håndværk Pro", "Excel/Word", "Billy / e-conomic", "Pen & papir"]
 
   return (
-    <section style={{ backgroundColor: S.surface800, padding: "100px 24px", borderTop: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: 880, margin: "0 auto" }}>
-        <SectionLabel>Sammenligning</SectionLabel>
+    <section style={{
+      backgroundColor: "var(--slate-800)",
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("comparison.label")}</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 40 }}>
-          Hvorfor ikke bare Excel?
+          {t("comparison.headline")}
         </h2>
 
         <div ref={ref} style={{
@@ -901,13 +922,9 @@ function ComparisonTable() {
               <tr>
                 {cols.map((col, i) => (
                   <th key={col} style={{
-                    padding: "10px 16px",
-                    textAlign: i === 0 ? "left" : "center",
-                    fontFamily: "var(--font-body)",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
+                    padding: "10px 16px", textAlign: i === 0 ? "left" : "center",
+                    fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
+                    textTransform: "uppercase", letterSpacing: "0.06em",
                     color: i === 1 ? S.amber : S.s500,
                     borderBottom: `1px solid ${i === 1 ? S.amber : S.border}`,
                     borderTop: i === 1 ? `2px solid ${S.amber}` : "none",
@@ -924,11 +941,9 @@ function ComparisonTable() {
                 <tr key={ri} style={{ borderBottom: `1px solid ${S.border}` }}>
                   {row.map((cell, ci) => (
                     <td key={ci} style={{
-                      padding: "11px 16px",
-                      textAlign: ci === 0 ? "left" : "center",
+                      padding: "11px 16px", textAlign: ci === 0 ? "left" : "center",
                       fontFamily: ci === 0 ? "var(--font-body)" : (cell === true || cell === false) ? "inherit" : "var(--font-mono)",
-                      fontSize: 13,
-                      color: ci === 0 ? S.s300 : S.s400,
+                      fontSize: 13, color: ci === 0 ? S.s300 : S.s400,
                       backgroundColor: ci === 1 ? "oklch(0.720 0.195 58 / 4%)" : "transparent",
                     }}>
                       {cell === true ? (
@@ -954,31 +969,35 @@ function ComparisonTable() {
 
 // ── Testimonials ──────────────────────────────────────────────────────────────
 
-const TESTIMONIALS = [
-  { initials: "MK", name: "Mads Kristiansen", role: "VVS-montør, Odense", quote: "Jeg sendte min første faktura fra jobstedet. Kunden betalte samme dag. Aldrig gjort det hurtigere." },
-  { initials: "LT", name: "Lene Thomsen", role: "Malermester, København", quote: "Tilbud tog en time i Word. Nu er de færdige på 5 minutter og ser ti gange mere professionelle ud." },
-  { initials: "PH", name: "Peter Holm", role: "Tømrer, Aalborg", quote: "Rykkerne sender sig selv. Jeg har fået 3 betaling­er ind den uge jeg ellers ville have glemt at følge op." },
-]
-
 function TestimonialsSection() {
   const { ref, inView } = useInView(0.1)
   const prefersReduced = usePrefersReduced()
+  const t = useTranslations("Landing")
+
+  const testimonials = [
+    { initials: "MK", name: t("testimonials.t1name"), role: t("testimonials.t1role"), quote: t("testimonials.t1quote") },
+    { initials: "LT", name: t("testimonials.t2name"), role: t("testimonials.t2role"), quote: t("testimonials.t2quote") },
+    { initials: "PH", name: t("testimonials.t3name"), role: t("testimonials.t3role"), quote: t("testimonials.t3quote") },
+  ]
 
   return (
-    <section style={{ backgroundColor: S.obsidian, padding: "100px 24px", borderTop: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <SectionLabel>Udtalelser</SectionLabel>
+    <section style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("testimonials.label")}</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 48 }}>
-          Hvad håndværkere siger.
+          {t("testimonials.headline")}
         </h2>
         <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {TESTIMONIALS.map((t, i) => (
-            <div key={i} style={{
-              backgroundColor: S.surface800,
-              border: `1px solid ${S.border}`,
-              borderRadius: 14,
-              padding: 28,
-              position: "relative",
+          {testimonials.map((t_, i) => (
+            <div key={t_.name} style={{
+              backgroundColor: "var(--slate-800)", border: `1px solid ${S.border}`,
+              borderRadius: 14, padding: 28, position: "relative",
               opacity: inView ? 1 : 0,
               transform: inView ? "translateY(0)" : "translateY(16px)",
               transition: prefersReduced ? "none" : `opacity 280ms ${i * 80}ms var(--ease-smooth), transform 280ms ${i * 80}ms var(--ease-smooth)`,
@@ -990,15 +1009,15 @@ function TestimonialsSection() {
                 ))}
               </div>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, lineHeight: 1.65, marginBottom: 20, fontStyle: "italic" }}>
-                "{t.quote}"
+                "{t_.quote}"
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 36, height: 36, borderRadius: "50%", background: S.amber, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>{t.initials}</span>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>{t_.initials}</span>
                 </div>
                 <div>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: S.s100 }}>{t.name}</p>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500 }}>{t.role}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: S.s100 }}>{t_.name}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500 }}>{t_.role}</p>
                 </div>
               </div>
             </div>
@@ -1011,75 +1030,72 @@ function TestimonialsSection() {
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 
-const PLANS = [
-  {
-    name: "Gratis",
-    monthly: "0",
-    annual: "0",
-    badge: null,
-    featured: false,
-    features: ["Op til 10 aktive jobs", "Fakturaer & tilbud", "Kundekartotek", "Mobil-app"],
-    locked: ["Ubegrænsede jobs", "PDF-branding (dit logo)", "Auto-rykkere", "Prioriteret support"],
-    cta: "Opret gratis konto",
-    href: "/sign-up",
-  },
-  {
-    name: "Solo",
-    monthly: "149",
-    annual: "119",
-    badge: "Anbefalet",
-    featured: true,
-    features: ["Ubegrænsede jobs", "Fakturaer & tilbud", "PDF med dit logo", "Auto-rykkere +8d/+15d", "Materialebibliotek", "CVR-opslag"],
-    locked: [],
-    cta: "Start Solo",
-    href: "/sign-up",
-  },
-  {
-    name: "Hold",
-    monthly: "299",
-    annual: "239",
-    badge: null,
-    featured: false,
-    features: ["Alt i Solo", "Op til 5 brugere", "Team-dashboard", "Prioriteret support"],
-    locked: [],
-    cta: "Start Hold",
-    href: "/sign-up",
-  },
-]
-
 function PricingSection() {
   const [annual, setAnnual] = useState(true)
+  const t = useTranslations("Landing")
+
+  const plans = [
+    {
+      name: t("pricing.freeName"),
+      monthly: "0", annual: "0",
+      badge: null, featured: false,
+      features: [t("pricing.freeF1"), t("pricing.freeF2"), t("pricing.freeF3"), t("pricing.freeF4")],
+      locked: [t("pricing.freeL1"), t("pricing.freeL2"), t("pricing.freeL3"), t("pricing.freeL4")],
+      cta: t("pricing.freeCta"), href: "/sign-up",
+    },
+    {
+      name: t("pricing.soloName"),
+      monthly: "149", annual: "119",
+      badge: t("pricing.recommended"), featured: true,
+      features: [t("pricing.soloF1"), t("pricing.soloF2"), t("pricing.soloF3"), t("pricing.soloF4"), t("pricing.soloF5"), t("pricing.soloF6")],
+      locked: [],
+      cta: t("pricing.soloCta"), href: "/sign-up",
+    },
+    {
+      name: t("pricing.holdName"),
+      monthly: "299", annual: "239",
+      badge: null, featured: false,
+      features: [t("pricing.holdF1"), t("pricing.holdF2"), t("pricing.holdF3"), t("pricing.holdF4")],
+      locked: [],
+      cta: t("pricing.holdCta"), href: "/sign-up",
+    },
+  ]
+
   return (
-    <section id="pricing" style={{ backgroundColor: S.surface800, padding: "100px 24px", borderTop: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+    <section id="pricing" style={{
+      backgroundColor: "var(--slate-800)",
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <SectionLabel>Priser</SectionLabel>
+          <SectionLabel>{t("pricing.label")}</SectionLabel>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 8 }}>
-            Enkle priser. Ingen overraskelser.
+            {t("pricing.headline")}
           </h2>
-          {/* Toggle */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginTop: 20, padding: "4px", borderRadius: 10, background: "oklch(1 0 0 / 5%)", border: `1px solid ${S.border}` }}>
-            {[["Månedlig", false], ["Årlig", true]].map(([label, val]) => (
-              <button key={label as string} onClick={() => setAnnual(val as boolean)} style={{
+            {[{ label: t("pricing.monthly"), val: false }, { label: t("pricing.annual"), val: true }].map(({ label, val }) => (
+              <button key={String(val)} onClick={() => setAnnual(val)} style={{
                 padding: "6px 16px", borderRadius: 7, border: "none", cursor: "pointer",
                 fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
                 backgroundColor: annual === val ? S.amber : "transparent",
                 color: annual === val ? "oklch(0.10 0.005 52)" : S.s400,
                 transition: "all 150ms var(--ease-snap)",
               }}>
-                {label}{val ? <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.8 }}>Spar 20%</span> : ""}
+                {label}{val ? <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.8 }}>{t("pricing.save20")}</span> : ""}
               </button>
             ))}
           </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <div key={plan.name} style={{
               backgroundColor: S.obsidian,
               border: plan.featured ? `1px solid ${S.amber}` : `1px solid ${S.border}`,
-              borderRadius: 16,
-              overflow: "hidden",
+              borderRadius: 16, overflow: "hidden",
               display: "flex", flexDirection: "column",
               boxShadow: plan.featured ? `0 0 48px oklch(0.720 0.195 58 / 18%)` : "none",
               position: "relative",
@@ -1099,21 +1115,21 @@ function PricingSection() {
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 700, color: S.s50, lineHeight: 1 }}>
                     {annual ? plan.annual : plan.monthly}
                   </span>
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>kr./md</span>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>{t("pricing.perMonth")}</span>
                 </div>
-                {annual && plan.featured && <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.amber, marginBottom: 16 }}>Faktureres årligt</p>}
+                {annual && plan.featured && <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.amber, marginBottom: 16 }}>{t("pricing.billedAnnually")}</p>}
                 <div style={{ height: 1, background: S.border, margin: "20px 0" }} />
                 <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
-                  {plan.features.map((f, i) => (
-                    <li key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  {plan.features.map((f) => (
+                    <li key={f} style={{ display: "flex", alignItems: "center", gap: 9 }}>
                       <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <path d="M5 13l4 4L19 7" />
                       </svg>
                       <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s300 }}>{f}</span>
                     </li>
                   ))}
-                  {plan.locked.map((f, i) => (
-                    <li key={i} style={{ display: "flex", alignItems: "center", gap: 9, opacity: 0.35 }}>
+                  {plan.locked.map((f) => (
+                    <li key={f} style={{ display: "flex", alignItems: "center", gap: 9, opacity: 0.35 }}>
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.s600} strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
@@ -1141,7 +1157,7 @@ function PricingSection() {
           ))}
         </div>
         <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s600, textAlign: "center", marginTop: 24 }}>
-          Ingen binding · Annullér når som helst · Data eksporteres altid
+          {t("pricing.noBinding")}
         </p>
       </div>
     </section>
@@ -1150,36 +1166,35 @@ function PricingSection() {
 
 // ── FAQ ───────────────────────────────────────────────────────────────────────
 
-const FAQS = [
-  { q: "Er det sikkert at gemme mine kundedata her?", a: "Ja. Vi benytter krypteret lagring og følger GDPR-reglerne. Dine data opbevares på europæiske servere og deles aldrig med tredjeparter." },
-  { q: "Kræver det teknisk indsigt?", a: "Slet ikke. Håndværk Pro er bygget til folk der arbejder med hænderne — ikke computere. Du er kørende på under 5 minutter." },
-  { q: "Hvad sker der med mine data hvis jeg stopper?", a: "Du kan til enhver tid eksportere alle dine kunder, jobs, fakturaer og tilbud som CSV. Vi ejer aldrig dine data." },
-  { q: "Overholder fakturaerne bogføringsloven?", a: "Ja. Vores fakturaer inkluderer CVR-nummer, EAN, moms-specifikation og alle de felter der kræves i henhold til dansk bogføringslov." },
-  { q: "Kan jeg bruge det på min telefon på jobstedet?", a: "Ja — det er det primære use-case. Appen er bygget mobil-first. Opret job, tag fotos og send fakturaer direkte fra stedet." },
-  { q: "Hvad er forskellen på Gratis og Solo?", a: "Gratis giver op til 10 aktive jobs og basisfunktioner. Solo fjerner grænsen, tilføjer dit eget logo på PDF, automatiske rykkere og materialebibliotek." },
-  { q: "Kan jeg importere mine eksisterende kunder?", a: "Ja, du kan importere kunder via CSV-fil. Vi arbejder desuden på direkte import fra Billy og e-conomic." },
-  { q: "Hvad koster det at stoppe?", a: "Ingenting. Du betaler kun for aktive måneder. Du kan annullere dit abonnement til enhver tid, og din konto forbliver aktiv til periodens udløb." },
-]
-
 function FAQSection() {
   const [open, setOpen] = useState<number | null>(null)
+  const t = useTranslations("Landing")
+
+  const faqs = [0, 1, 2, 3, 4, 5, 6, 7].map(i => ({
+    q: t(`faq.q${i}` as Parameters<typeof t>[0]),
+    a: t(`faq.a${i}` as Parameters<typeof t>[0]),
+  }))
+
   return (
-    <section id="faq" style={{ backgroundColor: S.obsidian, padding: "100px 24px", borderTop: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <SectionLabel>FAQ</SectionLabel>
+    <section id="faq" style={{
+      backgroundColor: S.obsidian,
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      padding: "80px 24px",
+      borderTop: `1px solid ${S.border}`,
+    }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
+        <SectionLabel>{t("faq.label")}</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 40 }}>
-          Ofte stillede spørgsmål
+          {t("faq.headline")}
         </h2>
         <div>
-          {FAQS.map((faq, i) => (
+          {faqs.map((faq, i) => (
             <div key={i} style={{ borderBottom: `1px solid ${S.border}` }}>
-              <button
-                onClick={() => setOpen(open === i ? null : i)}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "18px 0", gap: 16, background: "transparent", border: "none", cursor: "pointer",
-                  textAlign: "left",
-                }}>
+              <button onClick={() => setOpen(open === i ? null : i)} style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "18px 0", gap: 16, background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+              }}>
                 <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: open === i ? S.s50 : S.s200, flex: 1, lineHeight: 1.4 }}>
                   {faq.q}
                 </span>
@@ -1194,11 +1209,7 @@ function FAQSection() {
                   <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 </span>
               </button>
-              <div style={{
-                overflow: "hidden",
-                maxHeight: open === i ? 300 : 0,
-                transition: "max-height 200ms var(--ease-smooth)",
-              }}>
+              <div style={{ overflow: "hidden", maxHeight: open === i ? 300 : 0, transition: "max-height 200ms var(--ease-smooth)" }}>
                 <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, lineHeight: 1.7, paddingBottom: 18 }}>
                   {faq.a}
                 </p>
@@ -1214,15 +1225,16 @@ function FAQSection() {
 // ── Trust Bar ─────────────────────────────────────────────────────────────────
 
 function TrustBar() {
+  const t = useTranslations("Landing")
   const items = [
-    { icon: "🔒", text: "GDPR-compliant" },
-    { icon: "🇩🇰", text: "Dansk support" },
-    { icon: "💳", text: "Ingen kreditkort kræves" },
-    { icon: "⚡", text: "Opsæt på 5 min" },
+    { icon: "🔒", text: t("trust.gdpr") },
+    { icon: "🇩🇰", text: t("trust.support") },
+    { icon: "💳", text: t("trust.noCard") },
+    { icon: "⚡", text: t("trust.setup") },
   ]
   return (
-    <div style={{ backgroundColor: S.surface800, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "12px 32px" }}>
+    <div style={{ backgroundColor: "var(--slate-800)", borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "12px 32px" }}>
         {items.map((item, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {i > 0 && <span className="hidden md:inline" style={{ color: S.s700, marginRight: 20 }}>|</span>}
@@ -1238,35 +1250,33 @@ function TrustBar() {
 // ── Footer CTA ────────────────────────────────────────────────────────────────
 
 function FooterCTA() {
+  const t = useTranslations("Landing")
   return (
     <footer>
-      {/* CTA section */}
       <div style={{ background: `linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 55%, var(--amber-400) 100%)`, padding: "100px 24px", textAlign: "center" }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 800, color: "oklch(0.12 0.005 52)", letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 16 }}>
-            Begynd i dag.
+            {t("footerCta.headline")}
           </h2>
           <p style={{ fontFamily: "var(--font-body)", fontSize: 18, color: "oklch(0.25 0.008 52)", marginBottom: 36 }}>
-            Første job gratis. Ingen binding.
+            {t("footerCta.sub")}
           </p>
           <Link href="/sign-up" style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
             height: 52, padding: "0 36px", borderRadius: 12,
             fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 600,
             color: S.s50, backgroundColor: "oklch(0.09 0.004 255)",
-            textDecoration: "none",
-            transition: "opacity 120ms",
+            textDecoration: "none", transition: "opacity 120ms",
           }}
             onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"}
             onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "1"}>
-            Opret gratis konto →
+            {t("footerCta.cta")}
           </Link>
         </div>
       </div>
 
-      {/* Footer nav */}
       <div style={{ backgroundColor: S.obsidian, borderTop: `1px solid ${S.border}`, padding: "48px 24px 32px" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 32, marginBottom: 48 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
@@ -1275,21 +1285,18 @@ function FooterCTA() {
                 </div>
                 <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: S.s50 }}>Håndværk Pro</span>
               </div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s600, lineHeight: 1.6 }}>Bygget til danske håndværkere.</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s600, lineHeight: 1.6 }}>{t("footer.tagline")}</p>
             </div>
             {[
-              { heading: "Produkt", links: ["Funktioner", "Priser", "Changelog"] },
-              { heading: "Virksomhed", links: ["Om os", "Kontakt", "Blog"] },
-              { heading: "Legal", links: ["Privatlivspolitik", "Cookiepolitik", "Vilkår"] },
+              { heading: t("footer.product"), links: [t("footer.features"), t("footer.pricing"), t("footer.changelog")] },
+              { heading: t("footer.company"), links: [t("footer.about"), t("footer.contact"), t("footer.blog")] },
+              { heading: t("footer.legal"), links: [t("footer.privacy"), t("footer.cookies"), t("footer.terms")] },
             ].map(col => (
               <div key={col.heading}>
                 <p style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: S.s500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>{col.heading}</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {col.links.map(link => (
-                    <a key={link} href="#" style={{
-                      fontFamily: "var(--font-body)", fontSize: 14, color: S.s500, textDecoration: "none",
-                      transition: "color 120ms",
-                    }}
+                    <a key={link} href="#" style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500, textDecoration: "none", transition: "color 120ms" }}
                       onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = S.s300}
                       onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = S.s500}>
                       {link}
@@ -1300,8 +1307,8 @@ function FooterCTA() {
             ))}
           </div>
           <div style={{ borderTop: `1px solid ${S.border}`, paddingTop: 24, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>© 2026 Håndværk Pro</span>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>Bygget til danske håndværkere</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>{t("footer.copyright")}</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>{t("footer.tagline")}</span>
           </div>
         </div>
       </div>
@@ -1314,6 +1321,7 @@ function FooterCTA() {
 export default function LandingPage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
+  const t = useTranslations("Landing")
 
   useEffect(() => {
     if (isLoaded && user) router.replace("/overview")
@@ -1327,44 +1335,28 @@ export default function LandingPage() {
       <ProblemSection />
       <div id="features">
         <FeatureRow
-          label="Jobs"
-          headline="Alle jobs. Alt overblik."
-          bullets={[
-            "Opret og planlæg jobs på under 30 sekunder",
-            "6-trins status — fra Ny til Betalt",
-            "Upload fotos direkte fra jobstedet",
-          ]}
+          label={t("feat.jobs.label")}
+          headline={t("feat.jobs.headline")}
+          bullets={[t("feat.jobs.b1"), t("feat.jobs.b2"), t("feat.jobs.b3")]}
           mockup={<JobsMockup />}
         />
         <FeatureRow
-          label="Tilbud"
-          headline="Et tilbud på 45 sekunder."
-          bullets={[
-            "Præfyldte linjevarer fra dit materialebibliotek",
-            "Send direkte til kunden — de accepterer med ét klik",
-            "Tilbud konverteres automatisk til faktura",
-          ]}
+          label={t("feat.quotes.label")}
+          headline={t("feat.quotes.headline")}
+          bullets={[t("feat.quotes.b1"), t("feat.quotes.b2"), t("feat.quotes.b3")]}
           mockup={<QuoteMockup />}
           reverse
         />
         <FeatureRow
-          label="Fakturaer"
-          headline="Fra job til betalt — automatisk."
-          bullets={[
-            "Professionelle PDF-fakturaer med dit logo",
-            "Automatisk rykker efter 8 og 15 dage",
-            "Overholder dansk bogføringslov",
-          ]}
+          label={t("feat.invoices.label")}
+          headline={t("feat.invoices.headline")}
+          bullets={[t("feat.invoices.b1"), t("feat.invoices.b2"), t("feat.invoices.b3")]}
           mockup={<InvoiceMockup />}
         />
         <FeatureRow
-          label="Kunder"
-          headline="Kend din kunde. Husk alt."
-          bullets={[
-            "CVR-opslag udfylder firma og adresse automatisk",
-            "Komplet historik: jobs, tilbud, fakturaer",
-            "Se præcis hvad en kunde skylder dig",
-          ]}
+          label={t("feat.customers.label")}
+          headline={t("feat.customers.headline")}
+          bullets={[t("feat.customers.b1"), t("feat.customers.b2"), t("feat.customers.b3")]}
           mockup={<CustomerMockup />}
           reverse
         />

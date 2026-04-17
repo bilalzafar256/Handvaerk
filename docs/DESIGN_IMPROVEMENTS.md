@@ -784,6 +784,215 @@ Footer below: standard links. 3 columns: Product (Funktioner, Priser, Vejledning
 
 ---
 
+## Dashboard Component Reference — Implemented Patterns
+
+> These are the **shipped** patterns from Phase 3 (Jobs). All subsequent dashboard pages MUST follow this reference exactly. Do not deviate without updating this doc.
+
+---
+
+### Token Usage — Correct Mapping
+
+Always use these tokens. Never use `--surface`, `--background-subtle`, `--text-primary`, `--text-secondary`, `--text-tertiary` — those are legacy names that no longer exist.
+
+| Purpose | Token |
+|---|---|
+| Page background | `var(--background)` = slate-50 (very light gray) |
+| Card/panel background | `var(--card)` = pure white |
+| Section header background | `var(--muted)` = slate-100 (visible gray) |
+| Body text | `var(--foreground)` |
+| Secondary text | `var(--muted-foreground)` |
+| Borders | `var(--border)` |
+| Hover background | `var(--accent)` = slate-100 |
+| Primary CTA background | `var(--primary)` = amber-500 |
+| Primary CTA text | `var(--primary-foreground)` |
+| Destructive hover | `var(--error-light)` |
+| Destructive text/border | `var(--error)` |
+| Amber badge background | `var(--accent-light)` = amber-100 |
+
+---
+
+### Critical Rule — Hover States
+
+**Never set `backgroundColor` in `style={{}}` AND a `hover:bg-*` Tailwind class on the same element.** Inline styles have higher CSS specificity than class-based pseudo-selectors — the hover class will always lose.
+
+**The fix:** Either move the default background to a `bg-[var(--X)]` Tailwind class (so the hover class can override it), or use `onMouseEnter`/`onMouseLeave` JS handlers.
+
+```tsx
+// ❌ BROKEN — inline style wins over hover class
+<Link style={{ backgroundColor: "var(--card)" }} className="hover:bg-[var(--accent)]">
+
+// ✅ CORRECT — both in className
+<Link className="bg-[var(--card)] hover:bg-[var(--accent)] transition-colors">
+
+// ✅ ALSO CORRECT — JS handlers when inline style is unavoidable
+onMouseEnter={e => e.currentTarget.style.backgroundColor = "var(--accent)"}
+onMouseLeave={e => e.currentTarget.style.backgroundColor = ""}
+```
+
+---
+
+### Spacing — No Double Padding
+
+`DashboardShell` (`components/shared/dashboard-shell.tsx`) already applies `pt-14` to clear the fixed topbar (h-12). **Pages must NOT add their own top padding to compensate for the topbar.** Add only a small breathing gap if needed (`pt-2`).
+
+```tsx
+// ❌ WRONG — DashboardShell already has pt-14 → total 104px gap
+<div className="pt-12 pb-8">
+
+// ✅ CORRECT
+<div className="pt-2 pb-8">
+```
+
+Do NOT use `max-w-* mx-auto` on the inner page container — this adds auto margins on wide screens. Use only `px-4 lg:px-6` for horizontal spacing.
+
+---
+
+### List Page Pattern
+
+**File reference:** `components/jobs/job-list.tsx`
+
+**Filter bar:**
+```tsx
+<div className="px-4 pt-3 pb-2 flex items-center gap-2 flex-wrap border-b" style={{ borderColor: "var(--border)" }}>
+  {/* Search */}
+  <div className="relative flex-1 min-w-[140px]">
+    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
+    <input className="w-full h-8 pl-8 pr-3 rounded-lg border text-sm focus:ring-2 transition-colors"
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--background)", color: "var(--foreground)" }} />
+  </div>
+  {/* Optional filters (AnimatePresence dropdown, right-0) */}
+  {/* View toggle */}
+  <div className="flex items-center gap-0.5 rounded-lg border p-0.5" style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}>
+    <button style={{ backgroundColor: viewMode === "list" ? "var(--accent)" : "transparent" }}>
+      <LayoutList className="w-3.5 h-3.5" />
+    </button>
+    <button style={{ backgroundColor: viewMode === "grid" ? "var(--accent)" : "transparent" }}>
+      <LayoutGrid className="w-3.5 h-3.5" />
+    </button>
+  </div>
+</div>
+```
+
+**List row:**
+```tsx
+<motion.div
+  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.18), ease: [0.16, 1, 0.3, 1] }}
+  className="flex border-b"
+  style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "transparent",
+    transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+  onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+>
+  {/* Optional status bar (left edge, 3px→4px on hover) */}
+  <div style={{ width: hovered ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
+  {/* Main link — takes remaining space */}
+  <Link href={...} className="flex items-center gap-3 flex-1 px-4 py-3 min-w-0"> ... </Link>
+  {/* Inline actions — OUTSIDE the Link, always visible */}
+  <div className="flex items-center gap-1.5 pr-3 self-center flex-shrink-0">
+    <Link href={`/edit`} className="w-8 h-8 flex items-center justify-center rounded-lg border bg-[var(--background)] hover:bg-[var(--accent)] transition-colors"
+      style={{ borderColor: "var(--border)", color: "var(--foreground)" }}>
+      <Pencil className="w-3.5 h-3.5" />
+    </Link>
+    {/* Delete with inline confirm — see jobs/job-list.tsx */}
+  </div>
+</motion.div>
+```
+
+**Grid card:**
+```tsx
+<motion.div
+  initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+  transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+>
+  <div className="flex flex-col rounded-xl border overflow-hidden"
+    style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "var(--card)",
+      transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}>
+    {/* Optional top status/identity bar (h-1) */}
+    <Link href={...} className="p-3 flex flex-col gap-2"> ... </Link>
+    {/* Always-visible action bar at bottom */}
+    <div className="flex items-center gap-1.5 px-3 pb-3 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+      {/* Edit link + Delete button with confirm */}
+    </div>
+  </div>
+</motion.div>
+```
+
+**Empty state — no ghost skeleton background:**
+```tsx
+<div className="flex flex-col items-center justify-center py-20 px-8 gap-4 text-center">
+  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: "var(--accent-light)" }}>
+    <Icon className="w-6 h-6" style={{ color: "var(--primary)" }} />
+  </div>
+  <p className="text-base font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>...</p>
+  <p className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>...</p>
+  {/* CTA button if !hasFilters */}
+</div>
+```
+
+---
+
+### Detail Page Pattern
+
+**File reference:** `app/[locale]/(dashboard)/jobs/[id]/page.tsx`
+
+**Topbar actions (Edit + Delete):**
+```tsx
+<Link href={`/edit`}
+  className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border bg-[var(--background)] hover:bg-[var(--accent)] transition-colors"
+  style={{ borderColor: "var(--border)", color: "var(--foreground)" }}>
+  <Pencil className="w-3.5 h-3.5" /> Edit
+</Link>
+{/* DeleteButton: h-8 rounded-lg bg-[var(--background)] hover:bg-[var(--error-light)] — see job-detail-actions.tsx */}
+```
+
+**Card component (section blocks):**
+```tsx
+const CARD_ACCENTS = {
+  blue: "oklch(0.55 0.15 240)", amber: "var(--amber-500)",
+  purple: "oklch(0.55 0.12 290)", green: "oklch(0.52 0.14 145)",
+}
+function Card({ title, children, accent = "blue" }) {
+  return (
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+      {/* Header: muted (gray) background */}
+      <div className="px-4 py-2.5 border-b flex items-center gap-2.5"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CARD_ACCENTS[accent] }} />
+        <p className="text-xs font-semibold uppercase tracking-wider"
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>{title}</p>
+      </div>
+      {/* Body: pure white */}
+      <div className="px-4 py-3" style={{ backgroundColor: "var(--card)" }}>{children}</div>
+    </div>
+  )
+}
+```
+
+**Layout:**
+- Outer: `pt-2 pb-8 overflow-x-hidden` — no max-width, just `px-4 lg:px-6`
+- Two columns desktop: `grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4`
+- Left: cards stacked (description → dates → notes → photos)
+- Right: `lg:sticky lg:top-16 self-start` — status/actions panel, customer card, related docs
+
+**Related docs section (quotes/invoices/jobs):**
+```tsx
+<div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+  <div className="px-3 py-2 border-b flex items-center justify-between"
+    style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
+    <p className="text-[11px] font-semibold uppercase tracking-wider"
+      style={{ color: "var(--muted-foreground)" }}>{title}</p>
+    <Link href={newHref}
+      className="flex items-center gap-1 text-[11px] font-medium px-2 h-6 rounded-md bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
+      style={{ color: "var(--primary)" }}>
+      <Plus className="w-3 h-3" /> {newLabel}
+    </Link>
+  </div>
+  {/* Items: hover:bg-[var(--accent)] */}
+</div>
+```
+
+---
+
 ## Phase 4 — Customers Pages
 
 **Pages:** `app/[locale]/(dashboard)/customers/page.tsx`, `app/[locale]/(dashboard)/customers/[id]/page.tsx`, `app/[locale]/(dashboard)/customers/new/page.tsx`

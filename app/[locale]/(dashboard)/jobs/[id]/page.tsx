@@ -73,7 +73,7 @@ export default async function JobDetailPage({ params }: Props) {
       />
 
       <div className="pt-2 pb-8 overflow-x-hidden">
-        <div className="px-4 lg:px-6 max-w-5xl mx-auto">
+        <div className="px-4 lg:px-6">
           {/* Back */}
           <div className="pt-3 pb-2">
             <Link
@@ -259,13 +259,13 @@ const CARD_ACCENTS: Record<string, string> = {
 function Card({ title, children, accent = "blue" }: { title: string; children: React.ReactNode; accent?: keyof typeof CARD_ACCENTS }) {
   return (
     <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-      <div className="px-4 py-2.5 border-b flex items-center gap-2.5" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+      <div className="px-4 py-2.5 border-b flex items-center gap-2.5" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CARD_ACCENTS[accent] }} />
         <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           {title}
         </p>
       </div>
-      <div className="px-4 py-3" style={{ backgroundColor: "var(--background)" }}>{children}</div>
+      <div className="px-4 py-3" style={{ backgroundColor: "var(--card)" }}>{children}</div>
     </div>
   )
 }

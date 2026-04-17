@@ -2,11 +2,15 @@
 
 import { useState } from "react"
 import { Link } from "@/i18n/navigation"
+import { useRouter } from "@/i18n/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import {
   Search, Plus, Briefcase, ChevronRight, ChevronDown, Check, X, LayoutList, LayoutGrid,
+  Pencil, Trash2, Loader2,
 } from "lucide-react"
 import { StatusBadge } from "@/components/jobs/status-changer"
+import { deleteJobAction } from "@/lib/actions/jobs"
+import { toast } from "sonner"
 import { useTranslations } from "next-intl"
 import type { Job } from "@/lib/db/schema/jobs"
 import type { Customer } from "@/lib/db/schema/customers"
@@ -223,8 +227,26 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
 
 function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
   const [hovered, setHovered] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const router = useRouter()
   const status = job.status as Status
   const barColor = STATUS_COLORS[status] ?? "var(--muted-foreground)"
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirming) { setConfirming(true); return }
+    setDeleting(true)
+    try {
+      await deleteJobAction(job.id)
+      router.refresh()
+    } catch {
+      toast.error("Failed to delete job")
+      setDeleting(false)
+      setConfirming(false)
+    }
+  }
 
   return (
     <motion.div
@@ -238,23 +260,13 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
         transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)",
       }}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); if (!deleting) setConfirming(false) }}
     >
       {/* Status bar */}
-      <div
-        className="flex-shrink-0 self-stretch"
-        style={{
-          width: hovered ? 4 : 3,
-          backgroundColor: barColor,
-          transition: "width 120ms cubic-bezier(0.4,0,0.2,1)",
-        }}
-      />
+      <div className="flex-shrink-0 self-stretch" style={{ width: hovered ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
 
-      {/* Row content */}
-      <Link
-        href={`/jobs/${job.id}`}
-        className="flex items-center gap-3 flex-1 px-4 py-3 min-w-0"
-      >
+      {/* Main content link */}
+      <Link href={`/jobs/${job.id}`} className="flex items-center gap-3 flex-1 px-4 py-3 min-w-0">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
             {job.title}
@@ -269,7 +281,6 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
             </p>
           </div>
         </div>
-
         <div className="flex items-center gap-3 flex-shrink-0">
           {job.scheduledDate && (
             <p className="text-xs hidden sm:block" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
@@ -277,32 +288,83 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
             </p>
           )}
           <StatusBadge status={status} />
-          <ChevronRight className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
         </div>
       </Link>
+
+      {/* Inline actions — always visible, outside Link */}
+      <div className="flex items-center gap-1.5 pr-3 self-center flex-shrink-0">
+        <Link
+          href={`/jobs/${job.id}/edit`}
+          onClick={e => e.stopPropagation()}
+          className="w-8 h-8 flex items-center justify-center rounded-lg border bg-[var(--background)] hover:bg-[var(--accent)] transition-colors"
+          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </Link>
+        {confirming ? (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="h-8 px-2.5 flex items-center gap-1.5 rounded-lg border text-xs font-medium cursor-pointer disabled:opacity-50"
+            style={{ backgroundColor: "var(--error-light)", borderColor: "var(--error)", color: "var(--error)", fontFamily: "var(--font-body)" }}
+          >
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            Confirm
+          </button>
+        ) : (
+          <button
+            onClick={handleDelete}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-[var(--background)] hover:bg-[var(--error-light)] transition-colors cursor-pointer"
+            style={{ borderColor: "var(--border)", color: "var(--error)" }}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
     </motion.div>
   )
 }
 
 function JobCard({ job, index }: { job: JobWithCustomer; index: number }) {
-  const tStatus = useTranslations("JobStatus")
+  const [hovered, setHovered] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const router = useRouter()
   const status = job.status as Status
   const barColor = STATUS_COLORS[status] ?? "var(--muted-foreground)"
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirming) { setConfirming(true); return }
+    setDeleting(true)
+    try {
+      await deleteJobAction(job.id)
+      router.refresh()
+    } catch {
+      toast.error("Failed to delete job")
+      setDeleting(false)
+      setConfirming(false)
+    }
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); if (!deleting) setConfirming(false) }}
     >
-      <Link
-        href={`/jobs/${job.id}`}
-        className="flex flex-col rounded-xl border overflow-hidden bg-[var(--card)] hover:bg-[var(--accent)] transition-colors"
-        style={{ borderColor: "var(--border)" }}
+      <div
+        className="flex flex-col rounded-xl border overflow-hidden"
+        style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
       >
         {/* Status bar top */}
         <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
-        <div className="p-3 flex flex-col gap-2">
+
+        {/* Main content link */}
+        <Link href={`/jobs/${job.id}`} className="p-3 flex flex-col gap-2">
           <div>
             <p className="text-sm font-semibold leading-snug" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
               {job.title}
@@ -322,8 +384,41 @@ function JobCard({ job, index }: { job: JobWithCustomer; index: number }) {
               {new Date(job.scheduledDate).toLocaleDateString("da-DK", { day: "numeric", month: "short", year: "numeric" })}
             </p>
           )}
+        </Link>
+
+        {/* Inline actions — always visible */}
+        <div className="flex items-center gap-1.5 px-3 pb-3 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+          <Link
+            href={`/jobs/${job.id}/edit`}
+            onClick={e => e.stopPropagation()}
+            className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border text-xs font-medium bg-[var(--background)] hover:bg-[var(--accent)] transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--foreground)", fontFamily: "var(--font-body)" }}
+          >
+            <Pencil className="w-3 h-3" />
+            Edit
+          </Link>
+          {confirming ? (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border text-xs font-medium cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: "var(--error-light)", borderColor: "var(--error)", color: "var(--error)", fontFamily: "var(--font-body)" }}
+            >
+              {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+              Confirm
+            </button>
+          ) : (
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border text-xs font-medium bg-[var(--background)] hover:bg-[var(--error-light)] transition-colors cursor-pointer"
+              style={{ borderColor: "var(--border)", color: "var(--error)", fontFamily: "var(--font-body)" }}
+            >
+              <Trash2 className="w-3 h-3" />
+              Delete
+            </button>
+          )}
         </div>
-      </Link>
+      </div>
     </motion.div>
   )
 }
@@ -358,41 +453,11 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
   )
 }
 
-function EmptyState({ hasFilters, viewMode }: { hasFilters: boolean; viewMode: "list" | "grid" }) {
+function EmptyState({ hasFilters, viewMode: _ }: { hasFilters: boolean; viewMode: "list" | "grid" }) {
   const t = useTranslations("Jobs")
   return (
-    <div className="relative flex flex-col items-center justify-center py-20 px-8 gap-4 text-center overflow-hidden">
-      {/* Ghost card behind */}
-      {viewMode === "list" ? (
-        <div className="absolute inset-x-4 top-8 bottom-8 rounded-xl border opacity-10 blur-[1px] pointer-events-none" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-          <div className="h-12 border-b" style={{ borderColor: "var(--border)" }} />
-          {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
-              <div className="w-3 h-full rounded-full" style={{ backgroundColor: "var(--muted-foreground)" }} />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3 rounded w-3/4" style={{ backgroundColor: "var(--muted-foreground)" }} />
-                <div className="h-2.5 rounded w-1/2" style={{ backgroundColor: "var(--muted-foreground)" }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="absolute inset-x-4 top-8 bottom-8 opacity-10 blur-[1px] pointer-events-none grid grid-cols-3 gap-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-              <div className="h-1" style={{ backgroundColor: "var(--muted-foreground)" }} />
-              <div className="p-3 space-y-2">
-                <div className="h-3 rounded w-3/4" style={{ backgroundColor: "var(--muted-foreground)" }} />
-                <div className="h-2.5 rounded w-1/2" style={{ backgroundColor: "var(--muted-foreground)" }} />
-                <div className="h-5 rounded w-1/3 mt-3" style={{ backgroundColor: "var(--muted-foreground)" }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="relative space-y-1 z-10">
+    <div className="flex flex-col items-center justify-center py-20 px-8 gap-4 text-center">
+      <div className="space-y-1">
         <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: "var(--accent-light)" }}>
           <Briefcase className="w-6 h-6" style={{ color: "var(--primary)" }} />
         </div>
@@ -406,7 +471,7 @@ function EmptyState({ hasFilters, viewMode }: { hasFilters: boolean; viewMode: "
       {!hasFilters && (
         <Link
           href="/jobs/new"
-          className="relative z-10 flex items-center gap-2 h-10 px-5 rounded-lg text-sm font-medium transition-all duration-150 active:scale-[0.98]"
+          className="flex items-center gap-2 h-10 px-5 rounded-lg text-sm font-medium transition-all duration-150 active:scale-[0.98]"
           style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)", boxShadow: "var(--shadow-accent)" }}
         >
           <Plus className="w-4 h-4" />

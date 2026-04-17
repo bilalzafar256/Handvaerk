@@ -119,13 +119,12 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
 
   const inputClass = `
     w-full h-12 px-4
-    bg-[--surface] text-[--text-primary]
+    bg-[var(--background)] text-[var(--foreground)]
     font-body text-base
-    border border-[--border]
-    rounded-[--radius-sm]
-    placeholder:text-[--text-tertiary]
-    focus:outline-none focus:border-[--accent]
-    focus:ring-2 focus:ring-[--accent]/20
+    border border-[var(--border)]
+    rounded-lg
+    placeholder:opacity-50
+    focus:outline-none focus:ring-2
     transition-colors duration-150
   `
 
@@ -137,14 +136,14 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("customerLabel")} <span style={{ color: "var(--error)" }}>*</span>
         </label>
         <select
           {...register("customerId")}
           className={inputClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           <option value="">{t("customerPlaceholder")}</option>
           {customers.map((c) => (
@@ -164,7 +163,7 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("titleLabel")} <span style={{ color: "var(--error)" }}>*</span>
         </label>
@@ -185,7 +184,7 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
         <div className="flex items-center justify-between mb-1.5">
           <label
             className={labelClass + " !mb-0"}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             {t("descriptionLabel")}
           </label>
@@ -218,14 +217,14 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("jobTypeLabel")}
         </label>
         <select
           {...register("jobType")}
           className={inputClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           <option value="service">{t("typeService")}</option>
           <option value="project">{t("typeProject")}</option>
@@ -238,7 +237,7 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
         <div>
           <label
             className={labelClass}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             {t("scheduledDateLabel")}
           </label>
@@ -251,7 +250,7 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
         <div>
           <label
             className={labelClass}
-            style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
           >
             {t("endDateLabel")}
           </label>
@@ -267,7 +266,7 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
       <div>
         <label
           className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
         >
           {t("notesLabel")}
         </label>
