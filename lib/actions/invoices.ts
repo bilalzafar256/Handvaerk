@@ -358,7 +358,7 @@ export async function sendInvoiceAction(id: string) {
   const { InvoiceSentEmail } = await import("@/lib/email/templates/invoice-sent")
 
   const { data, error } = await resend.emails.send({
-    from:    "Håndværk Pro <noreply@haandvaerkpro.dk>",
+    from:    "Håndværk Pro <onboarding@resend.dev>",
     to:      [invoice.customer.email],
     subject: `Faktura ${invoice.invoiceNumber}`,
     react:   InvoiceSentEmail({

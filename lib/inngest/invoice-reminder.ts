@@ -33,7 +33,7 @@ export const invoiceReminder = inngest.createFunction(
       const { PaymentReminderEmail } = await import("@/lib/email/templates/payment-reminder")
 
       await resend.emails.send({
-        from:    "Håndværk Pro <noreply@haandvaerkpro.dk>",
+        from:    "Håndværk Pro <onboarding@resend.dev>",
         to:      [customerEmail],
         subject: "Betalingspåmindelse",
         react:   PaymentReminderEmail({
@@ -65,7 +65,7 @@ export const invoiceReminder = inngest.createFunction(
       const { PaymentReminderEmail } = await import("@/lib/email/templates/payment-reminder")
 
       await resend.emails.send({
-        from:    "Håndværk Pro <noreply@haandvaerkpro.dk>",
+        from:    "Håndværk Pro <onboarding@resend.dev>",
         to:      [customerEmail],
         subject: "Anden betalingspåmindelse",
         react:   PaymentReminderEmail({

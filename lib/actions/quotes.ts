@@ -211,7 +211,7 @@ export async function sendQuoteEmailAction(id: string) {
   const { QuoteSentEmail } = await import("@/lib/email/templates/quote-sent")
 
   const { data, error } = await resend.emails.send({
-    from: "Håndværk Pro <noreply@haandvaerkpro.dk>",
+    from: "Håndværk Pro <onboarding@resend.dev>",
     to: [quote.customer.email],
     subject: `Tilbud ${quote.quoteNumber}`,
     react: QuoteSentEmail({
