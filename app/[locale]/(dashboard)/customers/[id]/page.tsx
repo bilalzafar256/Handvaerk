@@ -51,7 +51,7 @@ export default async function CustomerDetailPage({ params }: Props) {
           <div className="flex items-center gap-2">
             <Link
               href={`/customers/${id}/edit`}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150 hover:bg-[--background-subtle]"
               style={{
                 borderColor: "var(--border)",
                 color: "var(--text-primary)",
@@ -120,7 +120,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                 // F-206: quick-dial
                 <a
                   href={`tel:${customer.phone.replace(/\s/g, "")}`}
-                  className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-colors duration-150"
+                  className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 hover:opacity-80"
                   style={{
                     backgroundColor: "var(--accent-light)",
                     color: "var(--primary)",
@@ -140,7 +140,7 @@ export default async function CustomerDetailPage({ params }: Props) {
               action={
                 <a
                   href={`mailto:${customer.email}`}
-                  className="h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-colors duration-150 flex items-center"
+                  className="h-9 px-3 rounded-[--radius-sm] text-sm font-medium transition-all duration-150 flex items-center hover:opacity-80"
                   style={{
                     backgroundColor: "var(--accent-light)",
                     color: "var(--primary)",
@@ -207,7 +207,7 @@ export default async function CustomerDetailPage({ params }: Props) {
             </p>
             <Link
               href={`/jobs/new?customerId=${id}`}
-              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-colors duration-150"
+              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-all duration-150 hover:opacity-80"
               style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
             >
               <Plus className="w-3.5 h-3.5" />

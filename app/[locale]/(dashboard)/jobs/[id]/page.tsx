@@ -70,7 +70,7 @@ export default async function JobDetailPage({ params }: Props) {
           <div className="flex items-center gap-2">
             <Link
               href={`/jobs/${id}/edit`}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150 hover:bg-[--background-subtle]"
               style={{
                 borderColor: "var(--border)",
                 color: "var(--text-primary)",
@@ -226,7 +226,7 @@ export default async function JobDetailPage({ params }: Props) {
             </p>
             <Link
               href={`/quotes/new?jobId=${job.id}&customerId=${job.customer.id}`}
-              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-colors duration-150"
+              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-all duration-150 hover:opacity-80"
               style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
             >
               <Plus className="w-3.5 h-3.5" />
@@ -283,7 +283,7 @@ export default async function JobDetailPage({ params }: Props) {
             </p>
             <Link
               href={`/invoices/new?jobId=${job.id}&customerId=${job.customer.id}`}
-              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-colors duration-150"
+              className="flex items-center gap-1 text-xs font-medium h-7 px-2 rounded-[--radius-sm] transition-all duration-150 hover:opacity-80"
               style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
             >
               <Plus className="w-3.5 h-3.5" />

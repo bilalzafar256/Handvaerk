@@ -4,16 +4,44 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
 import { motion } from "motion/react"
-import { ChevronRight, ChevronLeft, Search, Plus, Briefcase, Calendar } from "lucide-react"
+import { ChevronRight, ChevronLeft, Search, Plus, Briefcase, Calendar, Edit2, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { StatusBadge } from "@/components/jobs/status-changer"
 import { ViewToggle } from "@/components/shared/view-toggle"
 import { useViewPreference } from "@/hooks/use-view-preference"
+import { deleteJobAction } from "@/lib/actions/jobs"
 import type { Job } from "@/lib/db/schema/jobs"
 import type { Customer } from "@/lib/db/schema/customers"
 
 type JobWithCustomer = Job & { customer: Customer }
 
 const PER_PAGE = 15
+
+const btnCls = "flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-40 hover:bg-[--background-subtle] flex-shrink-0"
+const btnStyle = { borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }
+const btnDangerStyle = { borderColor: "var(--border)", color: "var(--error)", backgroundColor: "var(--surface)" }
+
+function JobInlineActions({ job }: { job: JobWithCustomer }) {
+  const [busy, setBusy] = useState(false)
+
+  async function handleDelete() {
+    if (!confirm("Delete this job?")) return
+    setBusy(true)
+    try { await deleteJobAction(job.id) } catch { toast.error("Failed to delete") }
+    setBusy(false)
+  }
+
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+      <Link href={`/jobs/${job.id}/edit`} title="Edit" className={btnCls} style={btnStyle}>
+        <Edit2 className="w-3.5 h-3.5" />
+      </Link>
+      <button onClick={handleDelete} disabled={busy} title="Delete" className={btnCls} style={btnDangerStyle}>
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+}
 
 interface JobListProps {
   jobs: JobWithCustomer[]
@@ -56,7 +84,7 @@ export function JobList({ jobs }: JobListProps) {
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className="w-full h-11 pl-10 pr-4 rounded-[--radius-sm] border text-sm bg-[--surface] placeholder:text-[--text-tertiary] focus:outline-none focus:border-[--accent] focus:ring-2 focus:ring-[--accent]/20 transition-colors"
+            className="w-full h-11 pl-10 pr-4 rounded-[--radius-sm] border text-sm bg-[--surface] placeholder:text-[--text-tertiary] focus:outline-none focus:border-[--primary] focus:ring-2 focus:ring-[--primary]/20 transition-colors"
             style={{ fontFamily: "var(--font-body)", borderColor: "var(--border)", color: "var(--text-primary)" }}
           />
         </div>
@@ -88,11 +116,13 @@ function ListView({ jobs }: { jobs: JobWithCustomer[] }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
         >
-          <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}>
+          <div
+            className="rounded-[--radius-md] border overflow-hidden"
+            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
+          >
             <Link
               href={`/jobs/${job.id}`}
-              className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
-              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
+              className="flex items-center gap-3 p-4 transition-colors duration-150 hover:bg-[--background-subtle]"
             >
               <div className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--accent-light)" }}>
                 <Briefcase className="w-4 h-4" style={{ color: "var(--primary)" }} />
@@ -122,10 +152,15 @@ function ListView({ jobs }: { jobs: JobWithCustomer[] }) {
               </div>
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                 <StatusBadge status={job.status as Parameters<typeof StatusBadge>[0]["status"]} />
-                <ChevronRight className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
               </div>
             </Link>
-          </motion.div>
+            <div
+              className="flex items-center gap-1 px-4 py-2 border-t"
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+            >
+              <JobInlineActions job={job} />
+            </div>
+          </div>
         </motion.li>
       ))}
     </ul>
@@ -142,12 +177,12 @@ function CardView({ jobs }: { jobs: JobWithCustomer[] }) {
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
-          whileTap={{ scale: 0.97 }}
+          className="flex flex-col rounded-[--radius-lg] border overflow-hidden"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
         >
           <Link
             href={`/jobs/${job.id}`}
-            className="flex flex-col gap-3 p-4 rounded-[--radius-lg] border h-full transition-colors duration-150"
-            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
+            className="flex flex-col gap-3 p-4 flex-1 transition-colors duration-150 hover:bg-[--background-subtle]"
           >
             <div className="flex items-start justify-between gap-2">
               <p className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>
@@ -172,6 +207,12 @@ function CardView({ jobs }: { jobs: JobWithCustomer[] }) {
               </div>
             )}
           </Link>
+          <div
+            className="flex items-center gap-1 px-3 py-2 border-t flex-wrap"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+          >
+            <JobInlineActions job={job} />
+          </div>
         </motion.div>
       ))}
     </div>
@@ -185,7 +226,7 @@ function TableView({ jobs }: { jobs: JobWithCustomer[] }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr style={{ borderBottom: "1px solid var(--border)" }}>
-            {["#", "Title", "Customer", "Status", "Scheduled", "End Date"].map((h) => (
+            {["#", "Title", "Customer", "Status", "Scheduled", "End Date", "Actions"].map((h) => (
               <th
                 key={h}
                 className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wider first:pl-0"
@@ -239,6 +280,9 @@ function TableView({ jobs }: { jobs: JobWithCustomer[] }) {
                     : "—"}
                 </span>
               </td>
+              <td className="py-3 px-3">
+                <JobInlineActions job={job} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -255,7 +299,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[--background-subtle]"
         style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
       >
         <ChevronLeft className="w-4 h-4" />
@@ -266,7 +310,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[--background-subtle]"
         style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
       >
         <ChevronRight className="w-4 h-4" />

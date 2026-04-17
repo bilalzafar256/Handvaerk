@@ -29,7 +29,7 @@ export function DeleteCustomerButton({ customerId }: { customerId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150"
+        className="flex items-center gap-2 h-9 px-3 rounded-[--radius-sm] text-sm font-medium border transition-colors duration-150 hover:bg-[--error-light]"
         style={{
           borderColor: "var(--border)",
           color: "var(--error)",

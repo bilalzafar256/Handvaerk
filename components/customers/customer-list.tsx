@@ -4,9 +4,11 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
 import { motion } from "motion/react"
-import { Phone, ChevronRight, ChevronLeft, UserX, Search, Plus, AlertCircle } from "lucide-react"
+import { Phone, ChevronLeft, UserX, Search, Plus, AlertCircle, Mail, Edit2, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { ViewToggle } from "@/components/shared/view-toggle"
 import { useViewPreference } from "@/hooks/use-view-preference"
+import { deleteCustomerAction } from "@/lib/actions/customers"
 import type { Customer } from "@/lib/db/schema/customers"
 
 interface CustomerWithOwed extends Customer {
@@ -14,6 +16,42 @@ interface CustomerWithOwed extends Customer {
 }
 
 const PER_PAGE = 15
+
+const btnCls = "flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-40 hover:bg-[--background-subtle] flex-shrink-0"
+const btnStyle = { borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }
+const btnDangerStyle = { borderColor: "var(--border)", color: "var(--error)", backgroundColor: "var(--surface)" }
+
+function CustomerInlineActions({ customer }: { customer: CustomerWithOwed }) {
+  const [busy, setBusy] = useState(false)
+
+  async function handleDelete() {
+    if (!confirm("Delete this customer?")) return
+    setBusy(true)
+    try { await deleteCustomerAction(customer.id) } catch { toast.error("Failed to delete") }
+    setBusy(false)
+  }
+
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+      {customer.phone && (
+        <a href={`tel:${customer.phone.replace(/\s/g, "")}`} title="Call" className={btnCls} style={btnStyle}>
+          <Phone className="w-3.5 h-3.5" />
+        </a>
+      )}
+      {customer.email && (
+        <a href={`mailto:${customer.email}`} title="Email" className={btnCls} style={btnStyle}>
+          <Mail className="w-3.5 h-3.5" />
+        </a>
+      )}
+      <Link href={`/customers/${customer.id}/edit`} title="Edit" className={btnCls} style={btnStyle}>
+        <Edit2 className="w-3.5 h-3.5" />
+      </Link>
+      <button onClick={handleDelete} disabled={busy} title="Delete" className={btnCls} style={btnDangerStyle}>
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+}
 
 interface CustomerListProps {
   customers: CustomerWithOwed[]
@@ -56,7 +94,7 @@ export function CustomerList({ customers }: CustomerListProps) {
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className="w-full h-11 pl-10 pr-4 rounded-[--radius-sm] border text-sm bg-[--surface] placeholder:text-[--text-tertiary] focus:outline-none focus:border-[--accent] focus:ring-2 focus:ring-[--accent]/20 transition-colors"
+            className="w-full h-11 pl-10 pr-4 rounded-[--radius-sm] border text-sm bg-[--surface] placeholder:text-[--text-tertiary] focus:outline-none focus:border-[--primary] focus:ring-2 focus:ring-[--primary]/20 transition-colors"
             style={{ fontFamily: "var(--font-body)", borderColor: "var(--border)", color: "var(--text-primary)" }}
           />
         </div>
@@ -77,7 +115,7 @@ export function CustomerList({ customers }: CustomerListProps) {
   )
 }
 
-/* ── List view (original) ── */
+/* ── List view ── */
 function ListView({ customers, t }: { customers: CustomerWithOwed[]; t: ReturnType<typeof useTranslations<"Customers">> }) {
   return (
     <ul className="px-4 space-y-2 pb-4">
@@ -88,11 +126,11 @@ function ListView({ customers, t }: { customers: CustomerWithOwed[]; t: ReturnTy
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
         >
-          <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}
-            className="flex items-center rounded-[--radius-md] border overflow-hidden"
+          <div
+            className="rounded-[--radius-md] border overflow-hidden"
             style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-xs)" }}
           >
-            <Link href={`/customers/${customer.id}`} className="flex items-center gap-3 p-4 flex-1 min-w-0 transition-colors duration-150">
+            <Link href={`/customers/${customer.id}`} className="flex items-center gap-3 p-4 transition-colors duration-150 hover:bg-[--background-subtle]">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold"
                 style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-display)" }}
@@ -119,19 +157,14 @@ function ListView({ customers, t }: { customers: CustomerWithOwed[]; t: ReturnTy
                   </p>
                 )}
               </div>
-              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
             </Link>
-            {customer.phone && (
-              <a
-                href={`tel:${customer.phone.replace(/\s/g, "")}`}
-                className="w-14 self-stretch flex items-center justify-center border-l transition-colors duration-150 flex-shrink-0"
-                style={{ backgroundColor: "var(--accent-light)", borderColor: "var(--border)", color: "var(--primary)" }}
-                aria-label={`Call ${customer.name}`}
-              >
-                <Phone className="w-4 h-4" />
-              </a>
-            )}
-          </motion.div>
+            <div
+              className="flex items-center gap-1 px-4 py-2 border-t"
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+            >
+              <CustomerInlineActions customer={customer} />
+            </div>
+          </div>
         </motion.li>
       ))}
     </ul>
@@ -148,12 +181,12 @@ function CardView({ customers }: { customers: CustomerWithOwed[] }) {
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
-          whileTap={{ scale: 0.97 }}
+          className="flex flex-col rounded-[--radius-lg] border overflow-hidden"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
         >
           <Link
             href={`/customers/${customer.id}`}
-            className="flex flex-col items-center gap-3 p-4 rounded-[--radius-lg] border text-center h-full transition-colors duration-150"
-            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-sm)" }}
+            className="flex flex-col items-center gap-3 p-4 flex-1 text-center transition-colors duration-150 hover:bg-[--background-subtle]"
           >
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
@@ -176,18 +209,13 @@ function CardView({ customers }: { customers: CustomerWithOwed[] }) {
                 </p>
               )}
             </div>
-            {customer.phone && (
-              <a
-                href={`tel:${customer.phone.replace(/\s/g, "")}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-pill] text-xs font-medium transition-colors duration-150"
-                style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
-              >
-                <Phone className="w-3 h-3" />
-                Call
-              </a>
-            )}
           </Link>
+          <div
+            className="flex items-center gap-1 px-3 py-2 border-t flex-wrap"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--background-subtle)" }}
+          >
+            <CustomerInlineActions customer={customer} />
+          </div>
         </motion.div>
       ))}
     </div>
@@ -201,7 +229,7 @@ function TableView({ customers, t }: { customers: CustomerWithOwed[]; t: ReturnT
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr style={{ borderBottom: "1px solid var(--border)" }}>
-            {["Name", "Phone", "Email", "City", ""].map((h, i) => (
+            {["Name", "Phone", "Email", "City", "Actions"].map((h, i) => (
               <th
                 key={i}
                 className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wider first:pl-0"
@@ -237,7 +265,7 @@ function TableView({ customers, t }: { customers: CustomerWithOwed[]; t: ReturnT
               </td>
               <td className="py-3 px-3">
                 {customer.phone ? (
-                  <a href={`tel:${customer.phone.replace(/\s/g, "")}`} className="text-xs flex items-center gap-1" style={{ fontFamily: "var(--font-body)", color: "var(--primary)" }}>
+                  <a href={`tel:${customer.phone.replace(/\s/g, "")}`} className="text-xs flex items-center gap-1 hover:opacity-80 transition-opacity" style={{ fontFamily: "var(--font-body)", color: "var(--primary)" }}>
                     <Phone className="w-3 h-3" />
                     {customer.phone}
                   </a>
@@ -254,9 +282,7 @@ function TableView({ customers, t }: { customers: CustomerWithOwed[]; t: ReturnT
                 </span>
               </td>
               <td className="py-3 px-3">
-                <Link href={`/customers/${customer.id}`} style={{ color: "var(--text-tertiary)" }}>
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
+                <CustomerInlineActions customer={customer} />
               </td>
             </tr>
           ))}
@@ -274,7 +300,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[--background-subtle]"
         style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
       >
         <ChevronLeft className="w-4 h-4" />
@@ -285,10 +311,10 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-9 h-9 flex items-center justify-center rounded-[--radius-sm] border transition-colors duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[--background-subtle]"
         style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
       >
-        <ChevronRight className="w-4 h-4" />
+        <ChevronLeft className="w-4 h-4 rotate-180" />
       </button>
     </div>
   )

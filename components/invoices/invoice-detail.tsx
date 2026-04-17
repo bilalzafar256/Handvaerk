@@ -126,7 +126,7 @@ export function InvoiceDetail({ invoice, user }: { invoice: InvoiceWithRelations
             <button
               onClick={handleSend}
               disabled={busy}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium transition-all disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium transition-all disabled:opacity-50 cursor-pointer hover:opacity-90"
               style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
             >
               <Send className="w-3.5 h-3.5" />
@@ -137,7 +137,7 @@ export function InvoiceDetail({ invoice, user }: { invoice: InvoiceWithRelations
             <button
               onClick={handleMarkPaid}
               disabled={busy}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium border transition-all disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium border transition-all disabled:opacity-50 cursor-pointer hover:opacity-90"
               style={{ borderColor: "var(--status-paid-border)", color: "var(--status-paid-text)", backgroundColor: "var(--status-paid-bg)", fontFamily: "var(--font-body)" }}
             >
               <CheckCircle className="w-3.5 h-3.5" />
@@ -149,7 +149,7 @@ export function InvoiceDetail({ invoice, user }: { invoice: InvoiceWithRelations
           <a
             href={`/api/invoices/${invoice.id}/pdf`}
             download
-            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer"
+            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer hover:bg-[--background-subtle]"
             style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
             title="Download PDF"
           >

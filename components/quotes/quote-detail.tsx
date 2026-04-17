@@ -221,7 +221,7 @@ export function QuoteDetail({
             <button
               onClick={handleSend}
               disabled={busy}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium transition-all duration-150 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium transition-all duration-150 disabled:opacity-50 cursor-pointer hover:opacity-90"
               style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
             >
               <Send className="w-3.5 h-3.5" />
@@ -232,7 +232,7 @@ export function QuoteDetail({
             <button
               onClick={() => handleCreateInvoice()}
               disabled={busy}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium transition-all duration-150 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-[--radius-sm] text-xs font-medium transition-all duration-150 disabled:opacity-50 cursor-pointer hover:opacity-90"
               style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
             >
               <Receipt className="w-3.5 h-3.5" />
@@ -244,7 +244,7 @@ export function QuoteDetail({
           <a
             href={`/api/quotes/${quote.id}/pdf`}
             download
-            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer"
+            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer hover:bg-[--background-subtle]"
             style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
             title="Download PDF"
           >
@@ -255,7 +255,7 @@ export function QuoteDetail({
           <button
             type="button"
             onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied") }}
-            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer"
+            className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer hover:bg-[--background-subtle]"
             style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
             title="Copy share link"
           >
