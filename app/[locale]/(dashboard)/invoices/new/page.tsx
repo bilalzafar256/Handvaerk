@@ -6,6 +6,7 @@ import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getCustomersByUser } from "@/lib/db/queries/customers"
 import { getQuotesByUser } from "@/lib/db/queries/quotes"
+import { getDefaultBankAccount } from "@/lib/db/queries/bank-accounts"
 import { Topbar } from "@/components/shared/topbar"
 import { InvoiceForm } from "@/components/forms/invoice-form"
 import { Link } from "@/i18n/navigation"
@@ -34,10 +35,15 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
   const defaultJobId      = sp?.jobId
   const defaultCustomerId = sp?.customerId
 
-  const [customers, allQuotes] = await Promise.all([
+  const [customers, allQuotes, defaultBankAccount] = await Promise.all([
     getCustomersByUser(user.id),
     getQuotesByUser(user.id),
+    getDefaultBankAccount(user.id),
   ])
+
+  const defaultBankAccountStr = defaultBankAccount
+    ? `Reg. ${defaultBankAccount.regNumber} | Konto ${defaultBankAccount.accountNumber}`
+    : undefined
 
   // Group quotes by customerId for the invoice form picker
   const quotesByCustomer = allQuotes.reduce<Record<string, typeof allQuotes>>((acc, q) => {
@@ -66,6 +72,8 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
           quotesByCustomer={quotesByCustomer}
           defaultJobId={defaultJobId}
           defaultCustomerId={defaultCustomerId}
+          defaultBankAccount={defaultBankAccountStr}
+          defaultMobilepayNumber={user.mobilepayNumber ?? undefined}
         />
       </div>
     </>

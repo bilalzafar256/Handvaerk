@@ -2,8 +2,8 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { users, invoices } from "@/lib/db/schema"
+import { eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -19,6 +19,7 @@ import {
 } from "@/lib/db/queries/invoices"
 import { getJobById } from "@/lib/db/queries/jobs"
 import { getQuoteById } from "@/lib/db/queries/quotes"
+import { getDefaultBankAccount } from "@/lib/db/queries/bank-accounts"
 
 const lineItemSchema = z.object({
   itemType:      z.enum(["labour", "material", "fixed", "travel"]),
@@ -178,10 +179,16 @@ export async function createInvoiceFromJobAction(jobId: string) {
   const job = await getJobById(jobId, user.id)
   if (!job) throw new Error("Job not found")
 
-  const total = await countAllInvoicesEver(user.id)
+  const [total, defaultBankAccount] = await Promise.all([
+    countAllInvoicesEver(user.id),
+    getDefaultBankAccount(user.id),
+  ])
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
   const dueDate = makeDueDate(15)
+  const bankAccountStr = defaultBankAccount
+    ? `Reg. ${defaultBankAccount.regNumber} | Konto ${defaultBankAccount.accountNumber}`
+    : null
 
   // Create a basic invoice with one labour line item from the job
   const invoice = await createInvoice({
@@ -196,8 +203,8 @@ export async function createInvoiceFromJobAction(jobId: string) {
     subtotalExVat:    "0.00",
     vatAmount:        "0.00",
     totalInclVat:     "0.00",
-    bankAccount:      null,
-    mobilepayNumber:  null,
+    bankAccount:      bankAccountStr,
+    mobilepayNumber:  user.mobilepayNumber ?? null,
     notes:            job.description ?? null,
     eanNumber:        null,
   })
@@ -233,10 +240,16 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
     if (existing) return { existingInvoiceId: existing.id }
   }
 
-  const total = await countAllInvoicesEver(user.id)
+  const [total, defaultBankAccount] = await Promise.all([
+    countAllInvoicesEver(user.id),
+    getDefaultBankAccount(user.id),
+  ])
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
   const dueDate = makeDueDate(15)
+  const bankAccountStr = defaultBankAccount
+    ? `Reg. ${defaultBankAccount.regNumber} | Konto ${defaultBankAccount.accountNumber}`
+    : null
 
   // F-602: Calculate totals from quote items (apply per-line discounts)
   let subtotalExVat = quote.items.reduce((sum, item) => {
@@ -274,8 +287,8 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
     vatAmount:        vatAmount.toFixed(2),
     totalInclVat:     totalInclVat.toFixed(2),
     discountAmount:   discountAmount.toFixed(2),
-    bankAccount:      null,
-    mobilepayNumber:  null,
+    bankAccount:      bankAccountStr,
+    mobilepayNumber:  user.mobilepayNumber ?? null,
     notes:            quote.notes ?? null,
     eanNumber:        quote.customer.eanNumber ?? null,
   })
@@ -543,4 +556,98 @@ export async function markOverdueAction() {
 
   await markOverdueInvoices(user.id)
   revalidatePath("/invoices")
+}
+
+export async function mergeInvoicesAction(ids: string[]): Promise<{ id: string }> {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  if (ids.length < 2) throw new Error("Select at least 2 invoices to merge")
+
+  const user = await getDbUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  const rows = await db.query.invoices.findMany({
+    where: (inv, { and, inArray, isNull, eq }) =>
+      and(inArray(inv.id, ids), eq(inv.userId, user.id), isNull(inv.deletedAt)),
+    with: { items: true, customer: true },
+  })
+
+  if (rows.length !== ids.length) throw new Error("One or more invoices not found")
+
+  const uniqueCustomers = [...new Set(rows.map(inv => inv.customerId))]
+  if (uniqueCustomers.length > 1) throw new Error("All invoices must be for the same customer")
+
+  const total = await countAllInvoicesEver(user.id)
+  const invoiceNumber = makeInvoiceNumber(total)
+  const issueDate = new Date().toISOString().split("T")[0]
+  const dueDate = makeDueDate(15)
+
+  // Combine all items from all invoices
+  const allItems = rows.flatMap(inv => inv.items)
+  allItems.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+  // Build line item array compatible with calcTotals
+  const itemsForCalc = allItems.map(item => ({
+    itemType:      item.itemType as "labour" | "material" | "fixed" | "travel",
+    description:   item.description,
+    quantity:      item.quantity ?? undefined,
+    unitPrice:     item.unitPrice ?? undefined,
+    discountType:  (item.discountType ?? undefined) as "percent" | "fixed" | undefined,
+    discountValue: item.discountValue ?? undefined,
+    vatRate:       item.vatRate ?? "25.00",
+    lineTotal:     item.lineTotal ?? undefined,
+    sortOrder:     item.sortOrder ?? 0,
+  }))
+
+  const totals = calcTotals(itemsForCalc)
+
+  // Pick bank info from first invoice that has it
+  const bankAccount = rows.find(inv => inv.bankAccount)?.bankAccount ?? null
+  const mobilepayNumber = rows.find(inv => inv.mobilepayNumber)?.mobilepayNumber ?? null
+
+  // Merge notes
+  const allNotes = rows.map(inv => inv.notes).filter((n): n is string => !!n?.trim())
+  const uniqueNotes = [...new Set(allNotes)]
+  const mergedNotes = uniqueNotes.join("\n---\n") || null
+
+  const newInvoice = await createInvoice({
+    userId:           user.id,
+    customerId:       rows[0].customerId,
+    invoiceNumber,
+    status:           "draft",
+    issueDate,
+    dueDate,
+    paymentTermsDays: 14,
+    subtotalExVat:    totals.subtotalExVat,
+    vatAmount:        totals.vatAmount,
+    totalInclVat:     totals.totalInclVat,
+    discountAmount:   totals.discountAmount,
+    bankAccount,
+    mobilepayNumber,
+    notes:            mergedNotes,
+    eanNumber:        null,
+  })
+
+  await replaceInvoiceItems(newInvoice.id, allItems.map((item, i) => ({
+    itemType:      item.itemType,
+    description:   item.description,
+    quantity:      item.quantity ?? null,
+    unitPrice:     item.unitPrice ?? null,
+    discountType:  item.discountType ?? null,
+    discountValue: item.discountValue ?? null,
+    vatRate:       item.vatRate ?? "25.00",
+    lineTotal:     item.lineTotal ?? null,
+    sortOrder:     i,
+  })))
+
+  // Mark originals as merged
+  await db.update(invoices)
+    .set({ status: "merged", mergedInto: newInvoice.id, updatedAt: new Date() })
+    .where(inArray(invoices.id, ids))
+
+  revalidatePath("/invoices")
+  return { id: newInvoice.id }
 }

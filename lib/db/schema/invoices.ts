@@ -45,6 +45,9 @@ export const invoices = pgTable("invoices", {
   oioubl:             boolean("oioubl_format").default(false),
   peppolId:           text("peppol_id"),
 
+  // Merge
+  mergedInto:         uuid("merged_into"),            // set when status = 'merged'
+
   // Meta
   notes:              text("notes"),
   paidAt:             timestamp("paid_at"),
