@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Link } from "@/i18n/navigation"
+import { Link, useRouter } from "@/i18n/navigation"
 import { motion } from "motion/react"
-import { ChevronRight, ChevronLeft, Search, Plus, Receipt, AlertCircle } from "lucide-react"
+import { ChevronRight, ChevronLeft, Search, Plus, Receipt, AlertCircle, MoreHorizontal, Edit2, Trash2, Send, Download, CheckCircle, FileText } from "lucide-react"
+import { toast } from "sonner"
 import { formatDKK } from "@/lib/utils/currency"
 import { ViewToggle } from "@/components/shared/view-toggle"
 import { useViewPreference } from "@/hooks/use-view-preference"
+import { deleteInvoiceAction, sendInvoiceAction, markInvoicePaidAction, createCreditNoteAction } from "@/lib/actions/invoices"
 import type { Invoice, InvoiceItem } from "@/lib/db/schema/invoices"
 import type { Customer } from "@/lib/db/schema/customers"
 
@@ -43,6 +45,106 @@ function InvoiceStatusBadge({ status, isCreditNote }: { status: string; isCredit
 }
 
 const PER_PAGE = 15
+
+function InvoiceRowActions({ inv }: { inv: InvoiceWithRelations }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const status = inv.status ?? "draft"
+  const isPaid = status === "paid"
+
+  async function handleDelete() {
+    if (!confirm("Delete this invoice?")) return
+    setBusy(true)
+    try { await deleteInvoiceAction(inv.id) } catch { toast.error("Failed to delete") }
+    setBusy(false); setOpen(false)
+  }
+
+  async function handleSend() {
+    setBusy(true)
+    try { await sendInvoiceAction(inv.id); toast.success("Invoice sent") } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
+    setBusy(false); setOpen(false)
+  }
+
+  async function handleMarkPaid() {
+    setBusy(true)
+    try { await markInvoicePaidAction(inv.id); toast.success("Marked as paid"); router.refresh() } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
+    setBusy(false); setOpen(false)
+  }
+
+  async function handleCreditNote() {
+    setBusy(true)
+    try { await createCreditNoteAction(inv.id) } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
+    setBusy(false); setOpen(false)
+  }
+
+  return (
+    <div className="relative" onClick={(e) => e.preventDefault()}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        disabled={busy}
+        className="flex items-center justify-center w-8 h-8 rounded-[--radius-sm] border transition-colors cursor-pointer disabled:opacity-40"
+        style={{ borderColor: "var(--border)", color: "var(--text-secondary)", backgroundColor: "var(--surface)" }}
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 w-52 rounded-[--radius-md] border shadow-lg overflow-hidden z-30"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
+        >
+          {status === "draft" && (
+            <Link href={`/invoices/${inv.id}/edit`} onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors"
+              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            >
+              <Edit2 className="w-4 h-4 flex-shrink-0" /> Edit
+            </Link>
+          )}
+          {!isPaid && (
+            <button onClick={handleSend}
+              className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer"
+              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            >
+              <Send className="w-4 h-4 flex-shrink-0" /> {status === "sent" ? "Resend" : "Send"}
+            </button>
+          )}
+          {(status === "sent" || status === "viewed" || status === "overdue") && (
+            <button onClick={handleMarkPaid}
+              className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer"
+              style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}
+            >
+              <CheckCircle className="w-4 h-4 flex-shrink-0" /> Mark as paid
+            </button>
+          )}
+          <a href={`/api/invoices/${inv.id}/pdf`} download onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors"
+            style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}
+          >
+            <Download className="w-4 h-4 flex-shrink-0" /> Download PDF
+          </a>
+          {(status === "sent" || status === "paid" || status === "overdue") && !inv.isCreditNote && (
+            <button onClick={handleCreditNote}
+              className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer border-t"
+              style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)", borderColor: "var(--border)" }}
+            >
+              <FileText className="w-4 h-4 flex-shrink-0" /> Credit note
+            </button>
+          )}
+          {status === "draft" && (
+            <button onClick={handleDelete}
+              className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-[--background-subtle] transition-colors cursor-pointer border-t"
+              style={{ fontFamily: "var(--font-body)", color: "var(--error)", borderColor: "var(--border)" }}
+            >
+              <Trash2 className="w-4 h-4 flex-shrink-0" /> Delete
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function InvoiceList({ invoices }: { invoices: InvoiceWithRelations[] }) {
   const [query, setQuery] = useState("")
@@ -128,45 +230,47 @@ function ListView({ invoices }: { invoices: InvoiceWithRelations[] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18, delay: Math.min(i * 0.03, 0.2) }}
           >
-            <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}>
-              <Link
-                href={`/invoices/${inv.id}`}
-                className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  borderColor: isOverdue ? "var(--status-overdue-border)" : "var(--border)",
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <div
-                  className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: isOverdue ? "var(--status-overdue-bg)" : "var(--accent-light)" }}
+            <div className="flex items-center gap-2">
+              <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }} className="flex-1 min-w-0">
+                <Link
+                  href={`/invoices/${inv.id}`}
+                  className="flex items-center gap-3 p-4 rounded-[--radius-md] border transition-colors duration-150"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    borderColor: isOverdue ? "var(--status-overdue-border)" : "var(--border)",
+                    boxShadow: "var(--shadow-xs)",
+                  }}
                 >
-                  {isOverdue
-                    ? <AlertCircle className="w-4 h-4" style={{ color: "var(--status-overdue-text)" }} />
-                    : <Receipt className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                  }
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                    {inv.invoiceNumber}
-                  </p>
-                  <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-                    {inv.customer.name}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}>
-                    Due: {new Date(inv.dueDate).toLocaleDateString("da-DK")}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  <InvoiceStatusBadge status={inv.status ?? "draft"} isCreditNote={inv.isCreditNote ?? false} />
-                  <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
-                    {formatDKK(parseFloat(inv.totalInclVat ?? "0"))}
-                  </span>
-                  <ChevronRight className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
-                </div>
-              </Link>
-            </motion.div>
+                  <div
+                    className="w-9 h-9 rounded-[--radius-sm] flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: isOverdue ? "var(--status-overdue-bg)" : "var(--accent-light)" }}
+                  >
+                    {isOverdue
+                      ? <AlertCircle className="w-4 h-4" style={{ color: "var(--status-overdue-text)" }} />
+                      : <Receipt className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                      {inv.invoiceNumber}
+                    </p>
+                    <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
+                      {inv.customer.name}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}>
+                      Due: {new Date(inv.dueDate).toLocaleDateString("da-DK")}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    <InvoiceStatusBadge status={inv.status ?? "draft"} isCreditNote={inv.isCreditNote ?? false} />
+                    <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+                      {formatDKK(parseFloat(inv.totalInclVat ?? "0"))}
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+              <InvoiceRowActions inv={inv} />
+            </div>
           </motion.li>
         )
       })}
@@ -280,9 +384,7 @@ function TableView({ invoices }: { invoices: InvoiceWithRelations[] }) {
                 <InvoiceStatusBadge status={inv.status ?? "draft"} isCreditNote={inv.isCreditNote ?? false} />
               </td>
               <td className="py-3 px-3">
-                <Link href={`/invoices/${inv.id}`} style={{ color: "var(--text-tertiary)" }}>
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
+                <InvoiceRowActions inv={inv} />
               </td>
             </tr>
           ))}

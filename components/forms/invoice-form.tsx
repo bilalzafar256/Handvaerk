@@ -36,29 +36,33 @@ const labelCls = "block text-sm font-medium mb-1.5"
 
 function toLineItems(items: InvoiceItem[]): LineItem[] {
   return items.map((item, i) => ({
-    id:          item.id,
-    itemType:    item.itemType as LineItem["itemType"],
-    description: item.description,
-    quantity:    item.quantity ?? "",
-    unitPrice:   item.unitPrice ?? "",
-    vatRate:     item.vatRate ?? "25.00",
-    sortOrder:   item.sortOrder ?? i,
+    id:            item.id,
+    itemType:      item.itemType as LineItem["itemType"],
+    description:   item.description,
+    quantity:      item.quantity ?? "",
+    unitPrice:     item.unitPrice ?? "",
+    discountType:  (item.discountType as LineItem["discountType"]) ?? "",
+    discountValue: item.discountValue ?? "",
+    vatRate:       item.vatRate ?? "25.00",
+    sortOrder:     item.sortOrder ?? i,
   }))
 }
 
 function quoteItemsToLineItems(items: QuoteItem[]): LineItem[] {
   return items.map((item, i) => ({
-    id:          crypto.randomUUID(),
-    itemType:    (item.itemType ?? "labour") as LineItem["itemType"],
-    description: item.description,
-    quantity:    item.quantity ?? "",
-    unitPrice:   item.unitPrice ?? "",
-    vatRate:     item.vatRate ?? "25.00",
-    sortOrder:   i,
+    id:            crypto.randomUUID(),
+    itemType:      (item.itemType ?? "labour") as LineItem["itemType"],
+    description:   item.description,
+    quantity:      item.quantity ?? "",
+    unitPrice:     item.unitPrice ?? "",
+    discountType:  (item.discountType as LineItem["discountType"]) ?? "",
+    discountValue: item.discountValue ?? "",
+    vatRate:       item.vatRate ?? "25.00",
+    sortOrder:     i,
   }))
 }
 
-function defaultDueDate(days = 14): string {
+function defaultDueDate(days = 15): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
   return d.toISOString().split("T")[0]
@@ -80,7 +84,7 @@ export function InvoiceForm({
   const [linkedQuoteId, setLinkedQuoteId] = useState<string | undefined>(defaultQuoteId)
 
   const [customerId, setCustomerId]           = useState(invoice?.customerId ?? defaultCustomerId ?? "")
-  const [dueDate, setDueDate]                 = useState(invoice?.dueDate ?? defaultDueDate(14))
+  const [dueDate, setDueDate]                 = useState(invoice?.dueDate ?? defaultDueDate(15))
   const [paymentTermsDays, setPaymentTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
   const [bankAccount, setBankAccount]         = useState(invoice?.bankAccount ?? "")
   const [mobilepayNumber, setMobilepayNumber] = useState(invoice?.mobilepayNumber ?? "")
@@ -135,13 +139,15 @@ export function InvoiceForm({
         items: items
           .filter(item => item.description.trim().length > 0)
           .map((item, i) => ({
-            itemType:    item.itemType,
-            description: item.description,
-            quantity:    item.quantity || undefined,
-            unitPrice:   item.unitPrice || undefined,
-            vatRate:     item.vatRate,
-            lineTotal:   undefined,
-            sortOrder:   i,
+            itemType:      item.itemType,
+            description:   item.description,
+            quantity:      item.quantity || undefined,
+            unitPrice:     item.unitPrice || undefined,
+            discountType:  item.discountType || undefined,
+            discountValue: item.discountValue || undefined,
+            vatRate:       item.vatRate,
+            lineTotal:     undefined,
+            sortOrder:     i,
           })),
       }
 

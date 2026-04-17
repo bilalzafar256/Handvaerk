@@ -289,11 +289,7 @@ function Hero() {
                 backgroundClip: "text",
               }}
             >
-              {"45 seconds".split("").map((ch, i) => (
-                <span key={i} style={{ display: "inline-block" }}>
-                  {ch === " " ? "\u00A0" : ch}
-                </span>
-              ))}
+              45 seconds
             </span>
             <span style={{ color: "var(--workshop-50)" }}>.</span>
           </span>

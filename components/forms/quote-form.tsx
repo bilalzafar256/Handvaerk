@@ -10,7 +10,7 @@ import type { Quote, QuoteItem, QuoteTemplate } from "@/lib/db/schema/quotes"
 import type { Customer } from "@/lib/db/schema/customers"
 import type { Job } from "@/lib/db/schema/jobs"
 
-function defaultValidUntil(days = 14): string {
+function defaultValidUntil(days = 15): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
   return d.toISOString().split("T")[0]
@@ -39,14 +39,16 @@ const labelCls = "block text-sm font-medium mb-1.5"
 
 function toLineItems(items: QuoteItem[]): LineItem[] {
   return items.map((item, i) => ({
-    id:            item.id,
-    itemType:      item.itemType as LineItem["itemType"],
-    description:   item.description,
-    quantity:      item.quantity ?? "",
-    unitPrice:     item.unitPrice ?? "",
-    markupPercent: item.markupPercent ?? "",
-    vatRate:       item.vatRate ?? "25.00",
-    sortOrder:     item.sortOrder ?? i,
+    id:             item.id,
+    itemType:       item.itemType as LineItem["itemType"],
+    description:    item.description,
+    quantity:       item.quantity ?? "",
+    unitPrice:      item.unitPrice ?? "",
+    markupPercent:  item.markupPercent ?? "",
+    discountType:   (item.discountType as LineItem["discountType"]) ?? "",
+    discountValue:  item.discountValue ?? "",
+    vatRate:        item.vatRate ?? "25.00",
+    sortOrder:      item.sortOrder ?? i,
   }))
 }
 
@@ -57,6 +59,8 @@ type TemplateItem = {
   quantity?: string | null
   unitPrice?: string | null
   markupPercent?: string | null
+  discountType?: string | null
+  discountValue?: string | null
   vatRate?: string | null
   sortOrder?: number | null
 }
@@ -64,14 +68,16 @@ type TemplateItem = {
 function templateItemsToLineItems(raw: unknown): LineItem[] {
   if (!Array.isArray(raw)) return []
   return (raw as TemplateItem[]).map((item, i) => ({
-    id:            crypto.randomUUID(),
-    itemType:      (item.itemType ?? "labour") as LineItem["itemType"],
-    description:   item.description ?? "",
-    quantity:      item.quantity ?? "",
-    unitPrice:     item.unitPrice ?? "",
-    markupPercent: item.markupPercent ?? "",
-    vatRate:       item.vatRate ?? "25.00",
-    sortOrder:     item.sortOrder ?? i,
+    id:             crypto.randomUUID(),
+    itemType:       (item.itemType ?? "labour") as LineItem["itemType"],
+    description:    item.description ?? "",
+    quantity:       item.quantity ?? "",
+    unitPrice:      item.unitPrice ?? "",
+    markupPercent:  item.markupPercent ?? "",
+    discountType:   (item.discountType as LineItem["discountType"]) ?? "",
+    discountValue:  item.discountValue ?? "",
+    vatRate:        item.vatRate ?? "25.00",
+    sortOrder:      item.sortOrder ?? i,
   }))
 }
 
@@ -90,7 +96,7 @@ export function QuoteForm({
   const [customerId, setCustomerId]       = useState(quote?.customerId ?? defaultCustomerId ?? "")
   const [jobId, setJobId]                 = useState(quote?.jobId ?? defaultJobId ?? "")
   // Always default to +14 days for new quotes; keep existing value when editing
-  const [validUntil, setValidUntil]       = useState(quote?.validUntil ?? defaultValidUntil(14))
+  const [validUntil, setValidUntil]       = useState(quote?.validUntil ?? defaultValidUntil(15))
   const [discountType, setDiscountType]   = useState<"percent" | "fixed" | "">(
     (quote?.discountType as "percent" | "fixed") ?? ""
   )
@@ -106,7 +112,7 @@ export function QuoteForm({
     // Clear contextual fields — user picks these fresh per-quote
     setCustomerId(defaultCustomerId ?? "")
     setJobId(defaultJobId ?? "")
-    setValidUntil(defaultValidUntil(14))
+    setValidUntil(defaultValidUntil(15))
     setShowTemplates(false)
     toast.success(`Template "${template.name}" loaded`)
   }
@@ -133,6 +139,8 @@ export function QuoteForm({
             quantity:      item.quantity || undefined,
             unitPrice:     item.unitPrice || undefined,
             markupPercent: item.markupPercent || undefined,
+            discountType:  item.discountType || undefined,
+            discountValue: item.discountValue || undefined,
             vatRate:       item.vatRate,
             sortOrder:     i,
           })),

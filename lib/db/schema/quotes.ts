@@ -34,16 +34,18 @@ export const quotes = pgTable("quotes", {
 })
 
 export const quoteItems = pgTable("quote_items", {
-  id:            uuid("id").primaryKey().defaultRandom(),
-  quoteId:       uuid("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
-  itemType:      text("item_type").notNull(),   // 'labour' | 'material' | 'fixed' | 'travel'
-  description:   text("description").notNull(),
-  quantity:      numeric("quantity", { precision: 10, scale: 2 }),
-  unitPrice:     numeric("unit_price", { precision: 10, scale: 2 }),
-  markupPercent: numeric("markup_percent", { precision: 5, scale: 2 }),
-  vatRate:       numeric("vat_rate", { precision: 5, scale: 2 }).default("25.00"),
-  sortOrder:     integer("sort_order").default(0),
-  createdAt:     timestamp("created_at").defaultNow(),
+  id:             uuid("id").primaryKey().defaultRandom(),
+  quoteId:        uuid("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
+  itemType:       text("item_type").notNull(),   // 'labour' | 'material' | 'fixed' | 'travel'
+  description:    text("description").notNull(),
+  quantity:       numeric("quantity", { precision: 10, scale: 2 }),
+  unitPrice:      numeric("unit_price", { precision: 10, scale: 2 }),
+  markupPercent:  numeric("markup_percent", { precision: 5, scale: 2 }),
+  discountType:   text("discount_type"),         // 'percent' | 'fixed' | null
+  discountValue:  numeric("discount_value", { precision: 10, scale: 2 }),
+  vatRate:        numeric("vat_rate", { precision: 5, scale: 2 }).default("25.00"),
+  sortOrder:      integer("sort_order").default(0),
+  createdAt:      timestamp("created_at").defaultNow(),
 })
 
 export const quoteTemplates = pgTable("quote_templates", {

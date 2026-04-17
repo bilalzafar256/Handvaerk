@@ -27,6 +27,8 @@ const lineItemSchema = z.object({
   quantity:      z.string().optional(),
   unitPrice:     z.string().optional(),
   markupPercent: z.string().optional(),
+  discountType:  z.enum(["percent", "fixed"]).optional(),
+  discountValue: z.string().optional(),
   vatRate:       z.string().default("25.00"),
   sortOrder:     z.number().default(0),
 })
@@ -90,6 +92,8 @@ export async function createQuoteAction(data: QuoteFormData) {
       quantity:      item.quantity ?? null,
       unitPrice:     item.unitPrice ?? null,
       markupPercent: item.markupPercent ?? null,
+      discountType:  item.discountType ?? null,
+      discountValue: item.discountValue ?? null,
       sortOrder:     i,
     })))
   }

@@ -58,15 +58,17 @@ export const invoices = pgTable("invoices", {
 })
 
 export const invoiceItems = pgTable("invoice_items", {
-  id:          uuid("id").primaryKey().defaultRandom(),
-  invoiceId:   uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
-  itemType:    text("item_type").notNull(),   // 'labour' | 'material' | 'fixed' | 'travel'
-  description: text("description").notNull(),
-  quantity:    numeric("quantity", { precision: 10, scale: 2 }),
-  unitPrice:   numeric("unit_price", { precision: 10, scale: 2 }),
-  vatRate:     numeric("vat_rate", { precision: 5, scale: 2 }).default("25.00"),
-  lineTotal:   numeric("line_total", { precision: 12, scale: 2 }),
-  sortOrder:   integer("sort_order").default(0),
+  id:            uuid("id").primaryKey().defaultRandom(),
+  invoiceId:     uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  itemType:      text("item_type").notNull(),   // 'labour' | 'material' | 'fixed' | 'travel'
+  description:   text("description").notNull(),
+  quantity:      numeric("quantity", { precision: 10, scale: 2 }),
+  unitPrice:     numeric("unit_price", { precision: 10, scale: 2 }),
+  discountType:  text("discount_type"),         // 'percent' | 'fixed' | null
+  discountValue: numeric("discount_value", { precision: 10, scale: 2 }),
+  vatRate:       numeric("vat_rate", { precision: 5, scale: 2 }).default("25.00"),
+  lineTotal:     numeric("line_total", { precision: 12, scale: 2 }),
+  sortOrder:     integer("sort_order").default(0),
 })
 
 export type Invoice = typeof invoices.$inferSelect

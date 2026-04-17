@@ -51,7 +51,7 @@ One tool. No switching between Billy, a Notes app, WhatsApp, and memory.
 | **Solo** | 149 DKK | 1 | Unlimited | 1-person operation |
 | **Hold** | 299 DKK | Up to 5 | Unlimited | Small team |
 
-> **Current development scope:** Free tier only. All tier infrastructure and gating logic built from day one, but Solo and Hold features not unlocked until Phase 6.
+> **Current development scope:** Free tier only. All tier infrastructure and gating logic built from day one, but Solo and Hold features not unlocked until Phase 11.
 
 ### Payment Method
 All subscription billing via **MobilePay** (Denmark's dominant payment platform).
@@ -453,12 +453,69 @@ posthog-js posthog-node
 
 ---
 
-### Phase 6 — Dashboard, Free Tier Launch & Tier Gates
+### Phase 6 — Quote & Invoice Enhancements ✅
+**Goal:** Polish the core quote/invoice flow with quality-of-life improvements.
+
+**Deliverables:**
+- Default `valid_until` = today + 15 days on new quotes; default `due_date` = today + 15 on invoices
+- Per-line-item discounts (% or fixed) — new columns on `quote_items` and `invoice_items`; migration 0005 applied
+- Discount carry-over when converting quote → invoice
+- Duplicate invoice guard — modal: "View existing" or "Create new anyway"
+- Compact sticky action bar + ⋯ overflow menu on quote/invoice detail pages
+- Row-level ⋯ menus on quotes and invoices list pages
+- Landing page hero gradient fix
+
+---
+
+### Phase 7 — Bank Details & Profile Enhancements
+**Goal:** Real payment information on invoices.
+
+**Deliverables:**
+- `bank_accounts` table: `bank_name`, `reg_number`, `account_number`, `is_default`, per user
+- Profile UI: add/edit/delete bank accounts; star to set default
+- Profile UI: MobilePay business number management
+- Auto-fill default bank + MobilePay details when creating a new invoice
+- Bank details + MobilePay section on invoice PDF
+
+---
+
+### Phase 8 — Merge Documents
+**Goal:** Combine multiple quotes or invoices for the same customer.
+
+**Deliverables:**
+- Merge two or more quotes → single consolidated quote
+- Merge two or more invoices → single consolidated invoice
+- Merge conflict detection and resolution UX
+
+---
+
+### Phase 9 — Email Notifications & Customer Communication
+**Goal:** Automated customer-facing emails for key events.
+
+**Deliverables:**
+- Quote accepted/rejected notification email to business owner
+- Invoice paid thank-you email to customer + Google review request
+- `google_review_url` field on user profile
+
+---
+
+### Phase 10 — AI Features
+**Goal:** Intelligent automation to save time and reduce errors. Full spec in `docs/AI_FEATURES.md`.
+
+**Deliverables:**
+- Business card OCR → auto-create customer
+- Smart quote suggestions based on job history
+- Payment risk scoring on invoices
+- Voice-to-quote via speech input
+
+---
+
+### Phase 11 — Dashboard, Free Tier Launch & Tier Gates
 **Goal:** Working dashboard. Free tier live. All tier gates enforced. Ready for real users.
 
 **Deliverables:**
 - Dashboard (Overblik): outstanding amount, active jobs count, overdue invoices count, this month's billed total
-- All Free tier limits enforced (3 active jobs)
+- All Free tier limits enforced (10 active jobs)
 - Solo + Hold tier plans defined in DB and code — not yet purchasable, but all gating logic works
 - MobilePay subscription payment: **referenced, not built** — UI shows "coming soon" on upgrade flow
 - `tier-gate.tsx` shown on all capped features
@@ -468,7 +525,7 @@ posthog-js posthog-node
 
 ---
 
-### Phase 7 — Compliance Pre-GoLive
+### Phase 12 — Compliance Pre-GoLive
 **Goal:** Everything required before a public commercial launch.
 
 **Deliverables:**
@@ -485,10 +542,10 @@ posthog-js posthog-node
 > These are not MVP features. They are known future obligations. Database schemas are designed from Phase 5 onward to accommodate them without breaking changes.
 
 ### SKAT Moms (VAT Filing API)
-Direct integration with SKAT TastSelv API for quarterly moms reporting. One-click VAT submission from the app. **This is the single biggest retention driver** — if Klaus files moms in 2 clicks, he never leaves. Must be completed before broad public launch (Phase 7 minimum viable compliance, full integration Phase 8+).
+Direct integration with SKAT TastSelv API for quarterly moms reporting. One-click VAT submission from the app. **This is the single biggest retention driver** — if Klaus files moms in 2 clicks, he never leaves. Must be completed before broad public launch (Phase 12 minimum viable compliance, full integration later).
 
 ### NemHandel / PEPPOL (E-Invoicing)
-Denmark's public e-invoicing infrastructure. Required for invoicing municipalities, schools, hospitals, and all public-sector clients. Many håndværkere do public work. EAN number field and OIOUBL invoice format are baked into the invoice schema from Phase 5, UI exposed in Phase 7.
+Denmark's public e-invoicing infrastructure. Required for invoicing municipalities, schools, hospitals, and all public-sector clients. Many håndværkere do public work. EAN number field and OIOUBL invoice format are baked into the invoice schema from Phase 5, UI exposed in Phase 12.
 
 ### Bogføringsloven (Danish Bookkeeping Act)
 From 2026, sole proprietorships with turnover > 300,000 DKK must use an approved digital bookkeeping system. Requirements: digital receipt storage (5-year retention), audit trail on all transactions, secure backup. Our Neon DB with full `created_at/updated_at/deleted_at` audit columns and Vercel Blob receipt storage satisfies this architecturally. Certification application is a business/legal process (not code).
