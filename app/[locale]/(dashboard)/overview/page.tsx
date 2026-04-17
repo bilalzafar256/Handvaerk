@@ -23,11 +23,11 @@ export const dynamic = "force-dynamic"
 
 type Props = { params: Promise<{ locale: string }> }
 
-function getGreeting() {
+function getGreetingKey(): "greetingMorning" | "greetingAfternoon" | "greetingEvening" {
   const hour = new Date().getHours()
-  if (hour < 12) return "God morgen"
-  if (hour < 17) return "God eftermiddag"
-  return "God aften"
+  if (hour < 12) return "greetingMorning"
+  if (hour < 17) return "greetingAfternoon"
+  return "greetingEvening"
 }
 
 export default async function OverviewPage({ params }: Props) {
@@ -43,10 +43,15 @@ export default async function OverviewPage({ params }: Props) {
 
   const stats = await getOverviewStats(user.id)
   const firstName = user.companyName?.split(" ")[0] ?? "der"
-  const greeting = getGreeting()
+  const greetingKey = getGreetingKey()
 
   const todayJobCount = stats.statusCounts.in_progress + stats.statusCounts.scheduled
   const pendingQuotes = stats.openQuoteCount
+
+  const summaryParts: string[] = []
+  if (todayJobCount > 0) summaryParts.push(t("summaryJobsToday", { count: todayJobCount }))
+  if (pendingQuotes > 0) summaryParts.push(t("summaryPendingQuotes", { count: pendingQuotes }))
+  const summary = summaryParts.length > 0 ? summaryParts.join(" · ") + "." : t("summaryQuiet")
 
   return (
     <>
@@ -60,17 +65,13 @@ export default async function OverviewPage({ params }: Props) {
             className="text-[22px] font-bold leading-tight"
             style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
           >
-            {greeting}, {firstName}.
+            {t(greetingKey)}, {firstName}.
           </h1>
           <p
             className="text-sm mt-0.5"
             style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}
           >
-            {todayJobCount > 0
-              ? `${todayJobCount} job${todayJobCount > 1 ? "s" : ""} i dag${pendingQuotes > 0 ? ` · ${pendingQuotes} tilbud afventer svar` : ""}.`
-              : pendingQuotes > 0
-              ? `${pendingQuotes} tilbud afventer svar.`
-              : "Alt er stille — god dag til det."}
+            {summary}
           </p>
         </div>
 
@@ -92,17 +93,17 @@ export default async function OverviewPage({ params }: Props) {
 
         {/* Quick stat tiles */}
         <div className="grid grid-cols-2 gap-3">
-          <StatTile icon={Briefcase} label="Aktive jobs" value={stats.activeJobCount} href="/jobs" variant="amber" />
-          <StatTile icon={Users} label="Kunder" value={stats.customerCount} href="/customers" variant="blue" />
-          <StatTile icon={FileText} label="Åbne tilbud" value={stats.openQuoteCount} href="/quotes" variant="default" />
-          <StatTile icon={Receipt} label="Udestående fakturaer" value={stats.pendingInvoiceCount} href="/invoices" variant="green" />
+          <StatTile icon={Briefcase} label={t("statsActiveJobs")} value={stats.activeJobCount} href="/jobs" variant="amber" />
+          <StatTile icon={Users} label={t("statsCustomers")} value={stats.customerCount} href="/customers" variant="blue" />
+          <StatTile icon={FileText} label={t("statOpenQuotes")} value={stats.openQuoteCount} href="/quotes" variant="default" />
+          <StatTile icon={Receipt} label={t("statPendingInvoices")} value={stats.pendingInvoiceCount} href="/invoices" variant="green" />
         </div>
 
         {/* Financial summary */}
         {(stats.pendingInvoiceTotal > 0 || stats.paidThisMonth > 0) && (
           <div className="grid grid-cols-2 gap-3">
-            <FinanceTile label="Udestående" value={formatDKK(stats.pendingInvoiceTotal)} icon={<Receipt className="w-4 h-4" />} alert={stats.pendingInvoiceTotal > 0} />
-            <FinanceTile label="Betalt denne måned" value={formatDKK(stats.paidThisMonth)} icon={<TrendingUp className="w-4 h-4" />} />
+            <FinanceTile label={t("financeOutstanding")} value={formatDKK(stats.pendingInvoiceTotal)} icon={<Receipt className="w-4 h-4" />} alert={stats.pendingInvoiceTotal > 0} />
+            <FinanceTile label={t("financePaidThisMonth")} value={formatDKK(stats.paidThisMonth)} icon={<TrendingUp className="w-4 h-4" />} />
           </div>
         )}
 

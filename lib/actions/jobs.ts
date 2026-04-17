@@ -110,6 +110,19 @@ export async function updateJobAction(id: string, data: JobFormData) {
   revalidatePath(`/jobs/${id}`)
 }
 
+export async function updateJobNotesAction(id: string, notes: string | null) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const user = await getDbUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  await updateJob(id, user.id, { notes })
+  revalidatePath(`/jobs/${id}`)
+}
+
 export async function updateJobStatusAction(id: string, status: string) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")

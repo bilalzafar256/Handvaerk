@@ -80,10 +80,20 @@
     "recentActivity": "Recent activity",
     "greeting": "Hey, {name}",
     "greetingSub": "Here's what's happening today.",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "summaryJobsToday": "{count, plural, one {# job today} other {# jobs today}}",
+    "summaryPendingQuotes": "{count, plural, one {# quote awaiting response} other {# quotes awaiting response}}",
+    "summaryQuiet": "All quiet — have a great day.",
     "statsCustomers": "Customers",
     "statsActiveJobs": "Active jobs",
     "statsInProgress": "In progress",
     "statsDone": "Completed",
+    "statOpenQuotes": "Open quotes",
+    "statPendingInvoices": "Outstanding invoices",
+    "financeOutstanding": "Outstanding",
+    "financePaidThisMonth": "Paid this month",
     "jobsByStatus": "Jobs by status",
     "recentJobs": "Recent jobs",
     "viewAll": "View all",
@@ -201,16 +211,30 @@
     "title": "Jobs",
     "pageTitle": "Jobs | Håndværk Pro",
     "newJob": "New job",
-    "searchPlaceholder": "Search by title, customer or number…",
+    "searchPlaceholder": "Search jobs…",
+    "statusFilter": "Status",
+    "clearFilter": "Clear filter",
+    "jobCount": "{count, plural, one {# job} other {# jobs}}",
     "empty": {
       "title": "No jobs yet",
       "description": "Create your first job to get started.",
       "cta": "Create job"
     },
     "emptySearch": {
-      "title": "No results",
-      "description": "No jobs match your search."
+      "title": "No jobs match the filter",
+      "description": "Try changing your filters."
     }
+  },
+  "JobStatus": {
+    "new": "New",
+    "scheduled": "Scheduled",
+    "in_progress": "In progress",
+    "done": "Completed",
+    "invoiced": "Invoiced",
+    "paid": "Paid",
+    "confirmChange": "Change to {label}?",
+    "confirm": "Confirm ↵",
+    "errorUpdate": "Could not update status"
   },
   "JobForm": {
     "newTitle": "New job",
@@ -255,7 +279,22 @@
     "detailsSection": "Details",
     "jobTypeLabel": "Type",
     "notesSection": "Internal notes",
-    "photosSection": "Photos"
+    "photosSection": "Photos",
+    "jobTypeService": "Service",
+    "jobTypeProject": "Project",
+    "jobTypeRecurring": "Recurring",
+    "quickActions": "Quick actions",
+    "newQuote": "New quote",
+    "newInvoice": "New invoice",
+    "quotesSection": "Quotes",
+    "invoicesSection": "Invoices",
+    "noQuotes": "No quotes yet",
+    "noInvoices": "No invoices yet",
+    "notesPlaceholder": "Add notes about the job…",
+    "notesEmpty": "Click to add notes…",
+    "notesSaving": "Saving…",
+    "notesSaved": "Saved ✓",
+    "notesError": "Could not save notes"
   },
   "CustomerForm": {
     "nameLabel": "Name",
