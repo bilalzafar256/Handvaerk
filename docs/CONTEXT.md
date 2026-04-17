@@ -65,13 +65,13 @@ Full rationale for each choice in `BUSINESS_PLAN.md` § 4.
 ## PHASE CHECKLIST
 
 ```
-[ ] Phase 0 — Foundation & Infrastructure
-[ ] Phase 1 — Authentication & User Profile
-[ ] Phase 2 — Customer Management
-[ ] Phase 3 — Job Management
-[ ] Phase 4 — Quote Builder
-[ ] Phase 5 — Invoice Engine
-[ ] Phase 6 — Dashboard & Free Tier Launch
+[~] Phase 0 — Foundation & Infrastructure      (F-001, F-014 pending external setup)
+[~] Phase 1 — Authentication & User Profile    (F-100–F-103 pending Clerk dashboard config)
+[x] Phase 2 — Customer Management
+[x] Phase 3 — Job Management
+[x] Phase 4 — Quote Builder
+[x] Phase 5 — Invoice Engine
+[~] Phase 6 — Dashboard & Free Tier Launch     (BE queries done; dashboard FE uses stub data)
 [ ] Phase 7 — Compliance Pre-GoLive
 ```
 

@@ -34,7 +34,7 @@ Complete: F-104, F-105, F-106, F-107, F-108, F-109.
 Remaining: F-100, F-101, F-102, F-103 (Clerk phone/email OTP pages — pending Clerk dashboard config).
 
 **Phase 2 — Customer Management** `[x]` complete
-Complete: F-200 through F-209. F-207 "owes money" badge is stubbed at 0 — will be wired to real invoice data in Phase 5.
+Complete: F-200 through F-209. F-207 "owes money" badge still stubbed at 0 — Phase 5 is done but badge not yet wired to real invoice totals.
 
 **Phase 3 — Job Management** `[x]` complete
 Complete: F-300 through F-310. Free tier gate enforced at 10 active jobs (F-307). F-307/F-604 limit updated from 3 → 10.
@@ -44,6 +44,11 @@ Complete: F-400 through F-414. Schemas + migration applied (0004). Quote PDF (TI
 
 **Phase 5 — Invoice Engine** `[x]` complete
 Complete: F-500 through F-513. Schemas + migration applied (0004). Invoice PDF (FAKTURA), email via Resend with PDF attachment, Inngest payment reminders (+8d, +15d), credit notes (KRE-XXXX), mark as paid, overdue auto-flag. PDF download routes at /api/invoices/[id]/pdf and /api/quotes/[id]/pdf.
+
+**Phase 6 — Dashboard, Free Tier Launch & Tier Gates** `[~]` in progress
+Complete: F-604 (free tier gate, done in Phase 3), F-607 (overview queries in lib/db/queries/overview.ts).
+Dashboard components built: stat-cards, critical-zone, today-jobs, activity-feed (components/dashboard/).
+Remaining: wire real data into dashboard components — F-600, F-601, F-602, F-603 FE still use stub data. F-605 (upgrade prompt) not started.
 
 Update this when a phase completes.
 

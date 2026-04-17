@@ -97,7 +97,7 @@ users (
 | F-204 | Edit customer form | `[x]` | `[x]` | |
 | F-205 | Delete customer (soft) | `[x]` | `[x]` | `deleted_at` timestamp |
 | F-206 | Quick-dial from app | `N/A` | `[x]` | `tel:` link on phone number |
-| F-207 | "Owes money" badge | `[x]` | `[x]` | Stub: 0 until Phase 5 invoices |
+| F-207 | "Owes money" badge | `[x]` | `[~]` | Still stubbed at 0 — wire to real invoice totals (Phase 5 complete, badge not yet updated) |
 | F-208 | CVR number field | `[x]` | `[x]` | For business customers / EAN future |
 | F-209 | Notes field per customer | `[x]` | `[x]` | Internal notes |
 
@@ -174,21 +174,21 @@ job_photos (
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-400 | Quote DB schema | `[ ]` | `N/A` | See below |
-| F-401 | Quote line items: labour | `[ ]` | `[ ]` | hours × rate |
-| F-402 | Quote line items: materials | `[ ]` | `[ ]` | qty × unit price × markup% |
-| F-403 | Quote line items: fixed price | `[ ]` | `[ ]` | Flat fee for a task |
-| F-404 | Quote line items: travel fee | `[ ]` | `[ ]` | Optional toggle |
-| F-405 | VAT (25% moms) auto-calc | `[ ]` | `[ ]` | On all items |
-| F-406 | Customer discount field | `[ ]` | `[ ]` | % or fixed amount |
-| F-407 | Validity date field | `[ ]` | `[ ]` | "Valid for 14 days" |
-| F-408 | Quote PDF generation | `[ ]` | `[ ]` | @react-pdf/renderer |
-| F-409 | Send quote by email | `[ ]` | `[ ]` | Resend + PDF attachment |
-| F-410 | Shareable quote link | `[ ]` | `[ ]` | Customer accepts in browser |
-| F-411 | Customer accept/reject | `[ ]` | `[ ]` | Status update + job auto-created |
-| F-412 | Save as template | `[ ]` | `[ ]` | Reusable quote templates |
-| F-413 | Materials autocomplete | `[ ]` | `[ ]` | From user's saved materials list |
-| F-414 | Quote status flow | `[ ]` | `[ ]` | draft→sent→accepted→rejected→expired |
+| F-400 | Quote DB schema | `[x]` | `N/A` | See below |
+| F-401 | Quote line items: labour | `[x]` | `[x]` | hours × rate |
+| F-402 | Quote line items: materials | `[x]` | `[x]` | qty × unit price × markup% |
+| F-403 | Quote line items: fixed price | `[x]` | `[x]` | Flat fee for a task |
+| F-404 | Quote line items: travel fee | `[x]` | `[x]` | Optional toggle |
+| F-405 | VAT (25% moms) auto-calc | `[x]` | `[x]` | On all items |
+| F-406 | Customer discount field | `[x]` | `[x]` | % or fixed amount |
+| F-407 | Validity date field | `[x]` | `[x]` | "Valid for 14 days" |
+| F-408 | Quote PDF generation | `[x]` | `[x]` | @react-pdf/renderer |
+| F-409 | Send quote by email | `[x]` | `[x]` | Resend + PDF attachment |
+| F-410 | Shareable quote link | `[x]` | `[x]` | Customer accepts in browser |
+| F-411 | Customer accept/reject | `[x]` | `[x]` | Status update + job auto-created |
+| F-412 | Save as template | `[x]` | `[x]` | Reusable quote templates |
+| F-413 | Materials autocomplete | `[x]` | `[x]` | From user's saved materials list |
+| F-414 | Quote status flow | `[x]` | `[x]` | draft→sent→accepted→rejected→expired |
 
 ### DB Schema: quotes + quote_items
 ```sql
@@ -248,20 +248,20 @@ materials_catalog (
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-500 | Invoice DB schema | `[ ]` | `N/A` | NemHandel fields included |
-| F-501 | One-tap: job → invoice | `[ ]` | `[ ]` | Pre-filled from quote |
-| F-502 | Invoice number (sequential) | `[ ]` | `N/A` | Per user, legally required |
-| F-503 | Moms layout (legal DK format) | `[ ]` | `[ ]` | ex.moms + moms + incl.moms |
-| F-504 | Invoice PDF (branded) | `[ ]` | `[ ]` | @react-pdf/renderer |
-| F-505 | Send by email (Resend) | `[ ]` | `[ ]` | PDF + HTML email |
-| F-506 | Payment info on invoice | `[ ]` | `[ ]` | Bank account OR MobilePay ref (static) |
-| F-507 | MobilePay payment link field | `[ ]` | `[ ]` | Stubbed — shows "coming soon" |
-| F-508 | Invoice status tracking | `[ ]` | `[ ]` | draft→sent→viewed→paid→overdue |
-| F-509 | Inngest: reminder email +8 days | `[ ]` | `N/A` | If unpaid |
-| F-510 | Inngest: reminder email +15 days | `[ ]` | `N/A` | Second reminder |
-| F-511 | Credit note (Kreditnota) | `[ ]` | `[ ]` | One-click from sent invoice |
-| F-512 | Mark as paid (manual) | `[ ]` | `[ ]` | User confirms payment received |
-| F-513 | Overdue flag | `[ ]` | `[ ]` | Auto-set after due date passes |
+| F-500 | Invoice DB schema | `[x]` | `N/A` | NemHandel fields included |
+| F-501 | One-tap: job → invoice | `[x]` | `[x]` | Pre-filled from quote |
+| F-502 | Invoice number (sequential) | `[x]` | `N/A` | Per user, legally required |
+| F-503 | Moms layout (legal DK format) | `[x]` | `[x]` | ex.moms + moms + incl.moms |
+| F-504 | Invoice PDF (branded) | `[x]` | `[x]` | @react-pdf/renderer |
+| F-505 | Send by email (Resend) | `[x]` | `[x]` | PDF + HTML email |
+| F-506 | Payment info on invoice | `[x]` | `[x]` | Bank account OR MobilePay ref (static) |
+| F-507 | MobilePay payment link field | `[x]` | `[x]` | Stubbed — shows "coming soon" |
+| F-508 | Invoice status tracking | `[x]` | `[x]` | draft→sent→viewed→paid→overdue |
+| F-509 | Inngest: reminder email +8 days | `[x]` | `N/A` | If unpaid |
+| F-510 | Inngest: reminder email +15 days | `[x]` | `N/A` | Second reminder |
+| F-511 | Credit note (Kreditnota) | `[x]` | `[x]` | One-click from sent invoice |
+| F-512 | Mark as paid (manual) | `[x]` | `[x]` | User confirms payment received |
+| F-513 | Overdue flag | `[x]` | `[x]` | Auto-set after due date passes |
 
 ### DB Schema: invoices + invoice_items
 ```sql
@@ -324,14 +324,14 @@ invoice_items (
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-600 | Dashboard: outstanding amount | `[ ]` | `[ ]` | Sum of unpaid invoices |
-| F-601 | Dashboard: active jobs count | `[ ]` | `[ ]` | |
-| F-602 | Dashboard: overdue invoices | `[ ]` | `[ ]` | Count + total amount |
-| F-603 | Dashboard: this month billed | `[ ]` | `[ ]` | |
-| F-604 | Free tier: 10 active jobs gate | `[ ]` | `[ ]` | Hard limit enforced |
+| F-600 | Dashboard: outstanding amount | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-601 | Dashboard: active jobs count | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-602 | Dashboard: overdue invoices | `[x]` | `[~]` | Query in overview.ts; CriticalZone component uses stub data |
+| F-603 | Dashboard: this month billed | `[x]` | `[~]` | Query in overview.ts; StatCards component uses stub data |
+| F-604 | Free tier: 10 active jobs gate | `[x]` | `[x]` | Done in Phase 3 as F-307 |
 | F-605 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |
 | F-606 | Beta launch: 20 users | `N/A` | `N/A` | Network outreach |
-| F-607 | Reporting DB queries ready | `[ ]` | `N/A` | See REPORTING.md |
+| F-607 | Reporting DB queries ready | `[x]` | `N/A` | lib/db/queries/overview.ts covers all dashboard stats |
 
 ---
 
