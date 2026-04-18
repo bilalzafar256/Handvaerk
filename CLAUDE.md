@@ -60,10 +60,13 @@ Features: revenue report, customer report, job report, expense report + logging,
 **Phase 10 — Email Notifications & Customer Communication** `[ ]` not started
 Features: quote accepted/rejected emails to customer, invoice paid thank-you + Google review request, google_review_url on profile.
 
-**Phase 11 — AI Features** `[ ]` not started
-Spec in docs/AI_FEATURES.md. Key: business card OCR → customer, smart quote suggestions, payment risk scoring, voice-to-quote.
+**Phase 11 — AI Intelligence Layer** `[ ]` not started
+9 features. Hero: Photo→Quote (camera → Claude Vision → draft quote), Job Site Recording (audio → full job record), Auto Handover Report (notes+photos → PDF for customer). Supporting: dynamic pricing, customer risk profiling, cash flow forecast, CVR lookup, AI response drafts, job clustering insights.
 
-**Phase 12 — Dashboard, Free Tier Launch & Tier Gates** `[~]` in progress (previously Phase 6)
+**Phase 12 — Growth, Retention & Compliance** `[ ]` not started
+10 features targeting verified gaps in Danish trade software market. Key: two-way SMS via GatewayAPI (F-1400), auto Google review request (F-1401), online booking link (F-1402), customer self-service portal (F-1403), job profitability tracking (F-1404), service agreements & recurring invoices (F-1405), flat-rate pricebook (F-1406), KLS compliance module for VVS/electrical (F-1407), e-Boks delivery (F-1408), APV safety docs (F-1409).
+
+**Phase 13 — Dashboard, Free Tier Launch & Tier Gates** `[~]` in progress (previously Phase 12)
 Complete: F-1204 (free tier gate), F-1207 (overview queries in lib/db/queries/overview.ts).
 Dashboard components built: stat-cards, critical-zone, today-jobs, activity-feed (components/dashboard/).
 Remaining: wire real data into dashboard components — F-1200, F-1201, F-1202, F-1203 FE still use stub data. F-1205 (upgrade prompt) not started.

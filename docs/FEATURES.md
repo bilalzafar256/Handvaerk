@@ -455,23 +455,45 @@ ALTER TABLE users ADD COLUMN google_review_url text;
 
 ---
 
-## PHASE 11 — AI Features
+## PHASE 11 — AI Intelligence Layer
 
-> Full spec in `docs/AI_FEATURES.md`
+> Hero differentiators for Danish tradespeople. Uses Claude API (claude-sonnet-4-6 default, claude-opus-4-7 for complex vision tasks).
+> Three features unavailable anywhere in this market: Photo→Quote, Job Site Recording, Handover Report.
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-1100 | Business card → customer (OCR) | `[ ]` | `[ ]` | Upload image → Claude vision extracts name/company/phone/email/address → pre-fills customer form |
-| F-1101 | Smart quote suggestions | `[ ]` | `[ ]` | Based on job description, suggest line items from past quotes |
-| F-1102 | Payment risk scoring | `[ ]` | `[ ]` | Predict overdue likelihood based on customer history |
-| F-1103 | Voice-to-quote | `[ ]` | `[ ]` | Dictate a job description → AI drafts quote line items |
-| F-1104 | Auto line-item categorization | `[ ]` | `[ ]` | Classify pasted or dictated items into labour/material/fixed/travel |
-| F-1105 | Customer sentiment flag | `[ ]` | `[ ]` | Flag negative tone in customer notes or email history |
+| F-1100 | Photo → Quote draft | `[ ]` | `[ ]` | Snap photo of problem on site → Claude Vision identifies issue → matches materials catalog + past quotes → pre-fills editable draft quote with line items + quantities |
+| F-1101 | Job site recording → full job record | `[ ]` | `[ ]` | Record 1–3 min on-site conversation → AI transcribes + extracts: customer name, scope, materials, date, notes, draft quote line items → creates full job record in one tap |
+| F-1102 | Dynamic pricing intelligence | `[ ]` | `[ ]` | Analyses user's own quote/invoice history → suggests price for new quote: "Your last 4 bathroom jobs averaged 28.500 kr. Materials up 11%. Suggested: 31.900 kr." |
+| F-1103 | Customer risk profiling | `[ ]` | `[ ]` | Non-blocking hint on job/invoice creation: "Lars Nielsen — 2 of 3 invoices paid late (avg 23 days). Consider requesting 30% deposit." Derived from payment history |
+| F-1104 | Auto job handover report | `[ ]` | `[ ]` | After job marked done: AI uses notes + photos → generates professional PDF handover doc (before/after photos, work description, materials, warranty statement) for customer |
+| F-1105 | Cash flow forecast | `[ ]` | `[ ]` | Based on outstanding quotes, scheduled jobs, and historical payment timing → 30/60/90 day revenue projection shown as dashboard card |
+| F-1106 | CVR smart lookup | `[ ]` | `[ ]` | Type company name in customer form → fuzzy-match against CVR.dk API → auto-fill company name, address, CVR. No manual lookup needed |
+| F-1107 | AI response drafts | `[ ]` | `[ ]` | When quote unseen for 7+ days or customer note has complaint tone → AI drafts professional Danish follow-up matching user's past tone. User reviews + sends |
+| F-1108 | Job clustering & insights | `[ ]` | `[ ]` | Auto-tag jobs by type/season/revenue. Dashboard insight card: "Bathroom renovations: avg 3.1 days, avg 24.200 kr — your most profitable job type" |
 
 ---
 
-## PHASE 12 — Dashboard, Free Tier Launch & Tier Gates
-> (Previously Phase 6)
+## PHASE 12 — Growth, Retention & Compliance
+> Based on verified gaps in the Danish trade software market. Features unavailable in Ordrestyring.dk, Minuba, Apacta, Billy, and Dinero.
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1400 | Native two-way SMS from job cards | `[ ]` | `[ ]` | GatewayAPI already in stack (stubbed). Send status updates, quotes, payment reminders via SMS. Customer replies create threaded conversation in job card |
+| F-1401 | Auto Google review request on paid | `[ ]` | `[ ]` | Inngest job fires 24h after invoice marked paid → sends SMS/email with google_review_url. No competitor does this automatically |
+| F-1402 | Online booking link | `[ ]` | `[ ]` | Shareable /book/[handle] page → customer picks service type + date → auto-creates job draft in dashboard. No login needed |
+| F-1403 | Customer self-service portal | `[ ]` | `[ ]` | Branded /portal/[customerId] → customer sees their quotes, invoices, open jobs, can accept/reject quotes and download PDFs without phoning in |
+| F-1404 | Real-time job profitability tracking | `[ ]` | `[ ]` | Material cost vs. billed amount per job. "You billed 14.200 kr, materials 4.800 kr — margin 66%." Highlights unprofitable jobs |
+| F-1405 | Service agreements & recurring invoices | `[ ]` | `[ ]` | Create recurring job template (annual service, maintenance contract). Inngest auto-generates job + invoice on schedule. No competitor offers this |
+| F-1406 | Flat-rate pricebook | `[ ]` | `[ ]` | Pre-priced service catalog ("Replace tap: 850 kr", "Annual boiler service: 1.200 kr"). One-click add to quote. Eliminates per-quote pricing from scratch |
+| F-1407 | KLS compliance module | `[ ]` | `[ ]` | Mandatory quality log for authorized VVS/electrical work. Checklist PDF auto-attached to job handover. Required by Sikkerhedsstyrelsen for IBI/GVB authorization |
+| F-1408 | E-boks invoice delivery | `[ ]` | `[ ]` | Deliver invoices to customer's e-Boks (Danish national digital mailbox) via e-Boks Business API. Required for many public sector customers |
+| F-1409 | APV workplace safety documentation | `[ ]` | `[ ]` | Per-job APV (arbejdspladsvurdering) checklist. Required by Arbejdstilsynet. Auto-generate PDF, attach to job record |
+
+---
+
+## PHASE 13 — Dashboard, Free Tier Launch & Tier Gates
+> (Previously Phase 12)
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
@@ -486,8 +508,8 @@ ALTER TABLE users ADD COLUMN google_review_url text;
 
 ---
 
-## PHASE 13 — Compliance Pre-GoLive
-> (Previously Phase 7)
+## PHASE 14 — Compliance Pre-GoLive
+> (Previously Phase 13)
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
