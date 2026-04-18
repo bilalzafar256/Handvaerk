@@ -7,6 +7,11 @@ import { useUser } from "@clerk/nextjs"
 import { useTranslations } from "next-intl"
 import { useParams } from "next/navigation"
 import { useRouter as useI18nRouter, usePathname as useI18nPathname } from "@/i18n/navigation"
+import { gsap } from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { useGSAP } from "@gsap/react"
+
+gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
@@ -67,22 +72,25 @@ function scrollTo(id: string) {
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
-// ── Shared ────────────────────────────────────────────────────────────────────
+// ── Nordic Blueprint color constants ─────────────────────────────────────────
 
 const S = {
-  obsidian: "var(--slate-900)",
-  surface800: "var(--slate-800)",
-  s50: "var(--slate-50)",
-  s100: "var(--slate-100)",
-  s200: "var(--slate-200)",
-  s300: "var(--slate-300)",
-  s400: "var(--slate-400)",
-  s500: "var(--slate-500)",
-  s600: "var(--slate-600)",
-  s700: "var(--slate-700)",
+  // Backgrounds — Nordic Blueprint (cobalt, non-black)
+  bg: "oklch(0.13 0.035 245)",           // Cobalt Night
+  surface: "oklch(0.19 0.04 248)",       // Blueprint surface
+  surfaceAlt: "oklch(0.24 0.045 248)",   // Lifted Blueprint
+  // Text — birch-warm foreground
+  text: "oklch(0.93 0.022 75)",          // Birch White
+  textSub: "oklch(0.63 0.03 245)",       // Fog
+  textMuted: "oklch(0.42 0.025 245)",    // Fog Deep
+  textFaint: "oklch(0.28 0.018 245)",    // Very dim
+  // Brand
   amber: "var(--amber-500)",
   amber400: "var(--amber-400)",
   amber600: "var(--amber-600)",
+  // Accent
+  teal: "oklch(0.68 0.12 185)",          // Nordic Teal (success)
+  // Borders
   border: "oklch(1 0 0 / 9%)",
   borderStrong: "oklch(1 0 0 / 16%)",
 }
@@ -121,7 +129,7 @@ function LanguageSwitcher() {
         fontFamily: "var(--font-body)",
         fontSize: 13,
         fontWeight: 600,
-        color: S.s400,
+        color: S.textSub,
         background: "transparent",
         border: `1px solid ${S.border}`,
         borderRadius: 6,
@@ -131,11 +139,11 @@ function LanguageSwitcher() {
         transition: "color 120ms, border-color 120ms",
       }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLButtonElement).style.color = S.s50
+        (e.currentTarget as HTMLButtonElement).style.color = S.text
         ;(e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong
       }}
       onMouseLeave={e => {
-        (e.currentTarget as HTMLButtonElement).style.color = S.s400
+        (e.currentTarget as HTMLButtonElement).style.color = S.textSub
         ;(e.currentTarget as HTMLButtonElement).style.borderColor = S.border
       }}
     >
@@ -160,29 +168,34 @@ function Nav() {
     <nav
       style={{
         position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
+        top: 0, left: 0, right: 0,
         zIndex: 50,
         height: 60,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 32px",
-        backdropFilter: "blur(16px) saturate(180%)",
-        backgroundColor: scrolled ? "oklch(0.09 0.004 255 / 88%)" : "transparent",
+        backdropFilter: "blur(20px) saturate(200%)",
+        backgroundColor: scrolled
+          ? `oklch(0.13 0.035 245 / 88%)`
+          : "transparent",
         borderBottom: scrolled ? `1px solid ${S.border}` : "1px solid transparent",
         transition: "background-color 200ms ease, border-color 200ms ease",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
         <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, backgroundColor: S.amber, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 6,
+            backgroundColor: S.amber,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
             </svg>
           </div>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: S.s50 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: S.text }}>
             Håndværk Pro
           </span>
         </Link>
@@ -192,12 +205,13 @@ function Nav() {
               key={id}
               onClick={() => scrollTo(id)}
               style={{
-                fontFamily: "var(--font-body)", fontSize: 14, color: S.s400,
+                fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub,
                 background: "transparent", border: "none", cursor: "pointer",
                 padding: "6px 12px", borderRadius: 6, transition: "color 120ms ease",
+                position: "relative",
               }}
-              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = S.s50}
-              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = S.s400}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = S.text}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = S.textSub}
             >
               {label}
             </button>
@@ -208,9 +222,13 @@ function Nav() {
         <LanguageSwitcher />
         <Link
           href="/sign-in"
-          style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, textDecoration: "none", padding: "6px 14px", borderRadius: 6, transition: "color 120ms ease" }}
-          onMouseEnter={e => (e.currentTarget.style.color = S.s50)}
-          onMouseLeave={e => (e.currentTarget.style.color = S.s400)}
+          style={{
+            fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub,
+            textDecoration: "none", padding: "6px 14px", borderRadius: 6,
+            transition: "color 120ms ease",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = S.text)}
+          onMouseLeave={e => (e.currentTarget.style.color = S.textSub)}
         >
           {t("nav.signIn")}
         </Link>
@@ -221,10 +239,17 @@ function Nav() {
             color: "oklch(0.10 0.005 52)", backgroundColor: S.amber,
             padding: "7px 16px", borderRadius: 8, textDecoration: "none",
             transition: "box-shadow 120ms, transform 120ms",
-            boxShadow: "var(--shadow-accent)",
+            boxShadow: "0 4px 16px oklch(0.720 0.195 58 / 0.35), 0 0 0 0 oklch(0.720 0.195 58 / 0)",
+            animation: "ctaPulse 2.5s ease infinite",
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 20px oklch(0.720 0.195 58 / 0.50)" }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-accent)" }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"
+            ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 20px oklch(0.720 0.195 58 / 0.55)"
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = ""
+            ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 4px 16px oklch(0.720 0.195 58 / 0.35)"
+          }}
         >
           {t("nav.tryFree")}
         </Link>
@@ -246,16 +271,17 @@ function FloatingCard({ text, icon, delay }: { text: string; icon: string; delay
       opacity: inView ? 1 : 0,
       transform: inView ? "translateY(0)" : "translateY(12px)",
       transition: `opacity 400ms ${delay}ms var(--ease-smooth), transform 400ms ${delay}ms var(--ease-smooth)`,
-      animation: inView ? `float${delay} 5s ease-in-out ${delay * 0.5}ms infinite` : "none",
+      animation: inView ? `cardFloat ${4.5 + delay * 0.002}s ease-in-out ${delay * 0.4}ms infinite` : "none",
     }}>
       <span style={{ fontSize: 14 }}>{icon}</span>
-      <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s300 }}>{text}</span>
+      <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textSub }}>{text}</span>
     </div>
   )
 }
 
 function Hero() {
   const heroRef = useRef<HTMLElement>(null)
+  const lineRef = useRef<SVGLineElement>(null)
   const [wordsVisible, setWordsVisible] = useState(false)
   const prefersReduced = usePrefersReduced()
   const t = useTranslations("Landing")
@@ -263,10 +289,22 @@ function Hero() {
   const heroWords1 = t("hero.line1").split(" ")
   const heroWords2 = t("hero.line2").split(" ")
 
-  useEffect(() => {
-    const timer = setTimeout(() => setWordsVisible(true), 100)
-    return () => clearTimeout(timer)
-  }, [])
+  // GSAP: architect's draft — line draws, then words cascade
+  useGSAP(() => {
+    if (prefersReduced) { setWordsVisible(true); return }
+    const line = lineRef.current
+    if (!line) return
+    gsap.fromTo(line,
+      { strokeDasharray: "100%", strokeDashoffset: "100%" },
+      {
+        strokeDashoffset: "0%",
+        duration: 0.55,
+        ease: "power2.out",
+        delay: 0.15,
+        onComplete: () => setWordsVisible(true),
+      }
+    )
+  }, { scope: heroRef, dependencies: [prefersReduced] })
 
   function onMouseMove(e: React.MouseEvent) {
     if (!heroRef.current) return
@@ -284,31 +322,50 @@ function Hero() {
       style={{
         position: "relative", minHeight: "100vh",
         display: "flex", flexDirection: "column",
-        backgroundColor: S.obsidian, overflow: "hidden", paddingTop: 60,
+        backgroundColor: S.bg,
+        overflow: "hidden", paddingTop: 60,
       }}
     >
+      {/* Blueprint grid — subtle, hue 248 */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         backgroundImage: `linear-gradient(${S.border} 1px, transparent 1px), linear-gradient(90deg, ${S.border} 1px, transparent 1px)`,
         backgroundSize: "48px 48px",
         WebkitMaskImage: "radial-gradient(ellipse 80% 80% at center, black 20%, transparent 80%)",
         maskImage: "radial-gradient(ellipse 80% 80% at center, black 20%, transparent 80%)",
-        opacity: 0.5,
+        opacity: 0.6,
       }} />
+      {/* Cursor spotlight */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: "radial-gradient(600px circle at var(--sx, 50%) var(--sy, 40%), oklch(0.720 0.195 58 / 6%), transparent 65%)",
+        background: "radial-gradient(600px circle at var(--sx, 50%) var(--sy, 40%), oklch(0.720 0.195 58 / 5%), transparent 65%)",
       }} />
+      {/* Cobalt depth gradient bottom */}
       <div aria-hidden style={{
         position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", pointerEvents: "none",
-        background: "radial-gradient(ellipse 100% 60% at 50% 100%, oklch(0.720 0.195 58 / 5%), transparent)",
+        background: "radial-gradient(ellipse 100% 60% at 50% 100%, oklch(0.52 0.13 250 / 8%), transparent)",
       }} />
+
+      {/* Architect line — GSAP draws this, then words cascade */}
+      <svg
+        aria-hidden
+        style={{ position: "absolute", top: "calc(60px + 180px)", left: 0, width: "100%", height: 2, pointerEvents: "none", zIndex: 5 }}
+        preserveAspectRatio="none"
+      >
+        <line
+          ref={lineRef}
+          x1="0%" y1="1" x2="100%" y2="1"
+          stroke="oklch(0.720 0.195 58 / 18%)"
+          strokeWidth="1"
+        />
+      </svg>
 
       <div style={{
         position: "relative", zIndex: 10, flex: 1,
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: "80px 24px 60px", textAlign: "center",
       }}>
+        {/* Eyebrow */}
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 8,
           padding: "5px 14px", borderRadius: 999, marginBottom: 32,
@@ -324,6 +381,7 @@ function Hero() {
           </span>
         </div>
 
+        {/* Headline — word cascade with skew */}
         <h1 style={{
           fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1.04,
           letterSpacing: "-0.025em", marginBottom: 8,
@@ -331,31 +389,31 @@ function Hero() {
         }}>
           {heroWords1.map((word, i) => (
             <span key={`w1-${i}`} style={{
-              display: "inline-block", color: S.s50, marginRight: "0.22em",
+              display: "inline-block", color: S.text, marginRight: "0.22em",
               opacity: wordsVisible ? 1 : 0,
-              transform: wordsVisible ? "translateY(0)" : "translateY(14px)",
-              transition: prefersReduced ? "none" : `opacity 400ms ${i * 60}ms var(--ease-spring), transform 400ms ${i * 60}ms var(--ease-spring)`,
+              transform: wordsVisible ? "translateY(0) skewX(0deg)" : "translateY(14px) skewX(-3deg)",
+              transition: prefersReduced ? "none" : `opacity 400ms ${i * 55}ms var(--ease-spring), transform 400ms ${i * 55}ms var(--ease-spring)`,
             }}>{word}</span>
           ))}
           <br />
           {heroWords2.map((word, i) => (
             <span key={`w2-${i}`} style={{
               display: "inline-block",
-              color: i === 1 ? S.amber400 : S.s50,
+              color: i === 1 ? S.amber400 : S.text,
               marginRight: "0.22em",
               opacity: wordsVisible ? 1 : 0,
-              transform: wordsVisible ? "translateY(0)" : "translateY(14px)",
-              transition: prefersReduced ? "none" : `opacity 400ms ${(heroWords1.length + i) * 60 + 80}ms var(--ease-spring), transform 400ms ${(heroWords1.length + i) * 60 + 80}ms var(--ease-spring)`,
+              transform: wordsVisible ? "translateY(0) skewX(0deg)" : "translateY(14px) skewX(-3deg)",
+              transition: prefersReduced ? "none" : `opacity 400ms ${(heroWords1.length + i) * 55 + 60}ms var(--ease-spring), transform 400ms ${(heroWords1.length + i) * 55 + 60}ms var(--ease-spring)`,
             }}>{word}</span>
           ))}
         </h1>
 
         <p style={{
           fontFamily: "var(--font-body)", fontSize: "clamp(17px, 2.2vw, 21px)",
-          color: S.s400, maxWidth: 520, lineHeight: 1.55, marginBottom: 40,
+          color: S.textSub, maxWidth: 520, lineHeight: 1.55, marginBottom: 40,
           opacity: wordsVisible ? 1 : 0,
           transform: wordsVisible ? "translateY(0)" : "translateY(8px)",
-          transition: prefersReduced ? "none" : "opacity 400ms 500ms ease, transform 400ms 500ms ease",
+          transition: prefersReduced ? "none" : "opacity 400ms 520ms ease, transform 400ms 520ms ease",
         }}>
           {t("hero.sub")}
         </p>
@@ -366,28 +424,40 @@ function Hero() {
             height: 50, padding: "0 28px", borderRadius: 10,
             fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 500,
             color: "oklch(0.10 0.005 52)", backgroundColor: S.amber,
-            textDecoration: "none", boxShadow: "var(--shadow-accent)",
+            textDecoration: "none", boxShadow: "0 4px 16px oklch(0.720 0.195 58 / 0.40)",
             transition: "box-shadow 120ms, transform 120ms",
           }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 8px 24px oklch(0.720 0.195 58 / 0.55)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-accent)" }}>
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"
+              ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 8px 24px oklch(0.720 0.195 58 / 0.55)"
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLAnchorElement).style.transform = ""
+              ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 4px 16px oklch(0.720 0.195 58 / 0.40)"
+            }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "oklch(0.10 0.005 52)", opacity: 0.6, animation: "pulse 2s ease infinite" }} />
             {t("hero.ctaPrimary")}
           </Link>
           <button onClick={() => scrollTo("features")} style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             height: 50, padding: "0 28px", borderRadius: 10,
-            fontFamily: "var(--font-body)", fontSize: 16, color: S.s300,
+            fontFamily: "var(--font-body)", fontSize: 16, color: S.textSub,
             backgroundColor: "transparent", border: `1px solid ${S.borderStrong}`,
             cursor: "pointer", transition: "border-color 120ms, color 120ms",
           }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = S.s400; (e.currentTarget as HTMLButtonElement).style.color = S.s50 }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong; (e.currentTarget as HTMLButtonElement).style.color = S.s300 }}>
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = S.textMuted
+              ;(e.currentTarget as HTMLButtonElement).style.color = S.text
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong
+              ;(e.currentTarget as HTMLButtonElement).style.color = S.textSub
+            }}>
             {t("hero.ctaSecondary")}
           </button>
         </div>
 
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600, letterSpacing: "0.02em" }}>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textFaint, letterSpacing: "0.02em" }}>
           {t("hero.noCredit")}
         </p>
 
@@ -397,33 +467,50 @@ function Hero() {
           <FloatingCard text={t("hero.proof3")} icon="📍" delay={300} />
         </div>
       </div>
-
-      <style>{`
-        @keyframes pulse { 0%,100%{opacity:0.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
-        @keyframes float0 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-6px)} }
-        @keyframes float150 { 0%,100%{transform:translateY(-3px)} 50%{transform:translateY(-8px)} }
-        @keyframes float300 { 0%,100%{transform:translateY(-1px)} 50%{transform:translateY(-7px)} }
-        @keyframes progress { from{width:0%} to{width:100%} }
-        html { scroll-behavior: smooth; }
-      `}</style>
     </section>
   )
 }
 
 // ── Stats Bar ─────────────────────────────────────────────────────────────────
 
+function StatWave({ active }: { active: boolean }) {
+  // SVG organic wave that grows left-to-right as the counter runs
+  return (
+    <svg width={80} height={14} viewBox="0 0 80 14" fill="none" style={{ marginTop: 6 }}>
+      <path
+        d="M0 7 C10 3, 15 11, 25 7 C35 3, 40 11, 50 7 C60 3, 65 11, 75 7 C78 5.5, 79 6, 80 7"
+        stroke="var(--amber-500)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+        style={{
+          strokeDasharray: 120,
+          strokeDashoffset: active ? 0 : 120,
+          transition: active ? "stroke-dashoffset 1.3s ease-out" : "none",
+        }}
+      />
+    </svg>
+  )
+}
+
 function StatItem({ target, suffix, label }: { target: number; suffix: string; label: string }) {
   const { ref, inView } = useInView(0.3)
   const { count, start } = useCountUp(target)
   useEffect(() => { if (inView) start() }, [inView, start])
-  const display = count >= 1000 ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1).replace(".", ",")}` : count.toString()
+  const display = count >= 1000
+    ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1).replace(".", ",")}`
+    : count.toString()
 
   return (
     <div ref={ref} style={{ textAlign: "center", flex: 1 }}>
-      <p style={{ fontFamily: "var(--font-mono)", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700, color: S.s50, lineHeight: 1 }}>
+      <p style={{
+        fontFamily: "var(--font-mono)", fontSize: "clamp(28px, 4vw, 40px)",
+        fontWeight: 700, color: S.text, lineHeight: 1,
+      }}>
         {display}{suffix}
       </p>
-      <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s500, marginTop: 6 }}>{label}</p>
+      <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted, marginTop: 6 }}>{label}</p>
+      <StatWave active={inView} />
     </div>
   )
 }
@@ -431,19 +518,29 @@ function StatItem({ target, suffix, label }: { target: number; suffix: string; l
 function StatsBar() {
   const t = useTranslations("Landing")
   return (
-    <div style={{ backgroundColor: S.obsidian, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "32px 24px", display: "flex", alignItems: "center", gap: 0 }}>
+    <div style={{
+      backgroundColor: S.bg,
+      borderTop: `1px solid ${S.border}`,
+      borderBottom: `1px solid ${S.border}`,
+    }}>
+      <div style={{
+        maxWidth: MAX_W, margin: "0 auto", padding: "36px 24px",
+        display: "flex", alignItems: "flex-start", gap: 0,
+      }}>
         <StatItem target={2400} suffix="+" label={t("stats.tradespeople")} />
-        <div style={{ width: 1, height: 40, background: S.border, flexShrink: 0 }} />
+        <div style={{ width: 1, height: 48, background: S.border, flexShrink: 0, marginTop: 4 }} />
         <StatItem target={48000} suffix="+" label={t("stats.invoicesSent")} />
-        <div style={{ width: 1, height: 40, background: S.border, flexShrink: 0 }} />
+        <div style={{ width: 1, height: 48, background: S.border, flexShrink: 0, marginTop: 4 }} />
         <StatItem target={1200} suffix=" mio. kr" label={t("stats.invoicedVia")} />
       </div>
     </div>
   )
 }
 
-// ── Problem Section ───────────────────────────────────────────────────────────
+// ── Problem Section — chaos arrival ──────────────────────────────────────────
+
+const CHAOS_ANGLES = ["-4deg", "2deg", "-1.5deg"]
+const CHAOS_OFFSETS: [string, string][] = ["-20px", "10px", "20px"].map((x, i) => [x, `${16 + i * 8}px`] as [string, string])
 
 function ProblemSection() {
   const { ref, inView } = useInView(0.1)
@@ -485,7 +582,7 @@ function ProblemSection() {
 
   return (
     <section style={{
-      backgroundColor: S.obsidian,
+      backgroundColor: S.bg,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -495,7 +592,7 @@ function ProblemSection() {
         <SectionLabel>{t("problem.label")}</SectionLabel>
         <h2 style={{
           fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)",
-          fontWeight: 800, color: S.s50, letterSpacing: "-0.02em",
+          fontWeight: 800, color: S.text, letterSpacing: "-0.02em",
           maxWidth: 560, lineHeight: 1.1, marginBottom: 56,
         }}>
           {t("problem.headline")}
@@ -504,18 +601,29 @@ function ProblemSection() {
         <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
           {problems.map((p, i) => (
             <div key={p.n} style={{
-              backgroundColor: "var(--slate-800)",
+              backgroundColor: S.surface,
               border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, position: "relative",
+              // Chaos arrival: different angle + offset per card, settles to flat
               opacity: inView ? 1 : 0,
-              transform: inView ? "translateY(0)" : "translateY(16px)",
-              transition: prefersReduced ? "none" : `opacity 300ms ${i * 80}ms var(--ease-smooth), transform 300ms ${i * 80}ms var(--ease-smooth)`,
+              transform: inView
+                ? "rotate(0deg) translate(0,0)"
+                : `rotate(${CHAOS_ANGLES[i]}) translate(${CHAOS_OFFSETS[i][0]}, ${CHAOS_OFFSETS[i][1]})`,
+              transition: prefersReduced
+                ? "none"
+                : `opacity 400ms ${i * 100}ms cubic-bezier(0.34,1.56,0.64,1), transform 500ms ${i * 100}ms cubic-bezier(0.34,1.56,0.64,1)`,
             }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-md)" }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = "none" }}>
-              <span style={{ position: "absolute", top: 16, right: 16, fontFamily: "var(--font-mono)", fontSize: 11, color: S.s600 }}>{p.n}</span>
-              <div style={{ color: S.s500, marginBottom: 14 }}>{p.icon}</div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600, color: S.s200, marginBottom: 8 }}>{p.title}</p>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500, lineHeight: 1.6 }}>{p.body}</p>
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
+                ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 24px oklch(0.08 0.035 245 / 0.5)"
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = ""
+                ;(e.currentTarget as HTMLDivElement).style.boxShadow = "none"
+              }}>
+              <span style={{ position: "absolute", top: 16, right: 16, fontFamily: "var(--font-mono)", fontSize: 11, color: S.textFaint }}>{p.n}</span>
+              <div style={{ color: S.textMuted, marginBottom: 14 }}>{p.icon}</div>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 8 }}>{p.title}</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub, lineHeight: 1.6 }}>{p.body}</p>
             </div>
           ))}
         </div>
@@ -534,24 +642,29 @@ function JobsMockup() {
     { status: "Betalt", color: "var(--status-paid-text)", bg: "var(--status-paid-bg)", title: "VVS-eftersyn kontor", customer: "Lasse Møller", amount: "1.800 kr" },
   ]
   return (
-    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 360 }}>
+    <div style={{
+      backgroundColor: S.surface, border: `1px solid ${S.borderStrong}`,
+      borderRadius: 14, overflow: "hidden",
+      boxShadow: "0 20px 48px oklch(0.07 0.035 245 / 0.7)",
+      maxWidth: 360,
+    }}>
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: S.s50 }}>Jobs</span>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: S.text }}>Jobs</span>
         <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, background: S.amber, color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-body)", fontWeight: 600 }}>+ Nyt job</span>
       </div>
       {ITEMS.map((item, i) => (
         <div key={item.title} style={{ display: "flex", alignItems: "center", gap: 0, borderBottom: i < ITEMS.length - 1 ? `1px solid ${S.border}` : "none", transition: "background 80ms" }}
-          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 3%)"}
+          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 4%)"}
           onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = ""}>
           <div style={{ width: 3, alignSelf: "stretch", backgroundColor: item.color, flexShrink: 0 }} />
           <div style={{ flex: 1, padding: "10px 14px", minWidth: 0 }}>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500, color: S.s200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</p>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500, color: S.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</p>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
               <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 999, background: item.bg, color: item.color, fontFamily: "var(--font-body)", fontWeight: 500 }}>{item.status}</span>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.s500 }}>{item.customer}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.textMuted }}>{item.customer}</span>
             </div>
           </div>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.s400, padding: "0 14px", flexShrink: 0 }}>{item.amount}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textSub, padding: "0 14px", flexShrink: 0 }}>{item.amount}</span>
         </div>
       ))}
     </div>
@@ -565,32 +678,37 @@ function QuoteMockup() {
     ["Kørsel", "20 km", "120 kr"],
   ]
   return (
-    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 440 }}>
+    <div style={{
+      backgroundColor: S.surface, border: `1px solid ${S.borderStrong}`,
+      borderRadius: 14, overflow: "hidden",
+      boxShadow: "0 20px 48px oklch(0.07 0.035 245 / 0.7)",
+      maxWidth: 440,
+    }}>
       <div style={{ padding: "12px 16px 10px", borderBottom: `1px solid ${S.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.s500 }}>TILBUD</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.s400, marginLeft: 8 }}>#T-0042</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.textMuted }}>TILBUD</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.textSub, marginLeft: 8 }}>#T-0042</span>
         </div>
         <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.amber, padding: "2px 8px", borderRadius: 999, background: "oklch(0.720 0.195 58 / 12%)" }}>Udkast</span>
       </div>
       <div style={{ padding: "12px 16px" }}>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500, marginBottom: 10 }}>Til: Morten Andersen, Aarhus</p>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginBottom: 10 }}>Til: Morten Andersen, Aarhus</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "6px 12px", alignItems: "baseline" }}>
           {rows.map(([label, detail, amount], i) => (
             <Fragment key={i}>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s200 }}>{label}</span>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500, textAlign: "right" }}>{detail}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.s200, textAlign: "right" }}>{amount}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.text }}>{label}</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{detail}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.text, textAlign: "right" }}>{amount}</span>
             </Fragment>
           ))}
         </div>
         <div style={{ borderTop: `1px solid ${S.border}`, marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.s100 }}>Total inkl. moms</span>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.text }}>Total inkl. moms</span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: S.amber }}>3.950 kr</span>
         </div>
       </div>
       <div style={{ padding: "10px 16px", borderTop: `1px solid ${S.border}`, display: "flex", gap: 8 }}>
-        <button style={{ flex: 1, height: 32, borderRadius: 7, border: `1px solid ${S.border}`, background: "transparent", color: S.s400, fontFamily: "var(--font-body)", fontSize: 13, cursor: "pointer" }}>Gem udkast</button>
+        <button style={{ flex: 1, height: 32, borderRadius: 7, border: `1px solid ${S.border}`, background: "transparent", color: S.textSub, fontFamily: "var(--font-body)", fontSize: 13, cursor: "pointer" }}>Gem udkast</button>
         <button style={{ flex: 1, height: 32, borderRadius: 7, border: "none", background: S.amber, color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Send tilbud →</button>
       </div>
     </div>
@@ -598,14 +716,28 @@ function QuoteMockup() {
 }
 
 function InvoiceMockup() {
+  const [hovered, setHovered] = useState(false)
   return (
-    <div style={{
-      backgroundColor: "oklch(1 0 0)", border: `1px solid oklch(0.88 0.007 255)`,
-      borderRadius: 14, overflow: "hidden", boxShadow: "0 20px 40px oklch(0 0 0 / 0.5)",
-      maxWidth: 400, transform: "rotate(-1deg)", transition: "transform 200ms var(--ease-smooth)",
-    }}
-      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = "rotate(0deg)"}
-      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = "rotate(-1deg)"}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "relative",
+        backgroundColor: "oklch(1 0 0)", border: `1px solid oklch(0.88 0.007 255)`,
+        borderRadius: 14, overflow: "hidden",
+        boxShadow: "0 20px 40px oklch(0.07 0.035 245 / 0.6)",
+        maxWidth: 400,
+        transform: hovered ? "rotate(0deg)" : "rotate(-1deg)",
+        transition: "transform 200ms var(--ease-smooth)",
+      }}
+    >
+      {/* Iridescent prismatic sweep on hover */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10,
+        background: "linear-gradient(115deg, transparent 0%, oklch(0.75 0.12 240 / 12%) 30%, oklch(0.75 0.10 185 / 10%) 50%, oklch(0.72 0.19 58 / 8%) 70%, transparent 100%)",
+        transform: hovered ? "translateX(0%)" : "translateX(-110%)",
+        transition: hovered ? "transform 600ms ease-out" : "none",
+      }} />
       <div style={{ background: "linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 100%)", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <p style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600, color: "oklch(0.20 0.005 52)", letterSpacing: "0.1em", textTransform: "uppercase" }}>FAKTURA</p>
@@ -645,32 +777,37 @@ function InvoiceMockup() {
 
 function CustomerMockup() {
   return (
-    <div style={{ backgroundColor: "var(--slate-800)", border: `1px solid ${S.borderStrong}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-lg)", maxWidth: 380 }}>
+    <div style={{
+      backgroundColor: S.surface, border: `1px solid ${S.borderStrong}`,
+      borderRadius: 14, overflow: "hidden",
+      boxShadow: "0 20px 48px oklch(0.07 0.035 245 / 0.7)",
+      maxWidth: 380,
+    }}>
       <div style={{ padding: "16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--amber-500)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>EH</span>
         </div>
         <div>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: S.s50 }}>Erik Hansen</p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500 }}>+45 23 45 67 89 · Aarhus</p>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: S.text }}>Erik Hansen</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted }}>+45 23 45 67 89 · Aarhus</p>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", padding: "12px 16px", gap: 8, borderBottom: `1px solid ${S.border}` }}>
-        {[["Faktureret", "142.400 kr", S.s200], ["Udestående", "12.800 kr", "oklch(0.78 0.18 25)"], ["Betalt", "129.600 kr", "oklch(0.75 0.14 145)"]].map(([l, v, c]) => (
+        {[["Faktureret", "142.400 kr", S.text], ["Udestående", "12.800 kr", "oklch(0.78 0.18 25)"], ["Betalt", "129.600 kr", S.teal]].map(([l, v, c]) => (
           <div key={l as string}>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: S.s500, marginBottom: 2 }}>{l}</p>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: S.textMuted, marginBottom: 2 }}>{l}</p>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: c as string }}>{v}</p>
           </div>
         ))}
       </div>
       <div style={{ padding: "8px 16px" }}>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.s500, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Seneste jobs</p>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Seneste jobs</p>
         {[
           { title: "Badeværelse renovation", status: "Betalt", c: "var(--status-paid-text)", bg: "var(--status-paid-bg)" },
           { title: "El-installation køkken", status: "Faktureret", c: "var(--status-invoiced-text)", bg: "var(--status-invoiced-bg)" },
         ].map((job, i) => (
           <div key={job.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i === 0 ? `1px solid ${S.border}` : "none" }}>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s300 }}>{job.title}</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textSub }}>{job.title}</span>
             <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: job.bg, color: job.c, fontFamily: "var(--font-body)", fontWeight: 500 }}>{job.status}</span>
           </div>
         ))}
@@ -682,26 +819,26 @@ function CustomerMockup() {
 // ── Feature Sections ──────────────────────────────────────────────────────────
 
 function FeatureRow({
-  label, headline, bullets, mockup, reverse, id,
+  label, headline, bullets, mockup, reverse, id, extra,
 }: {
-  label: string; headline: string; bullets: string[]; mockup: React.ReactNode; reverse?: boolean; id?: string
+  label: string; headline: string; bullets: string[]; mockup: React.ReactNode; reverse?: boolean; id?: string; extra?: React.ReactNode
 }) {
   const { ref, inView } = useInView(0.15)
   const prefersReduced = usePrefersReduced()
   const textAnim: React.CSSProperties = {
     opacity: inView ? 1 : 0,
     transform: inView ? "translateX(0)" : `translateX(${reverse ? "24px" : "-24px"})`,
-    transition: prefersReduced ? "none" : "opacity 280ms 60ms var(--ease-smooth), transform 280ms 60ms var(--ease-smooth)",
+    transition: prefersReduced ? "none" : "opacity 300ms 60ms var(--ease-smooth), transform 300ms 60ms var(--ease-smooth)",
   }
   const imgAnim: React.CSSProperties = {
     opacity: inView ? 1 : 0,
     transform: inView ? "translateX(0)" : `translateX(${reverse ? "-24px" : "24px"})`,
-    transition: prefersReduced ? "none" : "opacity 280ms var(--ease-smooth), transform 280ms var(--ease-smooth)",
+    transition: prefersReduced ? "none" : "opacity 300ms var(--ease-smooth), transform 300ms var(--ease-smooth)",
   }
 
   return (
     <section id={id} style={{
-      backgroundColor: S.obsidian,
+      backgroundColor: S.bg,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -714,7 +851,10 @@ function FeatureRow({
       }}>
         <div style={{ order: reverse ? 2 : 1, ...textAnim }}>
           <SectionLabel>{label}</SectionLabel>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: 24 }}>
+          <h2 style={{
+            fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)",
+            fontWeight: 800, color: S.text, letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: 24,
+          }}>
             {headline}
           </h2>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -723,16 +863,62 @@ function FeatureRow({
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
                   <path d="M5 13l4 4L19 7" />
                 </svg>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, color: S.s400, lineHeight: 1.5 }}>{b}</span>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, color: S.textSub, lineHeight: 1.5 }}>{b}</span>
               </li>
             ))}
           </ul>
+          {extra}
         </div>
         <div style={{ order: reverse ? 1 : 2, display: "flex", justifyContent: "center", ...imgAnim }}>
           {mockup}
         </div>
       </div>
     </section>
+  )
+}
+
+// Quote feature 45-second counter
+function QuoteCounter() {
+  const { ref, inView } = useInView(0.5)
+  const [flickered, setFlickered] = useState(false)
+  const { count, start } = useCountUp(45, 1500)
+  useEffect(() => {
+    if (!inView) return
+    start()
+    const t = setTimeout(() => setFlickered(true), 1550)
+    return () => clearTimeout(t)
+  }, [inView, start])
+
+  return (
+    <div ref={ref} style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 24 }}>
+      <span style={{
+        fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 700,
+        color: S.amber400, lineHeight: 1,
+        // brief flicker after landing
+        animation: flickered ? "counterFlicker 0.3s ease" : "none",
+      }}>
+        {count}
+      </span>
+      <span style={{ fontFamily: "var(--font-body)", fontSize: 16, color: S.textSub }}>sekunder</span>
+    </div>
+  )
+}
+
+// Invoice trust line with delayed entrance
+function InvoiceTrustLine({ text }: { text: string }) {
+  const { ref, inView } = useInView(0.5)
+  return (
+    <div ref={ref} style={{
+      display: "flex", alignItems: "center", gap: 6,
+      marginTop: 24,
+      opacity: inView ? 1 : 0,
+      transition: "opacity 400ms 600ms ease",
+    }}>
+      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.teal} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 13l4 4L19 7" />
+      </svg>
+      <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted }}>{text}</span>
+    </div>
   )
 }
 
@@ -760,7 +946,7 @@ function DemoSection() {
 
   return (
     <section id="how" style={{
-      backgroundColor: "var(--slate-800)",
+      backgroundColor: S.surfaceAlt,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -769,7 +955,7 @@ function DemoSection() {
       <div style={{ maxWidth: 960, margin: "0 auto", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionLabel>{t("demo.label")}</SectionLabel>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em" }}>
             {t("demo.headline")}
           </h2>
         </div>
@@ -780,7 +966,7 @@ function DemoSection() {
               padding: "6px 14px", borderRadius: 999, cursor: "pointer",
               fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
               backgroundColor: active === i ? s.color : "transparent",
-              color: active === i ? s.textColor : S.s500,
+              color: active === i ? s.textColor : S.textMuted,
               border: active === i ? `1px solid transparent` : `1px solid ${S.border}`,
               transition: "all 180ms var(--ease-snap)",
             }}>
@@ -790,7 +976,7 @@ function DemoSection() {
         </div>
 
         <div style={{
-          backgroundColor: S.obsidian, border: `1px solid ${S.border}`,
+          backgroundColor: S.bg, border: `1px solid ${S.border}`,
           borderRadius: 16, padding: "40px 48px", textAlign: "center", minHeight: 120,
           transition: "all 180ms var(--ease-snap)",
         }}>
@@ -802,7 +988,16 @@ function DemoSection() {
           }}>
             {active + 1} / {stages.length} — {stage.label}
           </span>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 2.5vw, 20px)", color: S.s300, lineHeight: 1.5 }}>
+          {/* Sonar pulse on active step */}
+          <div style={{ position: "relative", display: "inline-block", marginBottom: 8 }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: "50%",
+              backgroundColor: S.amber,
+              animation: "sonarPulse 1.2s ease-out infinite",
+              margin: "0 auto 12px",
+            }} />
+          </div>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 2.5vw, 20px)", color: S.textSub, lineHeight: 1.5 }}>
             {stage.desc}
           </p>
         </div>
@@ -822,6 +1017,8 @@ function WhoSection() {
   const prefersReduced = usePrefersReduced()
   const t = useTranslations("Landing")
 
+  const STAMP_ROTATIONS = [-12, 8, -6, 14, -9, 5, -11, 7]
+
   const trades = [
     { key: "t1", icon: <path d="M13 2L4.5 13.5H11L9 22l11-13.5H14z" strokeWidth={1.75} /> },
     { key: "t2", icon: <><rect x="5" y="13" width="8" height="8" rx="1.5" /><rect x="16" y="5" width="6" height="6" rx="1.5" /><path d="M13 17H15a3 3 0 003-3V8" /></> },
@@ -835,7 +1032,7 @@ function WhoSection() {
 
   return (
     <section style={{
-      backgroundColor: S.obsidian,
+      backgroundColor: S.bg,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -843,21 +1040,40 @@ function WhoSection() {
     }}>
       <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%", textAlign: "center" }}>
         <SectionLabel>{t("who.label")}</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 48 }}>
+        {/* Billboard blur entrance */}
+        <h2 style={{
+          fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)",
+          fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 48,
+          opacity: inView ? 1 : 0,
+          filter: inView ? "blur(0px)" : "blur(20px)",
+          transform: inView ? "scale(1)" : "scale(1.08)",
+          transition: prefersReduced ? "none" : "opacity 700ms var(--ease-smooth), filter 700ms var(--ease-smooth), transform 700ms var(--ease-smooth)",
+        }}>
           {t("who.headline")}
         </h2>
 
+        {/* Trade stamp grid — random rotations settle to 0 */}
         <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, maxWidth: 720, margin: "0 auto 64px", justifyItems: "center" }}>
           {trades.map((trade, i) => (
             <div key={trade.key} style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 8, cursor: "pointer",
-              color: S.s500,
+              color: S.textMuted,
               opacity: inView ? 1 : 0,
-              transform: inView ? "translateY(0)" : "translateY(12px)",
-              transition: prefersReduced ? "none" : `opacity 280ms ${i * 50}ms var(--ease-smooth), transform 280ms ${i * 50}ms var(--ease-smooth), color 120ms`,
+              transform: inView
+                ? "rotate(0deg) scale(1)"
+                : `rotate(${STAMP_ROTATIONS[i]}deg) scale(0.7)`,
+              transition: prefersReduced
+                ? "none"
+                : `opacity 350ms ${i * 60}ms var(--ease-spring), transform 450ms ${i * 60}ms var(--ease-spring), color 120ms`,
             }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.color = S.amber; (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px) scale(1.05)" }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.color = S.s500; (e.currentTarget as HTMLDivElement).style.transform = "translateY(0) scale(1)" }}>
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.color = S.amber
+                ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px) scale(1.08)"
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.color = S.textMuted
+                ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0) scale(1)"
+              }}>
               <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                 {trade.icon}
               </svg>
@@ -870,17 +1086,28 @@ function WhoSection() {
 
         <div style={{ maxWidth: 540, margin: "0 auto", position: "relative", padding: "0 20px" }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: 80, fontWeight: 800, color: S.amber, opacity: 0.2, lineHeight: 0.8, display: "block", marginBottom: -20 }}>"</span>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.5vw, 22px)", fontStyle: "italic", color: S.s300, lineHeight: 1.55, marginBottom: 20 }}>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.5vw, 22px)", fontStyle: "italic", color: S.textSub, lineHeight: 1.55, marginBottom: 20 }}>
             "{t("who.quote")}"
           </p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>{t("who.quoteAuthor")}</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted }}>{t("who.quoteAuthor")}</p>
         </div>
       </div>
     </section>
   )
 }
 
-// ── Comparison Table ──────────────────────────────────────────────────────────
+// ── Comparison Table — padlock unlock ────────────────────────────────────────
+
+function PadlockSVG({ unlocked }: { unlocked: boolean }) {
+  return (
+    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      style={{ margin: "0 auto 4px", display: "block", transition: "transform 400ms cubic-bezier(0.34,1.56,0.64,1)" }}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d={unlocked ? "M7 11V7a5 5 0 0 1 9.9-1" : "M7 11V7a5 5 0 0 1 10 0v4"}
+        style={{ transition: "d 400ms var(--ease-spring)" }} />
+    </svg>
+  )
+}
 
 function ComparisonTable() {
   const { ref, inView } = useInView(0.1)
@@ -899,7 +1126,7 @@ function ComparisonTable() {
 
   return (
     <section style={{
-      backgroundColor: "var(--slate-800)",
+      backgroundColor: S.surfaceAlt,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -907,7 +1134,7 @@ function ComparisonTable() {
     }}>
       <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
         <SectionLabel>{t("comparison.label")}</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 40 }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 40 }}>
           {t("comparison.headline")}
         </h2>
 
@@ -925,12 +1152,14 @@ function ComparisonTable() {
                     padding: "10px 16px", textAlign: i === 0 ? "left" : "center",
                     fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
                     textTransform: "uppercase", letterSpacing: "0.06em",
-                    color: i === 1 ? S.amber : S.s500,
+                    color: i === 1 ? S.amber : S.textMuted,
                     borderBottom: `1px solid ${i === 1 ? S.amber : S.border}`,
                     borderTop: i === 1 ? `2px solid ${S.amber}` : "none",
                     backgroundColor: i === 1 ? "oklch(0.720 0.195 58 / 6%)" : "transparent",
                     borderRadius: i === 1 ? "6px 6px 0 0" : 0,
+                    position: "relative",
                   }}>
+                    {i === 1 && <PadlockSVG unlocked={inView} />}
                     {col}
                   </th>
                 ))}
@@ -943,15 +1172,24 @@ function ComparisonTable() {
                     <td key={ci} style={{
                       padding: "11px 16px", textAlign: ci === 0 ? "left" : "center",
                       fontFamily: ci === 0 ? "var(--font-body)" : (cell === true || cell === false) ? "inherit" : "var(--font-mono)",
-                      fontSize: 13, color: ci === 0 ? S.s300 : S.s400,
+                      fontSize: 13, color: ci === 0 ? S.textSub : S.textMuted,
                       backgroundColor: ci === 1 ? "oklch(0.720 0.195 58 / 4%)" : "transparent",
+                      // Competitor columns fade in gray, HP column unlocks with color
+                      filter: inView ? "none" : (ci === 0 ? "none" : ci === 1 ? "none" : "grayscale(100%)"),
+                      opacity: inView ? 1 : (ci === 0 ? 1 : 0.4),
+                      transition: `filter 600ms ${ri * 60}ms ease, opacity 500ms ${ri * 60}ms ease`,
                     }}>
                       {cell === true ? (
-                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 auto", display: "block" }}>
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+                          style={{
+                            margin: "0 auto", display: "block",
+                            opacity: inView ? 1 : 0,
+                            transition: `opacity 300ms ${ri * 60 + ci * 40}ms ease`,
+                          }}>
                           <path d="M5 13l4 4L19 7" />
                         </svg>
                       ) : cell === false ? (
-                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.s600} strokeWidth={2} strokeLinecap="round" style={{ margin: "0 auto", display: "block" }}>
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.textFaint} strokeWidth={2} strokeLinecap="round" style={{ margin: "0 auto", display: "block" }}>
                           <line x1="5" y1="12" x2="19" y2="12" />
                         </svg>
                       ) : cell}
@@ -967,7 +1205,7 @@ function ComparisonTable() {
   )
 }
 
-// ── Testimonials ──────────────────────────────────────────────────────────────
+// ── Testimonials — sine-wave entry + continuous float ────────────────────────
 
 function TestimonialsSection() {
   const { ref, inView } = useInView(0.1)
@@ -980,9 +1218,16 @@ function TestimonialsSection() {
     { initials: "PH", name: t("testimonials.t3name"), role: t("testimonials.t3role"), quote: t("testimonials.t3quote") },
   ]
 
+  // Sine-wave entry: different x/y per card
+  const WAVE_ENTRIES = [
+    { tx: "-40px", ty: "20px" },
+    { tx: "0px",   ty: "-24px" },
+    { tx: "40px",  ty: "16px" },
+  ]
+
   return (
     <section style={{
-      backgroundColor: S.obsidian,
+      backgroundColor: S.bg,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -990,25 +1235,33 @@ function TestimonialsSection() {
     }}>
       <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
         <SectionLabel>{t("testimonials.label")}</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 48 }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 48 }}>
           {t("testimonials.headline")}
         </h2>
         <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
           {testimonials.map((t_, i) => (
             <div key={t_.name} style={{
-              backgroundColor: "var(--slate-800)", border: `1px solid ${S.border}`,
+              backgroundColor: S.surface, border: `1px solid ${S.border}`,
               borderRadius: 14, padding: 28, position: "relative",
               opacity: inView ? 1 : 0,
-              transform: inView ? "translateY(0)" : "translateY(16px)",
-              transition: prefersReduced ? "none" : `opacity 280ms ${i * 80}ms var(--ease-smooth), transform 280ms ${i * 80}ms var(--ease-smooth)`,
+              transform: inView
+                ? "translate(0,0)"
+                : `translate(${WAVE_ENTRIES[i].tx}, ${WAVE_ENTRIES[i].ty})`,
+              transition: prefersReduced
+                ? "none"
+                : `opacity 400ms ${i * 100}ms var(--ease-smooth), transform 500ms ${i * 100}ms var(--ease-smooth)`,
+              // Continuous buoy float after settle
+              animation: inView && !prefersReduced
+                ? `buoyFloat ${4.5 + i * 1.2}s ease-in-out ${i * 1.5}s infinite`
+                : "none",
             }}>
-              <span style={{ position: "absolute", top: 16, left: 20, fontFamily: "var(--font-display)", fontSize: 56, fontWeight: 800, color: S.amber, opacity: 0.25, lineHeight: 1 }}>"</span>
+              <span style={{ position: "absolute", top: 16, left: 20, fontFamily: "var(--font-display)", fontSize: 56, fontWeight: 800, color: S.amber, opacity: 0.2, lineHeight: 1 }}>"</span>
               <div style={{ display: "flex", marginBottom: 12 }}>
                 {[1, 2, 3, 4, 5].map(s => (
                   <svg key={s} width={14} height={14} viewBox="0 0 24 24" fill={S.amber} stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                 ))}
               </div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, lineHeight: 1.65, marginBottom: 20, fontStyle: "italic" }}>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub, lineHeight: 1.65, marginBottom: 20, fontStyle: "italic" }}>
                 "{t_.quote}"
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1016,8 +1269,8 @@ function TestimonialsSection() {
                   <span style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>{t_.initials}</span>
                 </div>
                 <div>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: S.s100 }}>{t_.name}</p>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s500 }}>{t_.role}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: S.text }}>{t_.name}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted }}>{t_.role}</p>
                 </div>
               </div>
             </div>
@@ -1028,10 +1281,12 @@ function TestimonialsSection() {
   )
 }
 
-// ── Pricing ───────────────────────────────────────────────────────────────────
+// ── Pricing — shelf lift with Solo overshoot ──────────────────────────────────
 
 function PricingSection() {
   const [annual, setAnnual] = useState(true)
+  const { ref, inView } = useInView(0.15)
+  const prefersReduced = usePrefersReduced()
   const t = useTranslations("Landing")
 
   const plans = [
@@ -1063,7 +1318,7 @@ function PricingSection() {
 
   return (
     <section id="pricing" style={{
-      backgroundColor: "var(--slate-800)",
+      backgroundColor: S.surfaceAlt,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -1072,16 +1327,16 @@ function PricingSection() {
       <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionLabel>{t("pricing.label")}</SectionLabel>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 8 }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 8 }}>
             {t("pricing.headline")}
           </h2>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginTop: 20, padding: "4px", borderRadius: 10, background: "oklch(1 0 0 / 5%)", border: `1px solid ${S.border}` }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 20, padding: "4px", borderRadius: 10, background: "oklch(1 0 0 / 5%)", border: `1px solid ${S.border}` }}>
             {[{ label: t("pricing.monthly"), val: false }, { label: t("pricing.annual"), val: true }].map(({ label, val }) => (
               <button key={String(val)} onClick={() => setAnnual(val)} style={{
                 padding: "6px 16px", borderRadius: 7, border: "none", cursor: "pointer",
                 fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
                 backgroundColor: annual === val ? S.amber : "transparent",
-                color: annual === val ? "oklch(0.10 0.005 52)" : S.s400,
+                color: annual === val ? "oklch(0.10 0.005 52)" : S.textMuted,
                 transition: "all 150ms var(--ease-snap)",
               }}>
                 {label}{val ? <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.8 }}>{t("pricing.save20")}</span> : ""}
@@ -1090,17 +1345,29 @@ function PricingSection() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {plans.map((plan) => (
+        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          {plans.map((plan, i) => (
             <div key={plan.name} style={{
-              backgroundColor: S.obsidian,
+              backgroundColor: S.bg,
               border: plan.featured ? `1px solid ${S.amber}` : `1px solid ${S.border}`,
               borderRadius: 16, overflow: "hidden",
               display: "flex", flexDirection: "column",
               boxShadow: plan.featured ? `0 0 48px oklch(0.720 0.195 58 / 18%)` : "none",
               position: "relative",
+              // Shelf lift — Solo overshoots then settles
+              opacity: inView ? 1 : 0,
+              transform: inView
+                ? "translateY(0)"
+                : `translateY(30px)`,
+              transition: prefersReduced
+                ? "none"
+                : plan.featured
+                  ? `opacity 400ms 100ms var(--ease-spring), transform 600ms 100ms cubic-bezier(0.34,1.56,0.64,1)`
+                  : `opacity 400ms ${i * 80}ms var(--ease-smooth), transform 400ms ${i * 80}ms var(--ease-smooth)`,
+              // Solo glow pulse
+              animation: plan.featured && inView ? "soloPulse 2s ease-in-out infinite" : "none",
             }}>
-              {plan.featured && <div style={{ height: 2, background: `linear-gradient(90deg, ${S.amber600}, ${S.amber}, ${S.amber400})` }} />}
+              {plan.featured && <div style={{ height: 2, background: `linear-gradient(90deg, var(--amber-600), var(--amber-500), var(--amber-400))` }} />}
               {plan.badge && (
                 <div style={{
                   position: "absolute", top: plan.featured ? 18 : 14, right: 16,
@@ -1110,12 +1377,12 @@ function PricingSection() {
                 }}>{plan.badge}</div>
               )}
               <div style={{ padding: "24px 24px 28px", flex: 1, display: "flex", flexDirection: "column" }}>
-                <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: S.s50, marginBottom: 12 }}>{plan.name}</p>
+                <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: S.text, marginBottom: 12 }}>{plan.name}</p>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 700, color: S.s50, lineHeight: 1 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 700, color: S.text, lineHeight: 1 }}>
                     {annual ? plan.annual : plan.monthly}
                   </span>
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500 }}>{t("pricing.perMonth")}</span>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted }}>{t("pricing.perMonth")}</span>
                 </div>
                 {annual && plan.featured && <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.amber, marginBottom: 16 }}>{t("pricing.billedAnnually")}</p>}
                 <div style={{ height: 1, background: S.border, margin: "20px 0" }} />
@@ -1125,15 +1392,15 @@ function PricingSection() {
                       <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <path d="M5 13l4 4L19 7" />
                       </svg>
-                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s300 }}>{f}</span>
+                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub }}>{f}</span>
                     </li>
                   ))}
                   {plan.locked.map((f) => (
                     <li key={f} style={{ display: "flex", alignItems: "center", gap: 9, opacity: 0.35 }}>
-                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.s600} strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.textFaint} strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
-                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s600 }}>{f}</span>
+                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textFaint }}>{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -1143,9 +1410,9 @@ function PricingSection() {
                   fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 500,
                   textDecoration: "none",
                   backgroundColor: plan.featured ? S.amber : "transparent",
-                  color: plan.featured ? "oklch(0.10 0.005 52)" : S.s300,
+                  color: plan.featured ? "oklch(0.10 0.005 52)" : S.textSub,
                   border: plan.featured ? "none" : `1.5px solid ${S.border}`,
-                  boxShadow: plan.featured ? "var(--shadow-accent)" : "none",
+                  boxShadow: plan.featured ? "0 4px 16px oklch(0.720 0.195 58 / 0.40)" : "none",
                   transition: "opacity 120ms",
                 }}
                   onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"}
@@ -1156,7 +1423,7 @@ function PricingSection() {
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s600, textAlign: "center", marginTop: 24 }}>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textFaint, textAlign: "center", marginTop: 24 }}>
           {t("pricing.noBinding")}
         </p>
       </div>
@@ -1164,7 +1431,7 @@ function PricingSection() {
   )
 }
 
-// ── FAQ ───────────────────────────────────────────────────────────────────────
+// ── FAQ — clip-path ink reveal ────────────────────────────────────────────────
 
 function FAQSection() {
   const [open, setOpen] = useState<number | null>(null)
@@ -1177,7 +1444,7 @@ function FAQSection() {
 
   return (
     <section id="faq" style={{
-      backgroundColor: S.obsidian,
+      backgroundColor: S.bg,
       minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       padding: "80px 24px",
@@ -1185,7 +1452,7 @@ function FAQSection() {
     }}>
       <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
         <SectionLabel>{t("faq.label")}</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.s50, letterSpacing: "-0.02em", marginBottom: 40 }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 40 }}>
           {t("faq.headline")}
         </h2>
         <div>
@@ -1195,22 +1462,33 @@ function FAQSection() {
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "18px 0", gap: 16, background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
               }}>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: open === i ? S.s50 : S.s200, flex: 1, lineHeight: 1.4 }}>
+                <span style={{
+                  fontFamily: "var(--font-body)", fontSize: 15, fontWeight: open === i ? 600 : 500,
+                  color: open === i ? S.text : S.textSub,
+                  flex: 1, lineHeight: 1.4,
+                  transition: "color 120ms, font-weight 120ms",
+                }}>
                   {faq.q}
                 </span>
                 <span style={{
                   width: 24, height: 24, borderRadius: "50%",
                   border: `1px solid ${open === i ? S.amber : S.border}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: open === i ? S.amber : S.s500, flexShrink: 0,
+                  color: open === i ? S.amber : S.textMuted, flexShrink: 0,
                   transition: "all 180ms var(--ease-snap)",
                   transform: open === i ? "rotate(45deg)" : "none",
                 }}>
                   <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 </span>
               </button>
-              <div style={{ overflow: "hidden", maxHeight: open === i ? 300 : 0, transition: "max-height 200ms var(--ease-smooth)" }}>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s400, lineHeight: 1.7, paddingBottom: 18 }}>
+              {/* Ink-reveal: clip-path from top instead of max-height */}
+              <div style={{
+                overflow: "hidden",
+                clipPath: open === i ? "inset(0 0 0% 0)" : "inset(0 0 100% 0)",
+                transition: "clip-path 280ms var(--ease-smooth)",
+                maxHeight: open === i ? 300 : 0,
+              }}>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted, lineHeight: 1.7, paddingBottom: 18 }}>
                   {faq.a}
                 </p>
               </div>
@@ -1226,6 +1504,7 @@ function FAQSection() {
 
 function TrustBar() {
   const t = useTranslations("Landing")
+  const { ref, inView } = useInView(0.3)
   const items = [
     { icon: "🔒", text: t("trust.gdpr") },
     { icon: "🇩🇰", text: t("trust.support") },
@@ -1233,13 +1512,18 @@ function TrustBar() {
     { icon: "⚡", text: t("trust.setup") },
   ]
   return (
-    <div style={{ backgroundColor: "var(--slate-800)", borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
-      <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "12px 32px" }}>
+    <div style={{ backgroundColor: S.surfaceAlt, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
+      <div ref={ref} style={{ maxWidth: MAX_W, margin: "0 auto", padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "12px 32px" }}>
         {items.map((item, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {i > 0 && <span className="hidden md:inline" style={{ color: S.s700, marginRight: 20 }}>|</span>}
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 8,
+            opacity: inView ? 1 : 0,
+            transform: inView ? "translateY(0)" : "translateY(6px)",
+            transition: `opacity 300ms ${i * 80}ms ease, transform 300ms ${i * 80}ms ease`,
+          }}>
+            {i > 0 && <span className="hidden md:inline" style={{ color: S.textFaint, marginRight: 20 }}>|</span>}
             <span style={{ fontSize: 15 }}>{item.icon}</span>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s400 }}>{item.text}</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted }}>{item.text}</span>
           </div>
         ))}
       </div>
@@ -1247,45 +1531,114 @@ function TrustBar() {
   )
 }
 
-// ── Footer CTA ────────────────────────────────────────────────────────────────
+// ── Footer CTA — ember particles ──────────────────────────────────────────────
+
+function EmberParticles() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const particles: HTMLDivElement[] = []
+    for (let i = 0; i < 48; i++) {
+      const p = document.createElement("div")
+      const size = Math.random() * 3 + 1.5
+      p.style.cssText = `
+        position:absolute;
+        width:${size}px;height:${size}px;
+        border-radius:50%;
+        background:oklch(0.10 0.005 52);
+        left:${Math.random() * 100}%;
+        bottom:${Math.random() * 20}%;
+        opacity:${Math.random() * 0.12 + 0.05};
+        pointer-events:none;
+      `
+      container.appendChild(p)
+      particles.push(p)
+
+      gsap.to(p, {
+        y: -(Math.random() * 200 + 80),
+        x: (Math.random() - 0.5) * 60,
+        opacity: 0,
+        duration: Math.random() * 8 + 12,
+        delay: Math.random() * 8,
+        repeat: -1,
+        ease: "power1.out",
+      })
+    }
+
+    return () => {
+      particles.forEach(p => { if (p.parentNode) p.parentNode.removeChild(p) })
+    }
+  }, { scope: containerRef })
+
+  return <div ref={containerRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} />
+}
 
 function FooterCTA() {
   const t = useTranslations("Landing")
+  const { ref, inView } = useInView(0.2)
+  const prefersReduced = usePrefersReduced()
+
   return (
     <footer>
-      <div style={{ background: `linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 55%, var(--amber-400) 100%)`, padding: "100px 24px", textAlign: "center" }}>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 800, color: "oklch(0.12 0.005 52)", letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 16 }}>
+      <div style={{
+        background: `linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 55%, var(--amber-400) 100%)`,
+        padding: "100px 24px", textAlign: "center", position: "relative", overflow: "hidden",
+      }}>
+        {!prefersReduced && <EmberParticles />}
+        <div ref={ref} style={{ maxWidth: 600, margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <h2 style={{
+            fontFamily: "var(--font-display)", fontSize: "clamp(32px, 5vw, 56px)",
+            fontWeight: 800, color: "oklch(0.12 0.005 52)", letterSpacing: "-0.02em",
+            lineHeight: 1.1, marginBottom: 16,
+            opacity: inView ? 1 : 0,
+            transform: inView ? "scale(1)" : "scale(1.6)",
+            transition: prefersReduced ? "none" : "opacity 400ms var(--ease-spring), transform 500ms cubic-bezier(0.34,1.56,0.64,1)",
+          }}>
             {t("footerCta.headline")}
           </h2>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 18, color: "oklch(0.25 0.008 52)", marginBottom: 36 }}>
+          <p style={{
+            fontFamily: "var(--font-body)", fontSize: 18, color: "oklch(0.25 0.008 52)", marginBottom: 36,
+            opacity: inView ? 1 : 0,
+            transition: prefersReduced ? "none" : "opacity 400ms 120ms ease",
+          }}>
             {t("footerCta.sub")}
           </p>
           <Link href="/sign-up" style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
             height: 52, padding: "0 36px", borderRadius: 12,
             fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 600,
-            color: S.s50, backgroundColor: "oklch(0.09 0.004 255)",
-            textDecoration: "none", transition: "opacity 120ms",
+            color: S.text, backgroundColor: S.bg,
+            textDecoration: "none", transition: "opacity 120ms, transform 120ms",
           }}
-            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"}
-            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "1"}>
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"
+              ;(e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLAnchorElement).style.opacity = "1"
+              ;(e.currentTarget as HTMLAnchorElement).style.transform = ""
+            }}>
             {t("footerCta.cta")}
           </Link>
         </div>
       </div>
 
-      <div style={{ backgroundColor: S.obsidian, borderTop: `1px solid ${S.border}`, padding: "48px 24px 32px" }}>
+      <div style={{ backgroundColor: S.bg, borderTop: `1px solid ${S.border}`, padding: "48px 24px 32px" }}>
         <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 32, marginBottom: 48 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                 <div style={{ width: 24, height: 24, borderRadius: 5, background: S.amber, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" /></svg>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                  </svg>
                 </div>
-                <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: S.s50 }}>Håndværk Pro</span>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: S.text }}>Håndværk Pro</span>
               </div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.s600, lineHeight: 1.6 }}>{t("footer.tagline")}</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textFaint, lineHeight: 1.6 }}>{t("footer.tagline")}</p>
             </div>
             {[
               { heading: t("footer.product"), links: [t("footer.features"), t("footer.pricing"), t("footer.changelog")] },
@@ -1293,12 +1646,12 @@ function FooterCTA() {
               { heading: t("footer.legal"), links: [t("footer.privacy"), t("footer.cookies"), t("footer.terms")] },
             ].map(col => (
               <div key={col.heading}>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: S.s500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>{col.heading}</p>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: S.textMuted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>{col.heading}</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {col.links.map(link => (
-                    <a key={link} href="#" style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.s500, textDecoration: "none", transition: "color 120ms" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = S.s300}
-                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = S.s500}>
+                    <a key={link} href="#" style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted, textDecoration: "none", transition: "color 120ms" }}
+                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = S.textSub}
+                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = S.textMuted}>
                       {link}
                     </a>
                   ))}
@@ -1307,14 +1660,52 @@ function FooterCTA() {
             ))}
           </div>
           <div style={{ borderTop: `1px solid ${S.border}`, paddingTop: 24, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>{t("footer.copyright")}</span>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.s600 }}>{t("footer.tagline")}</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textFaint }}>{t("footer.copyright")}</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textFaint }}>{t("footer.tagline")}</span>
           </div>
         </div>
       </div>
     </footer>
   )
 }
+
+// ── Global keyframes ──────────────────────────────────────────────────────────
+
+const GlobalStyles = () => (
+  <style>{`
+    @keyframes pulse {
+      0%,100%{opacity:0.5;transform:scale(1)}
+      50%{opacity:1;transform:scale(1.3)}
+    }
+    @keyframes ctaPulse {
+      0%,100%{box-shadow:0 4px 16px oklch(0.720 0.195 58 / 0.35)}
+      50%{box-shadow:0 4px 24px oklch(0.720 0.195 58 / 0.55)}
+    }
+    @keyframes cardFloat {
+      0%,100%{transform:translateY(0px)}
+      50%{transform:translateY(-6px)}
+    }
+    @keyframes buoyFloat {
+      0%,100%{transform:translateY(0px)}
+      50%{transform:translateY(-4px)}
+    }
+    @keyframes sonarPulse {
+      0%{transform:scale(1);opacity:1}
+      80%,100%{transform:scale(3.5);opacity:0}
+    }
+    @keyframes progress {
+      from{width:0%} to{width:100%}
+    }
+    @keyframes soloPulse {
+      0%,100%{box-shadow:0 0 0 1px var(--amber-500), 0 0 32px oklch(0.720 0.195 58 / 0.15)}
+      50%{box-shadow:0 0 0 1px var(--amber-500), 0 0 48px oklch(0.720 0.195 58 / 0.28)}
+    }
+    @keyframes counterFlicker {
+      0%{opacity:1} 20%{opacity:0.3} 40%{opacity:1} 60%{opacity:0.5} 80%{opacity:1}
+    }
+    html{scroll-behavior:smooth}
+  `}</style>
+)
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -1328,7 +1719,8 @@ export default function LandingPage() {
   }, [isLoaded, user, router])
 
   return (
-    <div style={{ fontFamily: "var(--font-body)", backgroundColor: S.obsidian }}>
+    <div style={{ fontFamily: "var(--font-body)", backgroundColor: S.bg }}>
+      <GlobalStyles />
       <Nav />
       <Hero />
       <StatsBar />
@@ -1346,12 +1738,14 @@ export default function LandingPage() {
           bullets={[t("feat.quotes.b1"), t("feat.quotes.b2"), t("feat.quotes.b3")]}
           mockup={<QuoteMockup />}
           reverse
+          extra={<QuoteCounter />}
         />
         <FeatureRow
           label={t("feat.invoices.label")}
           headline={t("feat.invoices.headline")}
           bullets={[t("feat.invoices.b1"), t("feat.invoices.b2"), t("feat.invoices.b3")]}
           mockup={<InvoiceMockup />}
+          extra={<InvoiceTrustLine text={t("feat.invoices.trust")} />}
         />
         <FeatureRow
           label={t("feat.customers.label")}
