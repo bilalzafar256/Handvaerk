@@ -64,6 +64,27 @@
       "when": 1745300000000,
       "tag": "0008_phase10_google_review_url",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1745400000000,
+      "tag": "0009_ai_recordings",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1745500000000,
+      "tag": "0010_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776633843467,
+      "tag": "0011_snapshot_baseline",
+      "breakpoints": true
     }
   ]
 }

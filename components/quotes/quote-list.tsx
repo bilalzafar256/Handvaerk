@@ -432,6 +432,7 @@ function QuoteRow({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.18), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ x: 2, transition: { type: "spring", stiffness: 300, damping: 30 } }}
       className="flex border-b"
       style={{
         borderColor: "var(--border)",
@@ -444,7 +445,12 @@ function QuoteRow({
       {isMergeMode && (
         <MergeCheckbox selected={isSelected} onToggle={() => onToggleSelect(quote.id)} />
       )}
-      <div className="flex-shrink-0 self-stretch" style={{ width: hovered || isSelected ? 4 : 3, backgroundColor: barColor, transition: "width 120ms cubic-bezier(0.4,0,0.2,1)" }} />
+      <div className="flex-shrink-0 self-stretch" style={{
+        width: hovered || isSelected ? 4 : 3,
+        backgroundColor: barColor,
+        boxShadow: hovered ? `4px 0 12px ${barColor}55` : "none",
+        transition: "width 120ms cubic-bezier(0.4,0,0.2,1), box-shadow 200ms ease",
+      }} />
       <div className="flex-1 min-w-0">
         <Link
           href={`/quotes/${quote.id}`}
@@ -501,12 +507,18 @@ function QuoteCard({
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -4, rotate: 0.8, transition: { type: "spring", stiffness: 350, damping: 28 } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <div
         className="flex flex-col rounded-xl border overflow-hidden"
-        style={{ borderColor: isSelected ? "var(--primary)" : "var(--border)", backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+        style={{
+          borderColor: isSelected ? "var(--primary)" : "var(--border)",
+          backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "var(--card)",
+          boxShadow: hovered ? `0 14px 36px rgba(0,0,0,0.13), 0 0 0 1px ${barColor}40` : "none",
+          transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1), box-shadow 220ms ease",
+        }}
       >
         <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
         {isMergeMode && (

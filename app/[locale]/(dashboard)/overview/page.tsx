@@ -16,9 +16,10 @@ import {
   getTodayJobs,
   getRecentActivity,
 } from "@/lib/db/queries/overview"
+import { getReadyRecordingsForUser } from "@/lib/db/queries/ai-recordings"
 import { Topbar } from "@/components/shared/topbar"
 import { Link } from "@/i18n/navigation"
-import { Users, Briefcase, FileText, Receipt, TrendingUp, ChevronRight } from "lucide-react"
+import { Users, Briefcase, FileText, Receipt, TrendingUp, ChevronRight, Mic } from "lucide-react"
 import { formatDKK } from "@/lib/utils/currency"
 import { StatusBadge } from "@/components/jobs/status-changer"
 import type { Job } from "@/lib/db/schema/jobs"
@@ -46,12 +47,13 @@ export default async function OverviewPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [stats, statCardData, overdueInvoices, todayJobsList, activityItems] = await Promise.all([
+  const [stats, statCardData, overdueInvoices, todayJobsList, activityItems, readyRecordings] = await Promise.all([
     getOverviewStats(user.id),
     getStatCardData(user.id),
     getOverdueInvoices(user.id),
     getTodayJobs(user.id),
     getRecentActivity(user.id),
+    getReadyRecordingsForUser(user.id),
   ])
   const firstName = user.companyName?.split(" ")[0] ?? "der"
   const greetingKey = getGreetingKey()
@@ -85,6 +87,71 @@ export default async function OverviewPage({ params }: Props) {
             {summary}
           </p>
         </div>
+
+        {/* Ready recordings banner */}
+        {readyRecordings.length > 0 && (
+          <Link
+            href={`/jobs/record/${readyRecordings[0].id}`}
+            className="flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all duration-150 active:scale-[0.99]"
+            style={{ backgroundColor: "oklch(0.97 0.03 145)", borderColor: "oklch(0.82 0.12 145)" }}
+          >
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "oklch(0.90 0.08 145)" }}
+            >
+              <Mic className="w-4 h-4" style={{ color: "oklch(0.32 0.14 145)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-sm font-semibold"
+                style={{ fontFamily: "var(--font-body)", color: "oklch(0.28 0.14 145)" }}
+              >
+                {readyRecordings.length === 1
+                  ? "1 recording ready to review"
+                  : `${readyRecordings.length} recordings ready to review`}
+              </p>
+              <p
+                className="text-xs"
+                style={{ fontFamily: "var(--font-body)", color: "oklch(0.40 0.10 145)" }}
+              >
+                AI has finished processing — tap to confirm and create job
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "oklch(0.40 0.10 145)" }} />
+          </Link>
+        )}
+
+        {/* Record job quick action */}
+        <Link
+          href="/jobs/record"
+          className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-150 active:scale-[0.99]"
+          style={{
+            backgroundColor: "var(--primary)",
+            boxShadow: "var(--shadow-accent)",
+          }}
+        >
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
+          >
+            <Mic className="w-4 h-4" style={{ color: "var(--primary-foreground)" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-sm font-semibold"
+              style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)" }}
+            >
+              Record job
+            </p>
+            <p
+              className="text-xs"
+              style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)", opacity: 0.75 }}
+            >
+              AI extracts customer, job & quote from conversation
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--primary-foreground)", opacity: 0.6 }} />
+        </Link>
 
         {/* Critical zone */}
         <CriticalZone overdue={overdueInvoices} />

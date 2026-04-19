@@ -1,0 +1,2 @@
+-- no-op: baseline snapshot to repair missing meta snapshots (0005-0010 were manually created)
+-- schema changes in this range are already applied to the database

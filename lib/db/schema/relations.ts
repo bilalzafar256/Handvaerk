@@ -5,6 +5,7 @@ import { jobs, jobPhotos } from "./jobs"
 import { quotes, quoteItems, quoteTemplates, materialsCatalog } from "./quotes"
 import { invoices, invoiceItems } from "./invoices"
 import { bankAccounts } from "./bank-accounts"
+import { notifications } from "./notifications"
 
 export const usersRelations = relations(users, ({ many }) => ({
   customers: many(customers),
@@ -14,6 +15,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   materialsCatalog: many(materialsCatalog),
   invoices: many(invoices),
   bankAccounts: many(bankAccounts),
+  notifications: many(notifications),
+}))
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
 }))
 
 export const customersRelations = relations(customers, ({ one, many }) => ({

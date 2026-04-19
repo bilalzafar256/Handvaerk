@@ -2,8 +2,9 @@ import { serve } from "inngest/next"
 import { inngest } from "@/lib/inngest/client"
 import { helloWorld } from "@/lib/inngest/functions"
 import { invoiceReminder } from "@/lib/inngest/invoice-reminder"
+import { processJobRecording } from "@/lib/inngest/process-job-recording"
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [helloWorld, invoiceReminder],
+  functions: [helloWorld, invoiceReminder, processJobRecording],
 })

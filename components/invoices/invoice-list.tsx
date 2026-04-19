@@ -407,11 +407,15 @@ function InvoiceRow({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.18), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ scale: 1.008, transition: { type: "spring", stiffness: 600, damping: 40 } }}
       className="flex border-b"
       style={{
         borderColor: "var(--border)",
         backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "transparent",
-        transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)",
+        zIndex: hovered ? 1 : 0,
+        position: "relative",
+        boxShadow: hovered ? "0 4px 20px rgba(0,0,0,0.09)" : "none",
+        transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1), box-shadow 180ms ease",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -475,12 +479,18 @@ function InvoiceCard({
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -5, transition: { type: "spring", stiffness: 350, damping: 22 } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <div
         className="flex flex-col rounded-xl border overflow-hidden"
-        style={{ borderColor: isSelected ? "var(--primary)" : "var(--border)", backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+        style={{
+          borderColor: isSelected ? "var(--primary)" : hovered ? barColor : "var(--border)",
+          backgroundColor: isSelected ? "var(--accent)" : hovered ? "var(--accent)" : "var(--card)",
+          boxShadow: hovered ? `0 20px 48px rgba(0,0,0,0.16), 0 0 0 1px ${barColor}` : "none",
+          transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1), box-shadow 220ms ease, border-color 180ms ease",
+        }}
       >
         <div className="h-1 w-full" style={{ backgroundColor: barColor }} />
         {isMergeMode && (

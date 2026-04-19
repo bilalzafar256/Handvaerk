@@ -18,3 +18,11 @@ export const strictRateLimiter = new Ratelimit({
   analytics: true,
   prefix: "haandvaerk:ratelimit:strict",
 })
+
+// AI: 10 per minute — for AI-powered features
+export const aiRateLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "60 s"),
+  analytics: true,
+  prefix: "haandvaerk:ratelimit:ai",
+})

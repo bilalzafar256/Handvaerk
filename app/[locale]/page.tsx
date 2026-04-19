@@ -484,7 +484,62 @@ function Hero() {
   )
 }
 
+function HoverStatCard({ l, v }: { l: string; v: string }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? S.surfaceAlt : S.surface,
+        borderRadius: 12, padding: "14px 12px",
+        border: `1px solid ${hovered ? S.borderStrong : S.border}`,
+        transform: hovered ? "translateY(-4px) scale(1.03)" : "translateY(0) scale(1)",
+        boxShadow: hovered ? "0 10px 28px rgba(26,20,13,0.13)" : "none",
+        transition: "transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms ease, background 160ms ease, border-color 160ms ease",
+        cursor: "default",
+      }}
+    >
+      <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 20, color: S.text, letterSpacing: "-0.03em" }}>{v}</div>
+      <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.textMuted, marginTop: 3, fontWeight: 500 }}>{l}</div>
+    </div>
+  )
+}
+
+function HoverJobRow({ title, customer, status, sc, sb, amount }: { title: string; customer: string; status: string; sc: string; sb: string; amount: string }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "13px 14px", borderRadius: 12,
+        border: `1px solid ${hovered ? S.borderStrong : S.border}`,
+        marginBottom: 8,
+        background: hovered ? S.surface : "#fff",
+        transform: hovered ? "translateX(5px)" : "translateX(0)",
+        boxShadow: hovered ? "0 4px 16px rgba(26,20,13,0.08)" : "none",
+        transition: "transform 200ms cubic-bezier(0.22,1,0.36,1), box-shadow 200ms ease, background 150ms ease, border-color 150ms ease",
+        cursor: "default",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 14, color: S.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginTop: 2 }}>{customer}</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 12 }}>
+        <span style={{ background: sb, color: sc, borderRadius: 6, padding: "3px 10px", fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700 }}>{status}</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: S.text, whiteSpace: "nowrap" }}>{amount}</span>
+      </div>
+    </div>
+  )
+}
+
 function HeroMockup() {
+  const [paidHovered, setPaidHovered] = useState(false)
+  const [acceptedHovered, setAcceptedHovered] = useState(false)
+
   return (
     <div>
       <div style={{
@@ -503,10 +558,7 @@ function HeroMockup() {
         <div style={{ padding: 20 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
             {[{ l: "Active jobs", v: "7" },{ l: "Outstanding", v: "84k" },{ l: "Paid today", v: "2" }].map(({ l, v }) => (
-              <div key={l} style={{ background: S.surface, borderRadius: 12, padding: "14px 12px", border: `1px solid ${S.border}` }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 20, color: S.text, letterSpacing: "-0.03em" }}>{v}</div>
-                <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.textMuted, marginTop: 3, fontWeight: 500 }}>{l}</div>
-              </div>
+              <HoverStatCard key={l} l={l} v={v} />
             ))}
           </div>
           {[
@@ -514,29 +566,41 @@ function HeroMockup() {
             { t: "Electrical Install — Lake Cottage", c: "Morten Lund", s: "Paid", sc: "#059669", sb: "#ecfdf5", a: "12.800 kr" },
             { t: "Roof Replacement — Oak Lane", c: "Kirsten Bach", s: "Quote sent", sc: "#0ea5e9", sb: "#f0f9ff", a: "84.000 kr" },
           ].map(({ t: title, c: customer, s: status, sc, sb, a }) => (
-            <div key={title} style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "13px 14px", borderRadius: 12, border: `1px solid ${S.border}`, marginBottom: 8, background: "#fff",
-            }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 14, color: S.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
-                <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginTop: 2 }}>{customer}</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 12 }}>
-                <span style={{ background: sb, color: sc, borderRadius: 6, padding: "3px 10px", fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700 }}>{status}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: S.text, whiteSpace: "nowrap" }}>{a}</span>
-              </div>
-            </div>
+            <HoverJobRow key={title} title={title} customer={customer} status={status} sc={sc} sb={sb} amount={a} />
           ))}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 14, padding: "14px 16px" }}>
+        <div
+          onMouseEnter={() => setPaidHovered(true)}
+          onMouseLeave={() => setPaidHovered(false)}
+          style={{
+            background: "#ecfdf5",
+            border: `1px solid ${paidHovered ? "#6ee7b7" : "#a7f3d0"}`,
+            borderRadius: 14, padding: "14px 16px",
+            transform: paidHovered ? "translateY(-5px) scale(1.02)" : "translateY(0) scale(1)",
+            boxShadow: paidHovered ? "0 12px 30px rgba(5,150,105,0.18)" : "none",
+            transition: "transform 210ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 210ms ease, border-color 160ms ease",
+            cursor: "default",
+          }}
+        >
           <div style={{ fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 800, color: "#059669", letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 5 }}>PAID ✓</div>
           <div style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.text }}>Invoice #0042</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "#059669", marginTop: 2 }}>12,800 kr</div>
         </div>
-        <div style={{ background: "var(--amber-50)", border: "1px solid var(--amber-200)", borderRadius: 14, padding: "14px 16px" }}>
+        <div
+          onMouseEnter={() => setAcceptedHovered(true)}
+          onMouseLeave={() => setAcceptedHovered(false)}
+          style={{
+            background: "var(--amber-50)",
+            border: `1px solid ${acceptedHovered ? "var(--amber-400)" : "var(--amber-200)"}`,
+            borderRadius: 14, padding: "14px 16px",
+            transform: acceptedHovered ? "translateY(-5px) scale(1.02)" : "translateY(0) scale(1)",
+            boxShadow: acceptedHovered ? "0 12px 30px rgba(224,123,32,0.20)" : "none",
+            transition: "transform 210ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 210ms ease, border-color 160ms ease",
+            cursor: "default",
+          }}
+        >
           <div style={{ fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 800, color: "var(--amber-600)", letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 5 }}>ACCEPTED</div>
           <div style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.text }}>T-0087 · 45 sec</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--amber-600)", marginTop: 2 }}>38,400 kr</div>
@@ -597,6 +661,76 @@ function StatsStrip() {
         </div>
       </div>
     </section>
+  )
+}
+
+// ── Dark section job row — wrapper isolates hover transform from GSAP ────────
+
+function DarkJobRow({ title, amount, pct }: { title: string; amount: string; pct: number }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        transform: hovered ? "translateX(6px)" : "translateX(0)",
+        transition: "transform 200ms cubic-bezier(0.22,1,0.36,1)",
+        marginBottom: 8,
+      }}
+    >
+      <div className="job-row" style={{
+        padding: "14px 16px", borderRadius: 12,
+        border: `1px solid ${hovered ? "rgba(247,243,238,0.22)" : S.darkBorder}`,
+        background: hovered ? "rgba(247,243,238,0.10)" : "rgba(247,243,238,0.04)",
+        boxShadow: hovered ? "0 6px 20px rgba(0,0,0,0.35)" : "none",
+        transition: "background 150ms ease, border-color 150ms ease, box-shadow 200ms ease",
+        cursor: "default",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: S.textInverse }}>{title}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: hovered ? "oklch(0.84 0.17 58)" : S.amberRaw, transition: "color 150ms ease" }}>{amount}</span>
+        </div>
+        <div style={{ height: 3, background: "rgba(247,243,238,0.08)", borderRadius: 2, overflow: "hidden" }}>
+          <div className="progress-fill" style={{
+            height: "100%", width: `${pct}%`, transformOrigin: "left",
+            background: `linear-gradient(90deg, ${S.amberRaw}, oklch(0.77 0.165 60))`,
+            borderRadius: 2,
+          }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Light section invoice row — wrapper isolates hover from GSAP clip-path ────
+
+function LightInvoiceRow({ d, q, p, tot }: { d: string; q: string; p: string; tot: string }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        transform: hovered ? "translateX(5px)" : "translateX(0)",
+        transition: "transform 190ms cubic-bezier(0.22,1,0.36,1)",
+      }}
+    >
+      <div className="invoice-row" style={{
+        display: "grid", gridTemplateColumns: "1fr auto auto auto",
+        gap: 12, alignItems: "center", padding: "10px 8px",
+        borderBottom: `1px solid ${S.border}`,
+        background: hovered ? "var(--amber-50)" : "transparent",
+        borderRadius: hovered ? 6 : 0,
+        boxShadow: hovered ? `inset 3px 0 0 ${S.amberHex}` : "inset 3px 0 0 transparent",
+        transition: "background 150ms ease, border-radius 120ms ease, box-shadow 150ms ease",
+        cursor: "default",
+      }}>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.text, fontWeight: 500 }}>{d}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{q}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{p} kr</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: hovered ? S.amberHex : S.text, textAlign: "right", transition: "color 150ms ease" }}>{tot} kr</div>
+      </div>
+    </div>
   )
 }
 
@@ -757,22 +891,7 @@ function FeatureDark() {
               { title: "Roof Replacement — Oak Lane", amount: "84.000 kr", pct: 18 },
               { title: "Plumbing Check — Office", amount: "4.200 kr", pct: 78 },
             ].map(({ title, amount, pct }) => (
-              <div key={title} className="job-row" style={{
-                padding: "14px 16px", borderRadius: 12, border: `1px solid ${S.darkBorder}`,
-                marginBottom: 8, background: "rgba(247,243,238,0.04)",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: S.textInverse }}>{title}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: S.amberRaw }}>{amount}</span>
-                </div>
-                <div style={{ height: 3, background: "rgba(247,243,238,0.08)", borderRadius: 2, overflow: "hidden" }}>
-                  <div className="progress-fill" style={{
-                    height: "100%", width: `${pct}%`, transformOrigin: "left",
-                    background: `linear-gradient(90deg, ${S.amberRaw}, oklch(0.77 0.165 60))`,
-                    borderRadius: 2,
-                  }} />
-                </div>
-              </div>
+              <DarkJobRow key={title} title={title} amount={amount} pct={pct} />
             ))}
           </div>
         </div>
@@ -975,15 +1094,7 @@ function FeatureLight() {
               { d: "Materials — Bricks", q: "1 lot", p: "8.200", tot: "8.200" },
               { d: "Scaffolding rental — 5 days", q: "5 d", p: "420", tot: "2.100" },
             ].map(({ d, q, p, tot }) => (
-              <div key={d} className="invoice-row" style={{
-                display: "grid", gridTemplateColumns: "1fr auto auto auto",
-                gap: 12, alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${S.border}`,
-              }}>
-                <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.text, fontWeight: 500 }}>{d}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{q}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{p} kr</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: S.text, textAlign: "right" }}>{tot} kr</div>
-              </div>
+              <LightInvoiceRow key={d} d={d} q={q} p={p} tot={tot} />
             ))}
             <div style={{ marginTop: 16 }}>
               {[{ l: "Subtotal", v: "27.700 kr" }, { l: "VAT 25%", v: "6.925 kr" }].map(({ l, v }) => (

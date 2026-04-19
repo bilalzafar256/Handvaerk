@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { useState } from "react"
 import { createCustomerAction, updateCustomerAction } from "@/lib/actions/customers"
 import type { Customer } from "@/lib/db/schema/customers"
+import { useCvrSearch } from "@/hooks/use-cvr-search"
 
 const schema = z.object({
   name:         z.string().min(1, "Name is required"),
@@ -35,6 +36,8 @@ export function CustomerForm({ customer }: CustomerFormProps) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -49,6 +52,10 @@ export function CustomerForm({ customer }: CustomerFormProps) {
       notes:        customer?.notes ?? "",
     },
   })
+
+  const nameValue = watch("name") ?? ""
+  const { result: cvrResult } = useCvrSearch(nameValue)
+  const showCvrSuggestion = !!cvrResult && nameValue !== cvrResult.name
 
   async function onSubmit(data: FormData) {
     setSaving(true)
@@ -100,6 +107,31 @@ export function CustomerForm({ customer }: CustomerFormProps) {
           <p className="mt-1 text-sm" style={{ color: "var(--error)", fontFamily: "var(--font-body)" }}>
             {errors.name.message}
           </p>
+        )}
+        {showCvrSuggestion && (
+          <div className="mt-2 flex items-center gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border)", backgroundColor: "var(--accent)" }}>
+            <div className="flex-1 min-w-0 text-sm truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+              {cvrResult!.name}
+              <span className="mx-1.5 opacity-40">·</span>
+              <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>CVR {cvrResult!.cvr}</span>
+              <span className="mx-1.5 opacity-40">·</span>
+              <span style={{ color: "var(--muted-foreground)" }}>{cvrResult!.city}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setValue("name", cvrResult!.name)
+                setValue("cvrNumber", cvrResult!.cvr)
+                setValue("addressLine1", cvrResult!.address)
+                setValue("addressZip", cvrResult!.zip)
+                setValue("addressCity", cvrResult!.city)
+              }}
+              className="shrink-0 px-2.5 py-1 rounded-md text-xs font-medium"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+            >
+              {t("cvrFill")}
+            </button>
+          </div>
         )}
       </div>
 
