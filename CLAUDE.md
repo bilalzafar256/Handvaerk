@@ -20,6 +20,7 @@ Full context in `/docs/CONTEXT.md`. Specs in `/docs/`. Skills in `/docs/skills/`
 10. Rate limit all Server Actions and API routes via Upstash.
 11. **ALWAYS self-monitor docs for required updates** — whenever any decision, change, or new information affects anything defined in `/docs/`, `CLAUDE.md`, or `README.md`, proactively identify which file needs updating, show exactly what would change (old → new), and wait for explicit approval before applying. Never silently let docs go stale, and never edit without confirmation.
 12. **ALWAYS ship frontend AND backend together per feature** — when a feature is in progress, the DB schema, Server Action, and page/component are all completed in the same session. Never leave a feature half-wired.
+13. **English only** — all generated content must be in English: code, comments, seed data, string literals, names, notes, docs. Never use Danish in any output.
 
 ---
 
@@ -57,8 +58,8 @@ All 3 features shipped. DB migration 0007 applied (merged_into on quotes + invoi
 **Phase 9 — Reporting** `[ ]` not started
 Features: revenue report, customer report, job report, expense report + logging, SKAT moms quarterly summary.
 
-**Phase 10 — Email Notifications & Customer Communication** `[ ]` not started
-Features: quote accepted/rejected emails to customer, invoice paid thank-you + Google review request, google_review_url on profile.
+**Phase 10 — Email Notifications & Customer Communication** `[x]` complete
+All 4 features shipped. DB migration 0008 applied (google_review_url on users). Quote accepted/rejected emails sent via acceptQuoteByTokenAction/rejectQuoteByTokenAction. Invoice paid thank-you + optional Google review link sent via markInvoicePaidAction. Google review URL field on profile page.
 
 **Phase 11 — AI Intelligence Layer** `[ ]` not started
 9 features. Hero: Photo→Quote (camera → Claude Vision → draft quote), Job Site Recording (audio → full job record), Auto Handover Report (notes+photos → PDF for customer). Supporting: dynamic pricing, customer risk profiling, cash flow forecast, CVR lookup, AI response drafts, job clustering insights.

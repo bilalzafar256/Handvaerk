@@ -4,6 +4,7 @@ import { CompanyProfileForm } from "@/components/forms/company-profile-form"
 import { LogoUpload } from "@/components/forms/logo-upload"
 import { Topbar } from "@/components/shared/topbar"
 import { BankAccountsSection } from "@/components/profile/bank-accounts-section"
+import { GoogleReviewSection } from "@/components/profile/google-review-section"
 import { getBankAccountsByUser } from "@/lib/db/queries/bank-accounts"
 import { Building2, MapPin, Wrench } from "lucide-react"
 
@@ -130,6 +131,9 @@ export default async function ProfilePage({ params }: Props) {
           accounts={bankAccounts}
           mobilepayNumber={user?.mobilepayNumber}
         />
+
+        {/* Customer reviews */}
+        <GoogleReviewSection googleReviewUrl={user?.googleReviewUrl} />
       </div>
     </>
   )

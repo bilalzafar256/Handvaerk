@@ -1,5 +1,4 @@
-import { Suspense } from "react"
-import { Skeleton } from "@/components/ui/skeleton"
+
 import { CriticalZone } from "@/components/dashboard/critical-zone"
 import { StatCards } from "@/components/dashboard/stat-cards"
 import { TodayJobs } from "@/components/dashboard/today-jobs"
@@ -10,7 +9,13 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { getOverviewStats } from "@/lib/db/queries/overview"
+import {
+  getOverviewStats,
+  getStatCardData,
+  getOverdueInvoices,
+  getTodayJobs,
+  getRecentActivity,
+} from "@/lib/db/queries/overview"
 import { Topbar } from "@/components/shared/topbar"
 import { Link } from "@/i18n/navigation"
 import { Users, Briefcase, FileText, Receipt, TrendingUp, ChevronRight } from "lucide-react"
@@ -41,7 +46,13 @@ export default async function OverviewPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const stats = await getOverviewStats(user.id)
+  const [stats, statCardData, overdueInvoices, todayJobsList, activityItems] = await Promise.all([
+    getOverviewStats(user.id),
+    getStatCardData(user.id),
+    getOverdueInvoices(user.id),
+    getTodayJobs(user.id),
+    getRecentActivity(user.id),
+  ])
   const firstName = user.companyName?.split(" ")[0] ?? "der"
   const greetingKey = getGreetingKey()
 
@@ -76,20 +87,10 @@ export default async function OverviewPage({ params }: Props) {
         </div>
 
         {/* Critical zone */}
-        <Suspense fallback={<Skeleton className="h-14 w-full rounded-xl" />}>
-          <CriticalZone />
-        </Suspense>
+        <CriticalZone overdue={overdueInvoices} />
 
         {/* Stat cards */}
-        <Suspense
-          fallback={
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-            </div>
-          }
-        >
-          <StatCards />
-        </Suspense>
+        <StatCards data={statCardData} />
 
         {/* Financial summary */}
         {(stats.pendingInvoiceTotal > 0 || stats.paidThisMonth > 0) && (
@@ -101,12 +102,8 @@ export default async function OverviewPage({ params }: Props) {
 
         {/* Today + Activity grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <Suspense fallback={<Skeleton className="h-56 rounded-xl" />}>
-            <TodayJobs />
-          </Suspense>
-          <Suspense fallback={<Skeleton className="h-56 rounded-xl" />}>
-            <ActivityFeed />
-          </Suspense>
+          <TodayJobs jobs={todayJobsList} />
+          <ActivityFeed items={activityItems} />
         </div>
 
         {/* Status breakdown */}

@@ -389,7 +389,7 @@ function Hero() {
         fontSize: "clamp(100px, 13vw, 190px)",
         color: S.text, opacity: 0.028, letterSpacing: "-0.07em",
         whiteSpace: "nowrap", userSelect: "none", pointerEvents: "none", lineHeight: 1,
-      }}>HÅNDVÆRK PRO</div>
+      }}>HANDVAERK PRO</div>
 
       <svg aria-hidden style={{
         position: "absolute", top: 200, left: 0, width: "100%", height: 2, pointerEvents: "none",
@@ -497,7 +497,7 @@ function HeroMockup() {
           <div style={{ display: "flex", gap: 6 }}>
             {["#ff5f57","#ffbd2e","#28c840"].map(c => <div key={c} style={{ width: 11, height: 11, borderRadius: "50%", background: c }} />)}
           </div>
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "#ffffff50", fontWeight: 500 }}>Håndværk Pro</span>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "#ffffff50", fontWeight: 500 }}>Handvaerk Pro</span>
           <div style={{ width: 44 }} />
         </div>
         <div style={{ padding: 20 }}>
@@ -510,9 +510,9 @@ function HeroMockup() {
             ))}
           </div>
           {[
-            { t: "Badeværelse — Jensens Vej 12", c: "Erik Hansen", s: "In progress", sc: "var(--amber-600)", sb: "var(--amber-50)", a: "38.400 kr" },
-            { t: "El-installation — Sommerhus", c: "Morten Lund", s: "Paid", sc: "#059669", sb: "#ecfdf5", a: "12.800 kr" },
-            { t: "Tagudskiftning — Magleby", c: "Kirsten Bach", s: "Quote sent", sc: "#0ea5e9", sb: "#f0f9ff", a: "84.000 kr" },
+            { t: "Bathroom Reno — 12 Jensen St", c: "Erik Hansen", s: "In progress", sc: "var(--amber-600)", sb: "var(--amber-50)", a: "38.400 kr" },
+            { t: "Electrical Install — Lake Cottage", c: "Morten Lund", s: "Paid", sc: "#059669", sb: "#ecfdf5", a: "12.800 kr" },
+            { t: "Roof Replacement — Oak Lane", c: "Kirsten Bach", s: "Quote sent", sc: "#0ea5e9", sb: "#f0f9ff", a: "84.000 kr" },
           ].map(({ t: title, c: customer, s: status, sc, sb, a }) => (
             <div key={title} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -752,10 +752,10 @@ function FeatureDark() {
               ))}
             </div>
             {[
-              { title: "Badeværelse — Jensens Vej", amount: "38.400 kr", pct: 65 },
-              { title: "El-installation — Sommerhus", amount: "12.800 kr", pct: 92 },
-              { title: "Tagudskiftning — Magleby", amount: "84.000 kr", pct: 18 },
-              { title: "VVS-eftersyn — Kontor", amount: "4.200 kr", pct: 78 },
+              { title: "Bathroom Reno — Jensen St", amount: "38.400 kr", pct: 65 },
+              { title: "Electrical — Lake Cottage", amount: "12.800 kr", pct: 92 },
+              { title: "Roof Replacement — Oak Lane", amount: "84.000 kr", pct: 18 },
+              { title: "Plumbing Check — Office", amount: "4.200 kr", pct: 78 },
             ].map(({ title, amount, pct }) => (
               <div key={title} className="job-row" style={{
                 padding: "14px 16px", borderRadius: 12, border: `1px solid ${S.darkBorder}`,
@@ -962,18 +962,18 @@ function FeatureLight() {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 20, borderBottom: `1px solid ${S.border}`, marginBottom: 20 }}>
               <div>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: S.text, letterSpacing: "-0.03em" }}>FAKTURA</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: S.text, letterSpacing: "-0.03em" }}>INVOICE</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.textMuted, marginTop: 4 }}>#F-2024-0087</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 14, color: S.text }}>Lars Byggeri ApS</div>
+                <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 14, color: S.text }}>Lars Building Co.</div>
                 <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginTop: 3 }}>CVR: 28 73 91 04</div>
               </div>
             </div>
             {[
-              { d: "Murværk — 24 timer", q: "24 t", p: "725", tot: "17.400" },
-              { d: "Materialer — teglsten", q: "1 lot", p: "8.200", tot: "8.200" },
-              { d: "Stilladsleje — 5 dage", q: "5 d", p: "420", tot: "2.100" },
+              { d: "Brickwork — 24 hrs", q: "24 h", p: "725", tot: "17.400" },
+              { d: "Materials — Bricks", q: "1 lot", p: "8.200", tot: "8.200" },
+              { d: "Scaffolding rental — 5 days", q: "5 d", p: "420", tot: "2.100" },
             ].map(({ d, q, p, tot }) => (
               <div key={d} className="invoice-row" style={{
                 display: "grid", gridTemplateColumns: "1fr auto auto auto",
@@ -986,7 +986,7 @@ function FeatureLight() {
               </div>
             ))}
             <div style={{ marginTop: 16 }}>
-              {[{ l: "Subtotal", v: "27.700 kr" }, { l: "Moms 25%", v: "6.925 kr" }].map(({ l, v }) => (
+              {[{ l: "Subtotal", v: "27.700 kr" }, { l: "VAT 25%", v: "6.925 kr" }].map(({ l, v }) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
                   <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted }}>{l}</span>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.textSub }}>{v}</span>
@@ -1002,7 +1002,7 @@ function FeatureLight() {
                 <circle cx="8" cy="8" r="7.5" stroke="#059669" />
                 <path d="M4.5 8L6.5 10L11.5 5.5" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "#059669" }}>Betalt 18. april 2026</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "#059669" }}>Paid 18 April 2026</span>
             </div>
           </div>
         </div>

@@ -1,33 +1,8 @@
 import { MapPin } from "lucide-react"
 import Link from "next/link"
+import type { TodayJob } from "@/lib/db/queries/overview"
 
-const STUB_JOBS = [
-  {
-    id: "job-1",
-    time: "07:30",
-    customer: "Jens Møller",
-    type: "Elinstallation",
-    address: "Vesterbrogade 14, 3. sal",
-  },
-  {
-    id: "job-2",
-    time: "09:00",
-    customer: "Skovlunde Skole",
-    type: "Lysanlæg reparation",
-    address: "Byagervej 12, Skovlunde",
-  },
-  {
-    id: "job-3",
-    time: "13:30",
-    customer: "Familie Andersen",
-    type: "Fejlsøgning sikringsskab",
-    address: "Rosenvej 3, Frederiksberg",
-  },
-]
-
-export async function TodayJobs() {
-  const jobs = STUB_JOBS
-
+export function TodayJobs({ jobs }: { jobs: TodayJob[] }) {
   return (
     <div
       className="rounded-xl border p-4 flex flex-col gap-4"
@@ -65,12 +40,12 @@ export async function TodayJobs() {
               className="flex gap-3 rounded-lg p-3 cursor-pointer transition-colors hover:opacity-80"
               style={{ backgroundColor: "var(--muted)" }}
             >
-              <div className="shrink-0 w-10 pt-0.5">
+              <div className="shrink-0 w-16 pt-0.5">
                 <p
-                  className="text-xs font-semibold leading-none"
-                  style={{ color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}
+                  className="text-xs font-semibold leading-none truncate"
+                  style={{ color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}
                 >
-                  {job.time}
+                  {job.jobNumber}
                 </p>
               </div>
               <div className="min-w-0 flex-1">
@@ -78,21 +53,23 @@ export async function TodayJobs() {
                   className="text-sm font-semibold leading-none"
                   style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}
                 >
-                  {job.customer}
+                  {job.customer.name}
                 </p>
                 <p
                   className="text-xs mt-1 truncate"
                   style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
                 >
-                  {job.type}
+                  {job.title}
                 </p>
-                <p
-                  className="text-xs mt-0.5 truncate flex items-center gap-0.5"
-                  style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}
-                >
-                  <MapPin className="w-3 h-3 shrink-0" />
-                  {job.address}
-                </p>
+                {(job.customer.addressLine1 || job.customer.addressCity) && (
+                  <p
+                    className="text-xs mt-0.5 truncate flex items-center gap-0.5"
+                    style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}
+                  >
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    {[job.customer.addressLine1, job.customer.addressCity].filter(Boolean).join(", ")}
+                  </p>
+                )}
               </div>
             </Link>
           ))}
