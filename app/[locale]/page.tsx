@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback, Fragment } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
@@ -9,133 +9,87 @@ import { useParams } from "next/navigation"
 import { useRouter as useI18nRouter, usePathname as useI18nPathname } from "@/i18n/navigation"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { TextPlugin } from "gsap/TextPlugin"
+import { MotionPathPlugin } from "gsap/MotionPathPlugin"
+import { SplitText } from "gsap/SplitText"
 import { useGSAP } from "@gsap/react"
 
-gsap.registerPlugin(ScrollTrigger, useGSAP)
+gsap.registerPlugin(ScrollTrigger, useGSAP, TextPlugin, MotionPathPlugin, SplitText)
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [inView, setInView] = useState(false)
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setInView(true) },
-      { threshold }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [])
-  return { ref, inView }
-}
-
 function usePrefersReduced() {
-  const [reduced, setReduced] = useState(false)
-  useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-  }, [])
-  return reduced
+  const [r, setR] = useState(false)
+  useEffect(() => setR(window.matchMedia("(prefers-reduced-motion: reduce)").matches), [])
+  return r
 }
 
-function useCountUp(target: number, duration = 1400) {
-  const [count, setCount] = useState(0)
-  const started = useRef(false)
-  const start = useCallback(() => {
-    if (started.current) return
-    started.current = true
-    const startTime = performance.now()
-    function tick(now: number) {
-      const t = Math.min((now - startTime) / duration, 1)
-      const eased = 1 - Math.pow(1 - t, 3)
-      setCount(Math.floor(eased * target))
-      if (t < 1) requestAnimationFrame(tick)
-    }
-    requestAnimationFrame(tick)
-  }, [target, duration])
-  return { count, start }
-}
-
-function useScrolled(threshold = 80) {
-  const [scrolled, setScrolled] = useState(false)
+function useScrolled(t = 60) {
+  const [s, setS] = useState(false)
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > threshold)
+    const fn = () => setS(window.scrollY > t)
     window.addEventListener("scroll", fn, { passive: true })
     return () => window.removeEventListener("scroll", fn)
-  }, [threshold])
-  return scrolled
+  }, [t])
+  return s
 }
 
-// ── Smooth scroll helper ───────────────────────────────────────────────────────
-
-function scrollTo(id: string) {
-  const el = document.getElementById(id)
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
-}
-
-// ── Nordic Blueprint color constants ─────────────────────────────────────────
+// ── Color System ──────────────────────────────────────────────────────────────
 
 const S = {
-  // Backgrounds — Nordic Blueprint (cobalt, non-black)
-  bg: "oklch(0.13 0.035 245)",           // Cobalt Night
-  surface: "oklch(0.19 0.04 248)",       // Blueprint surface
-  surfaceAlt: "oklch(0.24 0.045 248)",   // Lifted Blueprint
-  // Text — birch-warm foreground
-  text: "oklch(0.93 0.022 75)",          // Birch White
-  textSub: "oklch(0.63 0.03 245)",       // Fog
-  textMuted: "oklch(0.42 0.025 245)",    // Fog Deep
-  textFaint: "oklch(0.28 0.018 245)",    // Very dim
-  // Brand
-  amber: "var(--amber-500)",
-  amber400: "var(--amber-400)",
-  amber600: "var(--amber-600)",
-  // Accent
-  teal: "oklch(0.68 0.12 185)",          // Nordic Teal (success)
-  // Borders
-  border: "oklch(1 0 0 / 9%)",
-  borderStrong: "oklch(1 0 0 / 16%)",
+  bg:           "#F7F3EE",
+  surface:      "#EFEAE4",
+  surfaceAlt:   "#E5DDD3",
+  dark:         "#1A140D",
+  darkSurface:  "#241B11",
+  text:         "#1A140D",
+  textSub:      "#6B6158",
+  textMuted:    "#9B9188",
+  textInverse:  "#F7F3EE",
+  textSubInv:   "#B8AFA6",
+  amber:        "var(--amber-500)",
+  amberRaw:     "oklch(0.720 0.195 58)",
+  amberHex:     "#E07B20",
+  border:       "rgba(26,20,13,0.09)",
+  borderStrong: "rgba(26,20,13,0.16)",
+  darkBorder:   "rgba(247,243,238,0.10)",
+  darkBorderSt: "rgba(247,243,238,0.18)",
 }
 
-const MAX_W = 1120
+const MAX_W = 1140
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+// ── GSAP text helpers ─────────────────────────────────────────────────────────
+
+// Each word starts dim — GSAP ScrollTrigger scrub brightens them as you scroll
+function WordScrub({ text, cls }: { text: string; cls: string }) {
+  const words = text.split(" ")
   return (
-    <p style={{
-      fontFamily: "var(--font-body)",
-      fontSize: 11,
-      fontWeight: 600,
-      letterSpacing: "0.10em",
-      textTransform: "uppercase",
-      color: S.amber,
-      marginBottom: 12,
-    }}>
-      {children}
-    </p>
+    <>
+      {words.map((w, i) => (
+        <span key={i} className={cls} style={{ display: "inline-block", opacity: 0.12 }}>
+          {w}{i < words.length - 1 ? "\u00A0" : ""}
+        </span>
+      ))}
+    </>
   )
 }
 
-// ── Language Switcher ──────────────────────────────────────────────────────────
+// ── Language Switcher ─────────────────────────────────────────────────────────
 
 function LanguageSwitcher() {
   const params = useParams()
   const locale = (params?.locale as string) ?? "en"
-  const i18nRouter = useI18nRouter()
-  const i18nPathname = useI18nPathname()
+  const router = useI18nRouter()
+  const pathname = useI18nPathname()
   const other = locale === "en" ? "da" : "en"
-
   return (
     <button
-      onClick={() => i18nRouter.replace(i18nPathname, { locale: other })}
+      onClick={() => router.replace(pathname, { locale: other })}
       style={{
-        fontFamily: "var(--font-body)",
-        fontSize: 13,
-        fontWeight: 600,
-        color: S.textSub,
-        background: "transparent",
-        border: `1px solid ${S.border}`,
-        borderRadius: 6,
-        padding: "4px 10px",
-        cursor: "pointer",
-        letterSpacing: "0.06em",
+        fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 700,
+        color: S.textSub, background: "transparent",
+        border: `1px solid ${S.border}`, borderRadius: 6,
+        padding: "4px 10px", cursor: "pointer", letterSpacing: "0.08em",
         transition: "color 120ms, border-color 120ms",
       }}
       onMouseEnter={e => {
@@ -146,1133 +100,498 @@ function LanguageSwitcher() {
         (e.currentTarget as HTMLButtonElement).style.color = S.textSub
         ;(e.currentTarget as HTMLButtonElement).style.borderColor = S.border
       }}
-    >
-      {other.toUpperCase()}
-    </button>
+    >{other.toUpperCase()}</button>
+  )
+}
+
+// ── Cursor Glow ───────────────────────────────────────────────────────────────
+
+function CursorGlow() {
+  const dotRef   = useRef<HTMLDivElement>(null)
+  const haloRef  = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const pos    = { x: -200, y: -200 }
+    const smooth = { x: -200, y: -200 }
+    const onMove = (e: MouseEvent) => { pos.x = e.clientX; pos.y = e.clientY }
+    window.addEventListener("mousemove", onMove)
+
+    const tick = () => {
+      smooth.x += (pos.x - smooth.x) * 0.14
+      smooth.y += (pos.y - smooth.y) * 0.14
+      if (dotRef.current)  gsap.set(dotRef.current,  { x: pos.x - 5,    y: pos.y - 5 })
+      if (haloRef.current) gsap.set(haloRef.current, { x: smooth.x - 20, y: smooth.y - 20 })
+    }
+    gsap.ticker.add(tick)
+
+    const onEnter = (e: Event) => {
+      if ((e.target as HTMLElement).closest("a,button")) {
+        gsap.to(haloRef.current, { scale: 2.6, opacity: 0.22, duration: 0.3, ease: "power2.out" })
+      }
+    }
+    const onLeave = () => gsap.to(haloRef.current, { scale: 1, opacity: 0.08, duration: 0.35 })
+    document.addEventListener("mouseover",  onEnter)
+    document.addEventListener("mouseout",   onLeave)
+
+    return () => {
+      window.removeEventListener("mousemove", onMove)
+      gsap.ticker.remove(tick)
+      document.removeEventListener("mouseover",  onEnter)
+      document.removeEventListener("mouseout",   onLeave)
+    }
+  }, [])
+
+  return (
+    <>
+      <div ref={dotRef} style={{
+        position: "fixed", zIndex: 9998, pointerEvents: "none",
+        width: 10, height: 10, borderRadius: "50%",
+        background: S.amberRaw, mixBlendMode: "multiply", top: 0, left: 0,
+      }} />
+      <div ref={haloRef} style={{
+        position: "fixed", zIndex: 9997, pointerEvents: "none",
+        width: 40, height: 40, borderRadius: "50%",
+        border: `1.5px solid ${S.amberRaw}`, opacity: 0.08, top: 0, left: 0,
+      }} />
+    </>
   )
 }
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
 
 function Nav() {
-  const scrolled = useScrolled(60)
+  const scrolled = useScrolled()
   const t = useTranslations("Landing")
-
-  const navLinks = [
+  const navRef = useRef<HTMLElement>(null)
+  const links: [string, string][] = [
     [t("nav.features"), "features"],
-    [t("nav.pricing"), "pricing"],
-    [t("nav.faq"), "faq"],
+    [t("nav.pricing"),  "pricing"],
+    [t("nav.faq"),      "faq"],
   ]
+  useGSAP(() => {
+    gsap.from(navRef.current, { y: -28, opacity: 0, duration: 0.7, ease: "power3.out", delay: 0.05 })
+  }, { scope: navRef })
 
   return (
-    <nav
-      style={{
-        position: "fixed",
-        top: 0, left: 0, right: 0,
-        zIndex: 50,
-        height: 60,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 32px",
-        backdropFilter: "blur(20px) saturate(200%)",
-        backgroundColor: scrolled
-          ? `oklch(0.13 0.035 245 / 88%)`
-          : "transparent",
-        borderBottom: scrolled ? `1px solid ${S.border}` : "1px solid transparent",
-        transition: "background-color 200ms ease, border-color 200ms ease",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-        <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 6,
-            backgroundColor: S.amber,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-            </svg>
-          </div>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: S.text }}>
-            Håndværk Pro
-          </span>
-        </Link>
-        <div className="hidden md:flex" style={{ gap: 4 }}>
-          {navLinks.map(([label, id]) => (
-            <button
-              key={id}
-              onClick={() => scrollTo(id)}
-              style={{
-                fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub,
-                background: "transparent", border: "none", cursor: "pointer",
-                padding: "6px 12px", borderRadius: 6, transition: "color 120ms ease",
-                position: "relative",
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = S.text}
-              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = S.textSub}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <LanguageSwitcher />
-        <Link
-          href="/sign-in"
-          style={{
-            fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub,
-            textDecoration: "none", padding: "6px 14px", borderRadius: 6,
-            transition: "color 120ms ease",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = S.text)}
-          onMouseLeave={e => (e.currentTarget.style.color = S.textSub)}
-        >
-          {t("nav.signIn")}
-        </Link>
-        <Link
-          href="/sign-up"
-          style={{
+    <nav ref={navRef} style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 200,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "0 28px", height: 62,
+      background: scrolled ? `${S.bg}f0` : "transparent",
+      backdropFilter: scrolled ? "blur(16px)" : "none",
+      borderBottom: scrolled ? `1px solid ${S.border}` : "none",
+      transition: "background 220ms, backdrop-filter 220ms, border-color 220ms",
+    }}>
+      <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 2 }}>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 19, letterSpacing: "-0.04em", color: S.text }}>Håndværk</span>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 19, letterSpacing: "-0.04em", color: S.amber }}>Pro</span>
+      </Link>
+      <div className="hidden md:flex" style={{ gap: 2 }}>
+        {links.map(([label, id]) => (
+          <button key={id} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })} style={{
             fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500,
-            color: "oklch(0.10 0.005 52)", backgroundColor: S.amber,
-            padding: "7px 16px", borderRadius: 8, textDecoration: "none",
-            transition: "box-shadow 120ms, transform 120ms",
-            boxShadow: "0 4px 16px oklch(0.720 0.195 58 / 0.35), 0 0 0 0 oklch(0.720 0.195 58 / 0)",
-            animation: "ctaPulse 2.5s ease infinite",
+            color: S.textSub, background: "transparent", border: "none",
+            cursor: "pointer", padding: "6px 16px", borderRadius: 8,
+            transition: "color 120ms, background 120ms",
           }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"
-            ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 20px oklch(0.720 0.195 58 / 0.55)"
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLAnchorElement).style.transform = ""
-            ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 4px 16px oklch(0.720 0.195 58 / 0.35)"
-          }}
-        >
-          {t("nav.tryFree")}
-        </Link>
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = S.text; (e.currentTarget as HTMLButtonElement).style.background = S.surface }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = S.textSub; (e.currentTarget as HTMLButtonElement).style.background = "transparent" }}
+          >{label}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <LanguageSwitcher />
+        <Link href="/sign-in" style={{
+          fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500,
+          color: S.textSub, textDecoration: "none", padding: "7px 16px", transition: "color 120ms",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.color = S.text)}
+        onMouseLeave={e => (e.currentTarget.style.color = S.textSub)}
+        >{t("nav.signIn")}</Link>
+        <Link href="/sign-up" style={{
+          fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 700,
+          color: "#fff", background: S.dark, textDecoration: "none",
+          padding: "8px 20px", borderRadius: 9, letterSpacing: "-0.01em",
+          boxShadow: "0 2px 10px rgba(26,20,13,0.22)",
+          transition: "transform 140ms, box-shadow 140ms",
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 5px 18px rgba(26,20,13,0.32)" }}
+        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 2px 10px rgba(26,20,13,0.22)" }}
+        >{t("nav.tryFree")}</Link>
       </div>
     </nav>
   )
 }
 
-// ── Hero ──────────────────────────────────────────────────────────────────────
-
-function FloatingCard({ text, icon, delay }: { text: string; icon: string; delay: number }) {
-  const { ref, inView } = useInView(0.01)
-  return (
-    <div ref={ref} style={{
-      display: "inline-flex", alignItems: "center", gap: 8,
-      padding: "8px 14px", borderRadius: 10,
-      background: "oklch(1 0 0 / 6%)", border: `1px solid ${S.border}`,
-      backdropFilter: "blur(8px)",
-      opacity: inView ? 1 : 0,
-      transform: inView ? "translateY(0)" : "translateY(12px)",
-      transition: `opacity 400ms ${delay}ms var(--ease-smooth), transform 400ms ${delay}ms var(--ease-smooth)`,
-      animation: inView ? `cardFloat ${4.5 + delay * 0.002}s ease-in-out ${delay * 0.4}ms infinite` : "none",
-    }}>
-      <span style={{ fontSize: 14 }}>{icon}</span>
-      <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textSub }}>{text}</span>
-    </div>
-  )
-}
+// ── Hero — GSAP char-by-char "slide up from clip" + parallax scrub ────────────
 
 function Hero() {
-  const heroRef = useRef<HTMLElement>(null)
-  const lineRef = useRef<SVGLineElement>(null)
-  const [wordsVisible, setWordsVisible] = useState(false)
-  const prefersReduced = usePrefersReduced()
   const t = useTranslations("Landing")
+  const heroRef         = useRef<HTMLElement>(null)
+  const lineRef         = useRef<SVGLineElement>(null)
+  const headlineRef     = useRef<HTMLHeadingElement>(null)
+  const eyebrowRef      = useRef<HTMLDivElement>(null)
+  const subRef          = useRef<HTMLParagraphElement>(null)
+  const ctasRef         = useRef<HTMLDivElement>(null)
+  const trustRef        = useRef<HTMLParagraphElement>(null)
+  const mockupRef       = useRef<HTMLDivElement>(null)
+  const textColRef      = useRef<HTMLDivElement>(null)
+  const orbRef1         = useRef<HTMLDivElement>(null)
+  const orbRef2         = useRef<HTMLDivElement>(null)
+  const kineticRef      = useRef<HTMLDivElement>(null)
+  const particlesRef    = useRef<HTMLDivElement>(null)
+  const signatureRef    = useRef<SVGPathElement>(null)
+  const prefersReduced  = usePrefersReduced()
 
-  const heroWords1 = t("hero.line1").split(" ")
-  const heroWords2 = t("hero.line2").split(" ")
+  // Mouse parallax — orbs track cursor at different depths
+  useEffect(() => {
+    if (prefersReduced) return
+    const onMouse = (e: MouseEvent) => {
+      const x = e.clientX / window.innerWidth - 0.5
+      const y = e.clientY / window.innerHeight - 0.5
+      gsap.to(orbRef1.current,   { x: x * 70,  y: y * 50,  duration: 1.6, ease: "power2.out" })
+      gsap.to(orbRef2.current,   { x: x * -50, y: y * -35, duration: 1.2, ease: "power2.out" })
+      gsap.to(kineticRef.current,{ x: x * -22, duration: 1.8, ease: "power2.out" })
+    }
+    window.addEventListener("mousemove", onMouse)
+    return () => window.removeEventListener("mousemove", onMouse)
+  }, [prefersReduced])
 
-  // GSAP: architect's draft — line draws, then words cascade
   useGSAP(() => {
-    if (prefersReduced) { setWordsVisible(true); return }
-    const line = lineRef.current
-    if (!line) return
-    gsap.fromTo(line,
-      { strokeDasharray: "100%", strokeDashoffset: "100%" },
-      {
-        strokeDashoffset: "0%",
-        duration: 0.55,
-        ease: "power2.out",
-        delay: 0.15,
-        onComplete: () => setWordsVisible(true),
-      }
+    if (prefersReduced) return
+    if (!headlineRef.current) return
+
+    // Workshop dust particles
+    const dust: HTMLDivElement[] = []
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement("div")
+      const size = Math.random() * 2.5 + 1
+      p.style.cssText = `position:absolute;border-radius:50%;background:${S.amberRaw};pointer-events:none;width:${size}px;height:${size}px;left:${Math.random() * 100}%;bottom:${Math.random() * 40 + 10}%;opacity:0;`
+      particlesRef.current?.appendChild(p)
+      dust.push(p)
+      gsap.to(p, {
+        y: -(Math.random() * 320 + 100), x: (Math.random() - 0.5) * 60,
+        opacity: Math.random() * 0.12 + 0.03,
+        duration: Math.random() * 12 + 14, delay: Math.random() * 8,
+        repeat: -1, ease: "power1.out",
+      })
+    }
+
+    // ── SplitText — the real GSAP char-emerge from below ───────────────────────
+    const split = new SplitText(headlineRef.current, {
+      type: "lines,chars",
+      linesClass: "st-line",
+    })
+    gsap.set(split.lines, { overflow: "hidden" })
+
+    const tl = gsap.timeline({ defaults: { ease: "power4.out" } })
+    tl.from(kineticRef.current, { opacity: 0, duration: 1.2, ease: "power2.out" }, 0)
+    tl.fromTo(lineRef.current,
+      { strokeDasharray: "0 100%", strokeDashoffset: 0 },
+      { strokeDasharray: "100% 0", duration: 0.7 }, 0.2
     )
-  }, { scope: heroRef, dependencies: [prefersReduced] })
+    .from(eyebrowRef.current, { y: 22, opacity: 0, duration: 0.45 }, "-=0.35")
+    // SplitText chars emerge from inside overflow:hidden line containers
+    .from(split.chars, {
+      y: "115%", stagger: { each: 0.016, from: "start" }, duration: 0.62,
+    }, "-=0.25")
+    .from(subRef.current, { y: 20, opacity: 0, duration: 0.55, ease: "power3.out" }, "-=0.38")
+    .from(ctasRef.current?.children ?? [], {
+      y: 18, opacity: 0, stagger: 0.09, duration: 0.48, ease: "back.out(1.7)",
+    }, "-=0.32")
+    .from(trustRef.current, { opacity: 0, duration: 0.5 }, "-=0.2")
+    .from(mockupRef.current, { x: 56, opacity: 0, duration: 0.85, ease: "power2.out" }, 0.35)
 
-  function onMouseMove(e: React.MouseEvent) {
-    if (!heroRef.current) return
-    const rect = heroRef.current.getBoundingClientRect()
-    const x = ((e.clientX - rect.left) / rect.width) * 100
-    const y = ((e.clientY - rect.top) / rect.height) * 100
-    heroRef.current.style.setProperty("--sx", `${x}%`)
-    heroRef.current.style.setProperty("--sy", `${y}%`)
-  }
+    // ── THE most famous GSAP SVG animation: dot draws the path in real time ────
+    // Synchronized DrawSVG + MotionPath — the exact technique from gsap.com/svg
+    const sigPath = signatureRef.current
+    if (sigPath) {
+      const sigLen = sigPath.getTotalLength()
+      gsap.set(sigPath, { strokeDasharray: sigLen, strokeDashoffset: sigLen, opacity: 0.5 })
+
+      // Initial draw: dot races ahead and "draws" the path (linear = perfect sync)
+      const sigTl = gsap.timeline({ delay: 0.7 })
+      sigTl.to(sigPath, { strokeDashoffset: 0, duration: 3.4, ease: "linear" }, 0)
+      sigTl.to(".sig-dot", {
+        motionPath: { path: sigPath, align: sigPath, alignOrigin: [0.5, 0.5] },
+        duration: 3.4, ease: "linear",
+        onComplete() {
+          // After draw completes, dot loops forever at relaxed pace
+          gsap.to(".sig-dot", {
+            motionPath: { path: sigPath, align: sigPath, alignOrigin: [0.5, 0.5] },
+            duration: 20, ease: "none", repeat: -1,
+          })
+          gsap.to(".sig-halo", {
+            motionPath: { path: sigPath, align: sigPath, alignOrigin: [0.5, 0.5], start: -0.015, end: 0.985 },
+            duration: 20, ease: "none", repeat: -1,
+          })
+        },
+      }, 0)
+      sigTl.to(".sig-halo", {
+        motionPath: { path: sigPath, align: sigPath, alignOrigin: [0.5, 0.5], start: -0.015, end: 0.985 },
+        duration: 3.4, ease: "linear",
+      }, 0)
+    }
+
+    // Multi-layer parallax on scroll
+    ScrollTrigger.create({
+      trigger: heroRef.current, start: "top top", end: "bottom top", scrub: 0.6,
+      onUpdate(self) {
+        gsap.set(textColRef.current, { y: self.progress * -55 })
+        gsap.set(mockupRef.current,  { y: self.progress * -28 })
+        gsap.set(kineticRef.current, { y: self.progress * 90 })
+        gsap.set(orbRef1.current,    { y: self.progress * -120 })
+        gsap.set(orbRef2.current,    { y: self.progress * 60 })
+      },
+    })
+
+    return () => {
+      dust.forEach(p => p.parentNode?.removeChild(p))
+      split.revert()
+    }
+  }, { scope: heroRef })
+
+  const l1 = t("hero.line1")
+  const l2 = t("hero.line2")
 
   return (
-    <section
-      ref={heroRef}
-      onMouseMove={onMouseMove}
-      style={{
-        position: "relative", minHeight: "100vh",
-        display: "flex", flexDirection: "column",
-        backgroundColor: S.bg,
-        overflow: "hidden", paddingTop: 60,
-      }}
-    >
-      {/* Blueprint grid — subtle, hue 248 */}
-      <div aria-hidden style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        backgroundImage: `linear-gradient(${S.border} 1px, transparent 1px), linear-gradient(90deg, ${S.border} 1px, transparent 1px)`,
-        backgroundSize: "48px 48px",
-        WebkitMaskImage: "radial-gradient(ellipse 80% 80% at center, black 20%, transparent 80%)",
-        maskImage: "radial-gradient(ellipse 80% 80% at center, black 20%, transparent 80%)",
-        opacity: 0.6,
-      }} />
-      {/* Cursor spotlight */}
-      <div aria-hidden style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background: "radial-gradient(600px circle at var(--sx, 50%) var(--sy, 40%), oklch(0.720 0.195 58 / 5%), transparent 65%)",
-      }} />
-      {/* Cobalt depth gradient bottom */}
-      <div aria-hidden style={{
-        position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", pointerEvents: "none",
-        background: "radial-gradient(ellipse 100% 60% at 50% 100%, oklch(0.52 0.13 250 / 8%), transparent)",
+    <section ref={heroRef} style={{
+      minHeight: "100svh", backgroundColor: S.bg,
+      backgroundImage: "radial-gradient(circle at 1px 1px, rgba(26,20,13,0.055) 1px, transparent 0)",
+      backgroundSize: "28px 28px",
+      paddingTop: 100, paddingBottom: 80,
+      display: "flex", alignItems: "center",
+      position: "relative", overflow: "hidden",
+    }}>
+      {/* Floating dust particles container */}
+      <div ref={particlesRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }} />
+
+      {/* Ambient orb 1 — amber, top right */}
+      <div ref={orbRef1} style={{
+        position: "absolute", top: "-8%", right: "2%",
+        width: 640, height: 640, borderRadius: "50%",
+        background: `radial-gradient(circle, ${S.amberRaw}12 0%, ${S.amberRaw}04 40%, transparent 70%)`,
+        pointerEvents: "none", zIndex: 0,
       }} />
 
-      {/* Architect line — GSAP draws this, then words cascade */}
-      <svg
-        aria-hidden
-        style={{ position: "absolute", top: "calc(60px + 180px)", left: 0, width: "100%", height: 2, pointerEvents: "none", zIndex: 5 }}
-        preserveAspectRatio="none"
-      >
-        <line
-          ref={lineRef}
-          x1="0%" y1="1" x2="100%" y2="1"
-          stroke="oklch(0.720 0.195 58 / 18%)"
-          strokeWidth="1"
+      {/* Ambient orb 2 — teal, bottom left */}
+      <div ref={orbRef2} style={{
+        position: "absolute", bottom: "0%", left: "-8%",
+        width: 520, height: 520, borderRadius: "50%",
+        background: "radial-gradient(circle, oklch(0.68 0.12 185 / 0.09) 0%, transparent 70%)",
+        pointerEvents: "none", zIndex: 0,
+      }} />
+
+      {/* Kinetic background text — drifts on scroll + mouse */}
+      <div ref={kineticRef} style={{
+        position: "absolute", top: "50%", left: "-2%", transform: "translateY(-50%)",
+        fontFamily: "var(--font-display)", fontWeight: 800,
+        fontSize: "clamp(100px, 13vw, 190px)",
+        color: S.text, opacity: 0.028, letterSpacing: "-0.07em",
+        whiteSpace: "nowrap", userSelect: "none", pointerEvents: "none", lineHeight: 1,
+      }}>HÅNDVÆRK PRO</div>
+
+      <svg aria-hidden style={{
+        position: "absolute", top: 200, left: 0, width: "100%", height: 2, pointerEvents: "none",
+      }} viewBox="0 0 1000 2" preserveAspectRatio="none">
+        <line ref={lineRef} x1="0" y1="1" x2="1000" y2="1"
+          stroke={S.amberRaw} strokeWidth="1.5" strokeLinecap="round" style={{ opacity: 0.2 }} />
+      </svg>
+
+      {/* Signature SVG — synchronized DrawSVG + MotionPath (THE most famous GSAP animation) */}
+      <svg aria-hidden viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1,
+      }}>
+        <path ref={signatureRef}
+          d="M 0 630 C 90 490, 190 760, 290 620 C 360 510, 380 380, 450 510 C 520 640, 560 780, 640 640 C 700 520, 720 390, 800 520 C 870 650, 910 790, 990 650 C 1050 530, 1070 400, 1150 530 C 1190 600, 1200 680, 1200 650"
+          fill="none" stroke={S.amberRaw} strokeWidth="2.5"
         />
+        <circle className="sig-halo" r="12" fill={S.amberRaw} opacity="0.15" />
+        <circle className="sig-dot"  r="5"  fill={S.amberRaw} opacity="0.95" />
       </svg>
 
-      <div style={{
-        position: "relative", zIndex: 10, flex: 1,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        padding: "80px 24px 60px", textAlign: "center",
-      }}>
-        {/* Eyebrow */}
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 8,
-          padding: "5px 14px", borderRadius: 999, marginBottom: 32,
-          background: "oklch(0.720 0.195 58 / 10%)",
-          border: "1px solid oklch(0.720 0.195 58 / 30%)",
-          opacity: wordsVisible ? 1 : 0,
-          transform: wordsVisible ? "translateY(0)" : "translateY(-8px)",
-          transition: prefersReduced ? "none" : "opacity 300ms ease, transform 300ms ease",
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: S.amber, display: "inline-block", animation: "pulse 2s ease infinite" }} />
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.amber, fontWeight: 500 }}>
-            {t("hero.eyebrow")}
-          </span>
-        </div>
-
-        {/* Headline — word cascade with skew */}
-        <h1 style={{
-          fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1.04,
-          letterSpacing: "-0.025em", marginBottom: 8,
-          fontSize: "clamp(44px, 8vw, 88px)",
-        }}>
-          {heroWords1.map((word, i) => (
-            <span key={`w1-${i}`} style={{
-              display: "inline-block", color: S.text, marginRight: "0.22em",
-              opacity: wordsVisible ? 1 : 0,
-              transform: wordsVisible ? "translateY(0) skewX(0deg)" : "translateY(14px) skewX(-3deg)",
-              transition: prefersReduced ? "none" : `opacity 400ms ${i * 55}ms var(--ease-spring), transform 400ms ${i * 55}ms var(--ease-spring)`,
-            }}>{word}</span>
-          ))}
-          <br />
-          {heroWords2.map((word, i) => (
-            <span key={`w2-${i}`} style={{
-              display: "inline-block",
-              color: i === 1 ? S.amber400 : S.text,
-              marginRight: "0.22em",
-              opacity: wordsVisible ? 1 : 0,
-              transform: wordsVisible ? "translateY(0) skewX(0deg)" : "translateY(14px) skewX(-3deg)",
-              transition: prefersReduced ? "none" : `opacity 400ms ${(heroWords1.length + i) * 55 + 60}ms var(--ease-spring), transform 400ms ${(heroWords1.length + i) * 55 + 60}ms var(--ease-spring)`,
-            }}>{word}</span>
-          ))}
-        </h1>
-
-        <p style={{
-          fontFamily: "var(--font-body)", fontSize: "clamp(17px, 2.2vw, 21px)",
-          color: S.textSub, maxWidth: 520, lineHeight: 1.55, marginBottom: 40,
-          opacity: wordsVisible ? 1 : 0,
-          transform: wordsVisible ? "translateY(0)" : "translateY(8px)",
-          transition: prefersReduced ? "none" : "opacity 400ms 520ms ease, transform 400ms 520ms ease",
-        }}>
-          {t("hero.sub")}
-        </p>
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginBottom: 12 }}>
-          <Link href="/sign-up" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            height: 50, padding: "0 28px", borderRadius: 10,
-            fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 500,
-            color: "oklch(0.10 0.005 52)", backgroundColor: S.amber,
-            textDecoration: "none", boxShadow: "0 4px 16px oklch(0.720 0.195 58 / 0.40)",
-            transition: "box-shadow 120ms, transform 120ms",
-          }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"
-              ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 8px 24px oklch(0.720 0.195 58 / 0.55)"
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLAnchorElement).style.transform = ""
-              ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 4px 16px oklch(0.720 0.195 58 / 0.40)"
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "0 28px", width: "100%", position: "relative", zIndex: 2 }}>
+        <div className="grid md:grid-cols-2 grid-cols-1" style={{ gap: 64, alignItems: "center" }}>
+          {/* Text */}
+          <div ref={textColRef}>
+            <div ref={eyebrowRef} style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: S.surface, border: `1px solid ${S.border}`,
+              borderRadius: 100, padding: "5px 14px 5px 6px", marginBottom: 36,
             }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "oklch(0.10 0.005 52)", opacity: 0.6, animation: "pulse 2s ease infinite" }} />
-            {t("hero.ctaPrimary")}
-          </Link>
-          <button onClick={() => scrollTo("features")} style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            height: 50, padding: "0 28px", borderRadius: 10,
-            fontFamily: "var(--font-body)", fontSize: 16, color: S.textSub,
-            backgroundColor: "transparent", border: `1px solid ${S.borderStrong}`,
-            cursor: "pointer", transition: "border-color 120ms, color 120ms",
-          }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = S.textMuted
-              ;(e.currentTarget as HTMLButtonElement).style.color = S.text
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = S.borderStrong
-              ;(e.currentTarget as HTMLButtonElement).style.color = S.textSub
-            }}>
-            {t("hero.ctaSecondary")}
-          </button>
-        </div>
-
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textFaint, letterSpacing: "0.02em" }}>
-          {t("hero.noCredit")}
-        </p>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginTop: 56 }}>
-          <FloatingCard text={t("hero.proof1")} icon="✓" delay={0} />
-          <FloatingCard text={t("hero.proof2")} icon="💰" delay={150} />
-          <FloatingCard text={t("hero.proof3")} icon="📍" delay={300} />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Stats Bar ─────────────────────────────────────────────────────────────────
-
-function StatWave({ active }: { active: boolean }) {
-  // SVG organic wave that grows left-to-right as the counter runs
-  return (
-    <svg width={80} height={14} viewBox="0 0 80 14" fill="none" style={{ marginTop: 6 }}>
-      <path
-        d="M0 7 C10 3, 15 11, 25 7 C35 3, 40 11, 50 7 C60 3, 65 11, 75 7 C78 5.5, 79 6, 80 7"
-        stroke="var(--amber-500)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-        style={{
-          strokeDasharray: 120,
-          strokeDashoffset: active ? 0 : 120,
-          transition: active ? "stroke-dashoffset 1.3s ease-out" : "none",
-        }}
-      />
-    </svg>
-  )
-}
-
-function StatItem({ target, suffix, label }: { target: number; suffix: string; label: string }) {
-  const { ref, inView } = useInView(0.3)
-  const { count, start } = useCountUp(target)
-  useEffect(() => { if (inView) start() }, [inView, start])
-  const display = count >= 1000
-    ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1).replace(".", ",")}`
-    : count.toString()
-
-  return (
-    <div ref={ref} style={{ textAlign: "center", flex: 1 }}>
-      <p style={{
-        fontFamily: "var(--font-mono)", fontSize: "clamp(28px, 4vw, 40px)",
-        fontWeight: 700, color: S.text, lineHeight: 1,
-      }}>
-        {display}{suffix}
-      </p>
-      <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted, marginTop: 6 }}>{label}</p>
-      <StatWave active={inView} />
-    </div>
-  )
-}
-
-function StatsBar() {
-  const t = useTranslations("Landing")
-  return (
-    <div style={{
-      backgroundColor: S.bg,
-      borderTop: `1px solid ${S.border}`,
-      borderBottom: `1px solid ${S.border}`,
-    }}>
-      <div style={{
-        maxWidth: MAX_W, margin: "0 auto", padding: "36px 24px",
-        display: "flex", alignItems: "flex-start", gap: 0,
-      }}>
-        <StatItem target={2400} suffix="+" label={t("stats.tradespeople")} />
-        <div style={{ width: 1, height: 48, background: S.border, flexShrink: 0, marginTop: 4 }} />
-        <StatItem target={48000} suffix="+" label={t("stats.invoicesSent")} />
-        <div style={{ width: 1, height: 48, background: S.border, flexShrink: 0, marginTop: 4 }} />
-        <StatItem target={1200} suffix=" mio. kr" label={t("stats.invoicedVia")} />
-      </div>
-    </div>
-  )
-}
-
-// ── Problem Section — chaos arrival ──────────────────────────────────────────
-
-const CHAOS_ANGLES = ["-4deg", "2deg", "-1.5deg"]
-const CHAOS_OFFSETS: [string, string][] = ["-20px", "10px", "20px"].map((x, i) => [x, `${16 + i * 8}px`] as [string, string])
-
-function ProblemSection() {
-  const { ref, inView } = useInView(0.1)
-  const prefersReduced = usePrefersReduced()
-  const t = useTranslations("Landing")
-
-  const problems = [
-    {
-      n: "01",
-      title: t("problem.p1Title"),
-      body: t("problem.p1Body"),
-      icon: (
-        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-          <rect x={3} y={3} width={18} height={18} rx={2} /><path d="M3 9h18M9 21V9" />
-        </svg>
-      ),
-    },
-    {
-      n: "02",
-      title: t("problem.p2Title"),
-      body: t("problem.p2Body"),
-      icon: (
-        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-          <circle cx={12} cy={12} r={10} /><polyline points="12 6 12 12 16 14" />
-        </svg>
-      ),
-    },
-    {
-      n: "03",
-      title: t("problem.p3Title"),
-      body: t("problem.p3Body"),
-      icon: (
-        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-          <line x1={3} y1={12} x2={21} y2={12} /><line x1={3} y1={6} x2={21} y2={6} /><line x1={3} y1={18} x2={15} y2={18} />
-        </svg>
-      ),
-    },
-  ]
-
-  return (
-    <section style={{
-      backgroundColor: S.bg,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
-    }}>
-      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
-        <SectionLabel>{t("problem.label")}</SectionLabel>
-        <h2 style={{
-          fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)",
-          fontWeight: 800, color: S.text, letterSpacing: "-0.02em",
-          maxWidth: 560, lineHeight: 1.1, marginBottom: 56,
-        }}>
-          {t("problem.headline")}
-        </h2>
-
-        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {problems.map((p, i) => (
-            <div key={p.n} style={{
-              backgroundColor: S.surface,
-              border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, position: "relative",
-              // Chaos arrival: different angle + offset per card, settles to flat
-              opacity: inView ? 1 : 0,
-              transform: inView
-                ? "rotate(0deg) translate(0,0)"
-                : `rotate(${CHAOS_ANGLES[i]}) translate(${CHAOS_OFFSETS[i][0]}, ${CHAOS_OFFSETS[i][1]})`,
-              transition: prefersReduced
-                ? "none"
-                : `opacity 400ms ${i * 100}ms cubic-bezier(0.34,1.56,0.64,1), transform 500ms ${i * 100}ms cubic-bezier(0.34,1.56,0.64,1)`,
-            }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
-                ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 24px oklch(0.08 0.035 245 / 0.5)"
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.transform = ""
-                ;(e.currentTarget as HTMLDivElement).style.boxShadow = "none"
-              }}>
-              <span style={{ position: "absolute", top: 16, right: 16, fontFamily: "var(--font-mono)", fontSize: 11, color: S.textFaint }}>{p.n}</span>
-              <div style={{ color: S.textMuted, marginBottom: 14 }}>{p.icon}</div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 8 }}>{p.title}</p>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub, lineHeight: 1.6 }}>{p.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Feature Mockups ───────────────────────────────────────────────────────────
-
-function JobsMockup() {
-  const ITEMS = [
-    { status: "Igangværende", color: "var(--status-progress-text)", bg: "var(--status-progress-bg)", title: "Badeværelse — Jensens vej 12", customer: "Erik Hansen", amount: "8.400 kr" },
-    { status: "Ny", color: "var(--status-new-text)", bg: "var(--status-new-bg)", title: "Tagudskiftning — Magleby", customer: "Morten Lund", amount: "42.000 kr" },
-    { status: "Planlagt", color: "var(--status-scheduled-text)", bg: "var(--status-scheduled-bg)", title: "El-installation — sommerhus", customer: "Kirsten Bach", amount: "5.200 kr" },
-    { status: "Betalt", color: "var(--status-paid-text)", bg: "var(--status-paid-bg)", title: "VVS-eftersyn kontor", customer: "Lasse Møller", amount: "1.800 kr" },
-  ]
-  return (
-    <div style={{
-      backgroundColor: S.surface, border: `1px solid ${S.borderStrong}`,
-      borderRadius: 14, overflow: "hidden",
-      boxShadow: "0 20px 48px oklch(0.07 0.035 245 / 0.7)",
-      maxWidth: 360,
-    }}>
-      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: S.text }}>Jobs</span>
-        <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, background: S.amber, color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-body)", fontWeight: 600 }}>+ Nyt job</span>
-      </div>
-      {ITEMS.map((item, i) => (
-        <div key={item.title} style={{ display: "flex", alignItems: "center", gap: 0, borderBottom: i < ITEMS.length - 1 ? `1px solid ${S.border}` : "none", transition: "background 80ms" }}
-          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 4%)"}
-          onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = ""}>
-          <div style={{ width: 3, alignSelf: "stretch", backgroundColor: item.color, flexShrink: 0 }} />
-          <div style={{ flex: 1, padding: "10px 14px", minWidth: 0 }}>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500, color: S.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</p>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-              <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 999, background: item.bg, color: item.color, fontFamily: "var(--font-body)", fontWeight: 500 }}>{item.status}</span>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.textMuted }}>{item.customer}</span>
-            </div>
-          </div>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textSub, padding: "0 14px", flexShrink: 0 }}>{item.amount}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function QuoteMockup() {
-  const rows = [
-    ["Arbejdsløn", "4 timer", "2.600 kr"],
-    ["Materialer", "Kobberrør Ø22", "480 kr"],
-    ["Kørsel", "20 km", "120 kr"],
-  ]
-  return (
-    <div style={{
-      backgroundColor: S.surface, border: `1px solid ${S.borderStrong}`,
-      borderRadius: 14, overflow: "hidden",
-      boxShadow: "0 20px 48px oklch(0.07 0.035 245 / 0.7)",
-      maxWidth: 440,
-    }}>
-      <div style={{ padding: "12px 16px 10px", borderBottom: `1px solid ${S.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.textMuted }}>TILBUD</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: S.textSub, marginLeft: 8 }}>#T-0042</span>
-        </div>
-        <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.amber, padding: "2px 8px", borderRadius: 999, background: "oklch(0.720 0.195 58 / 12%)" }}>Udkast</span>
-      </div>
-      <div style={{ padding: "12px 16px" }}>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginBottom: 10 }}>Til: Morten Andersen, Aarhus</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "6px 12px", alignItems: "baseline" }}>
-          {rows.map(([label, detail, amount], i) => (
-            <Fragment key={i}>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.text }}>{label}</span>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{detail}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.text, textAlign: "right" }}>{amount}</span>
-            </Fragment>
-          ))}
-        </div>
-        <div style={{ borderTop: `1px solid ${S.border}`, marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.text }}>Total inkl. moms</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: S.amber }}>3.950 kr</span>
-        </div>
-      </div>
-      <div style={{ padding: "10px 16px", borderTop: `1px solid ${S.border}`, display: "flex", gap: 8 }}>
-        <button style={{ flex: 1, height: 32, borderRadius: 7, border: `1px solid ${S.border}`, background: "transparent", color: S.textSub, fontFamily: "var(--font-body)", fontSize: 13, cursor: "pointer" }}>Gem udkast</button>
-        <button style={{ flex: 1, height: 32, borderRadius: 7, border: "none", background: S.amber, color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Send tilbud →</button>
-      </div>
-    </div>
-  )
-}
-
-function InvoiceMockup() {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: "relative",
-        backgroundColor: "oklch(1 0 0)", border: `1px solid oklch(0.88 0.007 255)`,
-        borderRadius: 14, overflow: "hidden",
-        boxShadow: "0 20px 40px oklch(0.07 0.035 245 / 0.6)",
-        maxWidth: 400,
-        transform: hovered ? "rotate(0deg)" : "rotate(-1deg)",
-        transition: "transform 200ms var(--ease-smooth)",
-      }}
-    >
-      {/* Iridescent prismatic sweep on hover */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10,
-        background: "linear-gradient(115deg, transparent 0%, oklch(0.75 0.12 240 / 12%) 30%, oklch(0.75 0.10 185 / 10%) 50%, oklch(0.72 0.19 58 / 8%) 70%, transparent 100%)",
-        transform: hovered ? "translateX(0%)" : "translateX(-110%)",
-        transition: hovered ? "transform 600ms ease-out" : "none",
-      }} />
-      <div style={{ background: "linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 100%)", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600, color: "oklch(0.20 0.005 52)", letterSpacing: "0.1em", textTransform: "uppercase" }}>FAKTURA</p>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "oklch(0.12 0.005 52)", fontWeight: 700 }}>#F-1042</p>
-        </div>
-        <div style={{ width: 36, height: 36, borderRadius: 8, background: "oklch(0.10 0.005 52 / 20%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-          </svg>
-        </div>
-      </div>
-      <div style={{ padding: "16px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-          <div>
-            <p style={{ fontSize: 11, color: "oklch(0.50 0.011 255)", fontFamily: "var(--font-body)" }}>Fra</p>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "oklch(0.12 0.005 255)", fontFamily: "var(--font-body)" }}>Klaus El-Service ApS</p>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ fontSize: 11, color: "oklch(0.50 0.011 255)", fontFamily: "var(--font-body)" }}>Forfaldsdato</p>
-            <p style={{ fontSize: 13, color: "oklch(0.12 0.005 255)", fontFamily: "var(--font-mono)" }}>30. april 2026</p>
-          </div>
-        </div>
-        {[["Arbejdsløn", "2.600 kr"], ["Materialer", "480 kr"], ["Kørsel", "120 kr"]].map(([l, v]) => (
-          <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid oklch(0.94 0.004 255)" }}>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "oklch(0.35 0.009 255)" }}>{l}</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "oklch(0.20 0.007 255)" }}>{v}</span>
-          </div>
-        ))}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, padding: "8px 0", borderTop: "2px solid oklch(0.88 0.007 255)" }}>
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 700, color: "oklch(0.12 0.005 255)" }}>Total inkl. moms</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "oklch(0.53 0.155 52)" }}>4.000 kr</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function CustomerMockup() {
-  return (
-    <div style={{
-      backgroundColor: S.surface, border: `1px solid ${S.borderStrong}`,
-      borderRadius: 14, overflow: "hidden",
-      boxShadow: "0 20px 48px oklch(0.07 0.035 245 / 0.7)",
-      maxWidth: 380,
-    }}>
-      <div style={{ padding: "16px", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--amber-500)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>EH</span>
-        </div>
-        <div>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: S.text }}>Erik Hansen</p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted }}>+45 23 45 67 89 · Aarhus</p>
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", padding: "12px 16px", gap: 8, borderBottom: `1px solid ${S.border}` }}>
-        {[["Faktureret", "142.400 kr", S.text], ["Udestående", "12.800 kr", "oklch(0.78 0.18 25)"], ["Betalt", "129.600 kr", S.teal]].map(([l, v, c]) => (
-          <div key={l as string}>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: S.textMuted, marginBottom: 2 }}>{l}</p>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: c as string }}>{v}</p>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding: "8px 16px" }}>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Seneste jobs</p>
-        {[
-          { title: "Badeværelse renovation", status: "Betalt", c: "var(--status-paid-text)", bg: "var(--status-paid-bg)" },
-          { title: "El-installation køkken", status: "Faktureret", c: "var(--status-invoiced-text)", bg: "var(--status-invoiced-bg)" },
-        ].map((job, i) => (
-          <div key={job.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i === 0 ? `1px solid ${S.border}` : "none" }}>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textSub }}>{job.title}</span>
-            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: job.bg, color: job.c, fontFamily: "var(--font-body)", fontWeight: 500 }}>{job.status}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Feature Sections ──────────────────────────────────────────────────────────
-
-function FeatureRow({
-  label, headline, bullets, mockup, reverse, id, extra,
-}: {
-  label: string; headline: string; bullets: string[]; mockup: React.ReactNode; reverse?: boolean; id?: string; extra?: React.ReactNode
-}) {
-  const { ref, inView } = useInView(0.15)
-  const prefersReduced = usePrefersReduced()
-  const textAnim: React.CSSProperties = {
-    opacity: inView ? 1 : 0,
-    transform: inView ? "translateX(0)" : `translateX(${reverse ? "24px" : "-24px"})`,
-    transition: prefersReduced ? "none" : "opacity 300ms 60ms var(--ease-smooth), transform 300ms 60ms var(--ease-smooth)",
-  }
-  const imgAnim: React.CSSProperties = {
-    opacity: inView ? 1 : 0,
-    transform: inView ? "translateX(0)" : `translateX(${reverse ? "-24px" : "24px"})`,
-    transition: prefersReduced ? "none" : "opacity 300ms var(--ease-smooth), transform 300ms var(--ease-smooth)",
-  }
-
-  return (
-    <section id={id} style={{
-      backgroundColor: S.bg,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
-    }}>
-      <div ref={ref} style={{
-        maxWidth: MAX_W, margin: "0 auto", width: "100%",
-        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-        gap: 64, alignItems: "center",
-      }}>
-        <div style={{ order: reverse ? 2 : 1, ...textAnim }}>
-          <SectionLabel>{label}</SectionLabel>
-          <h2 style={{
-            fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)",
-            fontWeight: 800, color: S.text, letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: 24,
-          }}>
-            {headline}
-          </h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-            {bullets.map((b) => (
-              <li key={b} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, color: S.textSub, lineHeight: 1.5 }}>{b}</span>
-              </li>
-            ))}
-          </ul>
-          {extra}
-        </div>
-        <div style={{ order: reverse ? 1 : 2, display: "flex", justifyContent: "center", ...imgAnim }}>
-          {mockup}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// Quote feature 45-second counter
-function QuoteCounter() {
-  const { ref, inView } = useInView(0.5)
-  const [flickered, setFlickered] = useState(false)
-  const { count, start } = useCountUp(45, 1500)
-  useEffect(() => {
-    if (!inView) return
-    start()
-    const t = setTimeout(() => setFlickered(true), 1550)
-    return () => clearTimeout(t)
-  }, [inView, start])
-
-  return (
-    <div ref={ref} style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 24 }}>
-      <span style={{
-        fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 700,
-        color: S.amber400, lineHeight: 1,
-        // brief flicker after landing
-        animation: flickered ? "counterFlicker 0.3s ease" : "none",
-      }}>
-        {count}
-      </span>
-      <span style={{ fontFamily: "var(--font-body)", fontSize: 16, color: S.textSub }}>sekunder</span>
-    </div>
-  )
-}
-
-// Invoice trust line with delayed entrance
-function InvoiceTrustLine({ text }: { text: string }) {
-  const { ref, inView } = useInView(0.5)
-  return (
-    <div ref={ref} style={{
-      display: "flex", alignItems: "center", gap: 6,
-      marginTop: 24,
-      opacity: inView ? 1 : 0,
-      transition: "opacity 400ms 600ms ease",
-    }}>
-      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.teal} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 13l4 4L19 7" />
-      </svg>
-      <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted }}>{text}</span>
-    </div>
-  )
-}
-
-// ── Demo Section ──────────────────────────────────────────────────────────────
-
-function DemoSection() {
-  const [active, setActive] = useState(0)
-  const { ref, inView } = useInView(0.2)
-  const t = useTranslations("Landing")
-
-  const stages = [0, 1, 2, 3, 4, 5].map(i => ({
-    label: t(`demo.s${i}label` as Parameters<typeof t>[0]),
-    desc: t(`demo.s${i}desc` as Parameters<typeof t>[0]),
-    color: ["var(--status-new-bg)", "var(--status-scheduled-bg)", "var(--status-invoiced-bg)", "var(--status-progress-bg)", "var(--status-done-bg)", "var(--status-paid-bg)"][i],
-    textColor: ["var(--status-new-text)", "var(--status-scheduled-text)", "var(--status-invoiced-text)", "var(--status-progress-text)", "var(--status-done-text)", "var(--status-paid-text)"][i],
-  }))
-
-  useEffect(() => {
-    if (!inView) return
-    const timer = setInterval(() => setActive(a => (a + 1) % stages.length), 3000)
-    return () => clearInterval(timer)
-  }, [inView, stages.length])
-
-  const stage = stages[active]
-
-  return (
-    <section id="how" style={{
-      backgroundColor: S.surfaceAlt,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
-    }}>
-      <div style={{ maxWidth: 960, margin: "0 auto", width: "100%" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <SectionLabel>{t("demo.label")}</SectionLabel>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em" }}>
-            {t("demo.headline")}
-          </h2>
-        </div>
-
-        <div ref={ref} style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 40 }}>
-          {stages.map((s, i) => (
-            <button key={i} onClick={() => setActive(i)} style={{
-              padding: "6px 14px", borderRadius: 999, cursor: "pointer",
-              fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
-              backgroundColor: active === i ? s.color : "transparent",
-              color: active === i ? s.textColor : S.textMuted,
-              border: active === i ? `1px solid transparent` : `1px solid ${S.border}`,
-              transition: "all 180ms var(--ease-snap)",
-            }}>
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{
-          backgroundColor: S.bg, border: `1px solid ${S.border}`,
-          borderRadius: 16, padding: "40px 48px", textAlign: "center", minHeight: 120,
-          transition: "all 180ms var(--ease-snap)",
-        }}>
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "4px 12px", borderRadius: 999, marginBottom: 16,
-            background: stage.color, color: stage.textColor,
-            fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
-          }}>
-            {active + 1} / {stages.length} — {stage.label}
-          </span>
-          {/* Sonar pulse on active step */}
-          <div style={{ position: "relative", display: "inline-block", marginBottom: 8 }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: "50%",
-              backgroundColor: S.amber,
-              animation: "sonarPulse 1.2s ease-out infinite",
-              margin: "0 auto 12px",
-            }} />
-          </div>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 2.5vw, 20px)", color: S.textSub, lineHeight: 1.5 }}>
-            {stage.desc}
-          </p>
-        </div>
-
-        <div style={{ height: 2, background: S.border, borderRadius: 999, marginTop: 16, overflow: "hidden" }}>
-          <div key={active} style={{ height: "100%", background: S.amber, borderRadius: 999, animation: "progress 3s linear forwards" }} />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Who It's For ──────────────────────────────────────────────────────────────
-
-function WhoSection() {
-  const { ref, inView } = useInView(0.15)
-  const prefersReduced = usePrefersReduced()
-  const t = useTranslations("Landing")
-
-  const STAMP_ROTATIONS = [-12, 8, -6, 14, -9, 5, -11, 7]
-
-  const trades = [
-    { key: "t1", icon: <path d="M13 2L4.5 13.5H11L9 22l11-13.5H14z" strokeWidth={1.75} /> },
-    { key: "t2", icon: <><rect x="5" y="13" width="8" height="8" rx="1.5" /><rect x="16" y="5" width="6" height="6" rx="1.5" /><path d="M13 17H15a3 3 0 003-3V8" /></> },
-    { key: "t3", icon: <><rect x="3" y="11" width="16" height="8" rx="1.5" /><path d="M19 13l5-3v8l-5-3" /><line x1="7" y1="19" x2="6" y2="23" /><line x1="14" y1="19" x2="14" y2="23" /></> },
-    { key: "t4", icon: <><rect x="5" y="5" width="14" height="8" rx="1.5" /><rect x="8" y="13" width="8" height="2" rx="1" /><line x1="12" y1="15" x2="12" y2="22" /><rect x="5" y="22" width="14" height="2" rx="1" /></> },
-    { key: "t5", icon: <><rect x="4" y="6" width="7" height="5" rx="1" /><rect x="13" y="6" width="7" height="5" rx="1" /><rect x="9" y="12" width="7" height="5" rx="1" /><rect x="4" y="18" width="7" height="4" rx="1" /><rect x="13" y="18" width="7" height="4" rx="1" /></> },
-    { key: "t6", icon: <><path d="M14.5 4.5L9.5 9.5M20 9.5l-3-3" /><path d="M4.5 19.5l8-8" /><circle cx="17" cy="7" r="3" /></> },
-    { key: "t7", icon: <><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" /></> },
-    { key: "t8", icon: <><path d="M3 18L12 6l9 12" /><path d="M7 18h10" /><path d="M10 18v-5h4v5" /></> },
-  ]
-
-  return (
-    <section style={{
-      backgroundColor: S.bg,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
-    }}>
-      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%", textAlign: "center" }}>
-        <SectionLabel>{t("who.label")}</SectionLabel>
-        {/* Billboard blur entrance */}
-        <h2 style={{
-          fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 40px)",
-          fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 48,
-          opacity: inView ? 1 : 0,
-          filter: inView ? "blur(0px)" : "blur(20px)",
-          transform: inView ? "scale(1)" : "scale(1.08)",
-          transition: prefersReduced ? "none" : "opacity 700ms var(--ease-smooth), filter 700ms var(--ease-smooth), transform 700ms var(--ease-smooth)",
-        }}>
-          {t("who.headline")}
-        </h2>
-
-        {/* Trade stamp grid — random rotations settle to 0 */}
-        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, maxWidth: 720, margin: "0 auto 64px", justifyItems: "center" }}>
-          {trades.map((trade, i) => (
-            <div key={trade.key} style={{
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 8, cursor: "pointer",
-              color: S.textMuted,
-              opacity: inView ? 1 : 0,
-              transform: inView
-                ? "rotate(0deg) scale(1)"
-                : `rotate(${STAMP_ROTATIONS[i]}deg) scale(0.7)`,
-              transition: prefersReduced
-                ? "none"
-                : `opacity 350ms ${i * 60}ms var(--ease-spring), transform 450ms ${i * 60}ms var(--ease-spring), color 120ms`,
-            }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.color = S.amber
-                ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px) scale(1.08)"
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.color = S.textMuted
-                ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0) scale(1)"
-              }}>
-              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                {trade.icon}
-              </svg>
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                {t(`who.${trade.key}` as Parameters<typeof t>[0])}
+              <span style={{
+                background: S.amber, color: "#fff", fontSize: 10, fontWeight: 800,
+                letterSpacing: "0.10em", textTransform: "uppercase",
+                borderRadius: 100, padding: "2px 9px", fontFamily: "var(--font-body)",
+              }}>NEW</span>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textSub, fontWeight: 500 }}>
+                {t("hero.eyebrow")}
               </span>
             </div>
+
+            {/* Headline — SplitText handles char splitting at DOM level */}
+            <h1 ref={headlineRef} style={{
+              fontFamily: "var(--font-display)", fontWeight: 800, margin: "0 0 28px",
+              fontSize: "clamp(48px, 6.5vw, 88px)", lineHeight: 1.0,
+              letterSpacing: "-0.05em", color: S.text,
+            }}>
+              {l1}
+              <br />
+              <em style={{ fontStyle: "normal", color: S.amberHex }}>{l2}</em>
+            </h1>
+
+            <p ref={subRef} style={{
+              fontFamily: "var(--font-body)", fontSize: 18, lineHeight: 1.65,
+              color: S.textSub, margin: "0 0 44px", maxWidth: 460,
+            }}>{t("hero.sub")}</p>
+
+            <div ref={ctasRef} style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
+              <Link href="/sign-up" style={{
+                fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 700,
+                color: "#fff", background: S.dark, textDecoration: "none",
+                padding: "15px 32px", borderRadius: 11, letterSpacing: "-0.02em",
+                boxShadow: "0 4px 24px rgba(26,20,13,0.28)",
+                transition: "transform 150ms, box-shadow 150ms",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 8px 32px rgba(26,20,13,0.38)" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = ""; (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 4px 24px rgba(26,20,13,0.28)" }}
+              >{t("hero.ctaPrimary")}</Link>
+
+              <button onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} style={{
+                fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600,
+                color: S.text, background: "transparent",
+                border: `1.5px solid ${S.borderStrong}`,
+                padding: "15px 32px", borderRadius: 11, cursor: "pointer",
+                transition: "background 150ms",
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = S.surface}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = "transparent"}
+              >{t("hero.ctaSecondary")}</button>
+            </div>
+
+            <p ref={trustRef} style={{
+              fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted, margin: 0,
+            }}>{t("hero.noCredit")}</p>
+          </div>
+
+          {/* Mockup */}
+          <div ref={mockupRef} className="hidden md:block">
+            <HeroMockup />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function HeroMockup() {
+  return (
+    <div>
+      <div style={{
+        background: "#fff", borderRadius: 20,
+        border: `1px solid ${S.borderStrong}`,
+        boxShadow: "0 24px 80px rgba(26,20,13,0.12), 0 6px 20px rgba(26,20,13,0.07)",
+        overflow: "hidden",
+      }}>
+        <div style={{ background: S.dark, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            {["#ff5f57","#ffbd2e","#28c840"].map(c => <div key={c} style={{ width: 11, height: 11, borderRadius: "50%", background: c }} />)}
+          </div>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "#ffffff50", fontWeight: 500 }}>Håndværk Pro</span>
+          <div style={{ width: 44 }} />
+        </div>
+        <div style={{ padding: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+            {[{ l: "Active jobs", v: "7" },{ l: "Outstanding", v: "84k" },{ l: "Paid today", v: "2" }].map(({ l, v }) => (
+              <div key={l} style={{ background: S.surface, borderRadius: 12, padding: "14px 12px", border: `1px solid ${S.border}` }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 20, color: S.text, letterSpacing: "-0.03em" }}>{v}</div>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: S.textMuted, marginTop: 3, fontWeight: 500 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          {[
+            { t: "Badeværelse — Jensens Vej 12", c: "Erik Hansen", s: "In progress", sc: "var(--amber-600)", sb: "var(--amber-50)", a: "38.400 kr" },
+            { t: "El-installation — Sommerhus", c: "Morten Lund", s: "Paid", sc: "#059669", sb: "#ecfdf5", a: "12.800 kr" },
+            { t: "Tagudskiftning — Magleby", c: "Kirsten Bach", s: "Quote sent", sc: "#0ea5e9", sb: "#f0f9ff", a: "84.000 kr" },
+          ].map(({ t: title, c: customer, s: status, sc, sb, a }) => (
+            <div key={title} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "13px 14px", borderRadius: 12, border: `1px solid ${S.border}`, marginBottom: 8, background: "#fff",
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 14, color: S.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginTop: 2 }}>{customer}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 12 }}>
+                <span style={{ background: sb, color: sc, borderRadius: 6, padding: "3px 10px", fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700 }}>{status}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: S.text, whiteSpace: "nowrap" }}>{a}</span>
+              </div>
+            </div>
           ))}
         </div>
-
-        <div style={{ maxWidth: 540, margin: "0 auto", position: "relative", padding: "0 20px" }}>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 80, fontWeight: 800, color: S.amber, opacity: 0.2, lineHeight: 0.8, display: "block", marginBottom: -20 }}>"</span>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.5vw, 22px)", fontStyle: "italic", color: S.textSub, lineHeight: 1.55, marginBottom: 20 }}>
-            "{t("who.quote")}"
-          </p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted }}>{t("who.quoteAuthor")}</p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
+        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 800, color: "#059669", letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 5 }}>PAID ✓</div>
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.text }}>Invoice #0042</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "#059669", marginTop: 2 }}>12,800 kr</div>
+        </div>
+        <div style={{ background: "var(--amber-50)", border: "1px solid var(--amber-200)", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 800, color: "var(--amber-600)", letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 5 }}>ACCEPTED</div>
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.text }}>T-0087 · 45 sec</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--amber-600)", marginTop: 2 }}>38,400 kr</div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
-// ── Comparison Table — padlock unlock ────────────────────────────────────────
+// ── Stats Strip ───────────────────────────────────────────────────────────────
 
-function PadlockSVG({ unlocked }: { unlocked: boolean }) {
-  return (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-      style={{ margin: "0 auto 4px", display: "block", transition: "transform 400ms cubic-bezier(0.34,1.56,0.64,1)" }}>
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d={unlocked ? "M7 11V7a5 5 0 0 1 9.9-1" : "M7 11V7a5 5 0 0 1 10 0v4"}
-        style={{ transition: "d 400ms var(--ease-spring)" }} />
-    </svg>
-  )
-}
-
-function ComparisonTable() {
-  const { ref, inView } = useInView(0.1)
-  const prefersReduced = usePrefersReduced()
+function StatsStrip() {
   const t = useTranslations("Landing")
+  const sectionRef = useRef<HTMLElement>(null)
 
-  const rows = [
-    [t("comparison.row0"), true, false, "Delvist", false],
-    [t("comparison.row1"), true, false, false, false],
-    [t("comparison.row2"), true, false, true, false],
-    [t("comparison.row3"), true, false, false, false],
-    [t("comparison.row4"), true, false, false, false],
-    [t("comparison.row5"), t("comparison.col1price"), t("comparison.col2price"), t("comparison.col3price"), t("comparison.col4price")],
-  ]
-  const cols = [" ", "Håndværk Pro", "Excel/Word", "Billy / e-conomic", "Pen & papir"]
+  useGSAP(() => {
+    gsap.from(".stat-item", {
+      y: 32, opacity: 0, stagger: 0.14, duration: 0.65, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 82%" },
+    })
 
-  return (
-    <section style={{
-      backgroundColor: S.surfaceAlt,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
-    }}>
-      <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
-        <SectionLabel>{t("comparison.label")}</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 40 }}>
-          {t("comparison.headline")}
-        </h2>
+    const targets = [1200, 48000, 380]
+    gsap.utils.toArray<HTMLElement>(".stat-num").forEach((el, i) => {
+      const obj = { val: 0 }
+      const tgt = targets[i]
+      gsap.to(obj, {
+        val: tgt, duration: 1.6, ease: "power2.out",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 80%", once: true },
+        onUpdate() {
+          const v = Math.floor(obj.val)
+          el.textContent = tgt >= 10000 ? `${Math.floor(v / 1000)}k` : tgt >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
+        },
+      })
+    })
+  }, { scope: sectionRef })
 
-        <div ref={ref} style={{
-          overflowX: "auto",
-          opacity: inView ? 1 : 0,
-          transform: inView ? "translateY(0)" : "translateY(16px)",
-          transition: prefersReduced ? "none" : "opacity 300ms var(--ease-smooth), transform 300ms var(--ease-smooth)",
-        }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
-            <thead>
-              <tr>
-                {cols.map((col, i) => (
-                  <th key={col} style={{
-                    padding: "10px 16px", textAlign: i === 0 ? "left" : "center",
-                    fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
-                    textTransform: "uppercase", letterSpacing: "0.06em",
-                    color: i === 1 ? S.amber : S.textMuted,
-                    borderBottom: `1px solid ${i === 1 ? S.amber : S.border}`,
-                    borderTop: i === 1 ? `2px solid ${S.amber}` : "none",
-                    backgroundColor: i === 1 ? "oklch(0.720 0.195 58 / 6%)" : "transparent",
-                    borderRadius: i === 1 ? "6px 6px 0 0" : 0,
-                    position: "relative",
-                  }}>
-                    {i === 1 && <PadlockSVG unlocked={inView} />}
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, ri) => (
-                <tr key={ri} style={{ borderBottom: `1px solid ${S.border}` }}>
-                  {row.map((cell, ci) => (
-                    <td key={ci} style={{
-                      padding: "11px 16px", textAlign: ci === 0 ? "left" : "center",
-                      fontFamily: ci === 0 ? "var(--font-body)" : (cell === true || cell === false) ? "inherit" : "var(--font-mono)",
-                      fontSize: 13, color: ci === 0 ? S.textSub : S.textMuted,
-                      backgroundColor: ci === 1 ? "oklch(0.720 0.195 58 / 4%)" : "transparent",
-                      // Competitor columns fade in gray, HP column unlocks with color
-                      filter: inView ? "none" : (ci === 0 ? "none" : ci === 1 ? "none" : "grayscale(100%)"),
-                      opacity: inView ? 1 : (ci === 0 ? 1 : 0.4),
-                      transition: `filter 600ms ${ri * 60}ms ease, opacity 500ms ${ri * 60}ms ease`,
-                    }}>
-                      {cell === true ? (
-                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
-                          style={{
-                            margin: "0 auto", display: "block",
-                            opacity: inView ? 1 : 0,
-                            transition: `opacity 300ms ${ri * 60 + ci * 40}ms ease`,
-                          }}>
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : cell === false ? (
-                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.textFaint} strokeWidth={2} strokeLinecap="round" style={{ margin: "0 auto", display: "block" }}>
-                          <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                      ) : cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Testimonials — sine-wave entry + continuous float ────────────────────────
-
-function TestimonialsSection() {
-  const { ref, inView } = useInView(0.1)
-  const prefersReduced = usePrefersReduced()
-  const t = useTranslations("Landing")
-
-  const testimonials = [
-    { initials: "MK", name: t("testimonials.t1name"), role: t("testimonials.t1role"), quote: t("testimonials.t1quote") },
-    { initials: "LT", name: t("testimonials.t2name"), role: t("testimonials.t2role"), quote: t("testimonials.t2quote") },
-    { initials: "PH", name: t("testimonials.t3name"), role: t("testimonials.t3role"), quote: t("testimonials.t3quote") },
-  ]
-
-  // Sine-wave entry: different x/y per card
-  const WAVE_ENTRIES = [
-    { tx: "-40px", ty: "20px" },
-    { tx: "0px",   ty: "-24px" },
-    { tx: "40px",  ty: "16px" },
-  ]
+  const labels = [t("stats.tradespeople"), t("stats.invoicesSent"), t("stats.invoicedVia")]
+  const suffixes = ["+", "+", "M kr+"]
 
   return (
-    <section style={{
-      backgroundColor: S.bg,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
+    <section ref={sectionRef} style={{
+      background: S.surface, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}`,
+      padding: "72px 28px",
     }}>
-      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
-        <SectionLabel>{t("testimonials.label")}</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 48 }}>
-          {t("testimonials.headline")}
-        </h2>
-        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {testimonials.map((t_, i) => (
-            <div key={t_.name} style={{
-              backgroundColor: S.surface, border: `1px solid ${S.border}`,
-              borderRadius: 14, padding: 28, position: "relative",
-              opacity: inView ? 1 : 0,
-              transform: inView
-                ? "translate(0,0)"
-                : `translate(${WAVE_ENTRIES[i].tx}, ${WAVE_ENTRIES[i].ty})`,
-              transition: prefersReduced
-                ? "none"
-                : `opacity 400ms ${i * 100}ms var(--ease-smooth), transform 500ms ${i * 100}ms var(--ease-smooth)`,
-              // Continuous buoy float after settle
-              animation: inView && !prefersReduced
-                ? `buoyFloat ${4.5 + i * 1.2}s ease-in-out ${i * 1.5}s infinite`
-                : "none",
-            }}>
-              <span style={{ position: "absolute", top: 16, left: 20, fontFamily: "var(--font-display)", fontSize: 56, fontWeight: 800, color: S.amber, opacity: 0.2, lineHeight: 1 }}>"</span>
-              <div style={{ display: "flex", marginBottom: 12 }}>
-                {[1, 2, 3, 4, 5].map(s => (
-                  <svg key={s} width={14} height={14} viewBox="0 0 24 24" fill={S.amber} stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                ))}
+      <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+        <div className="grid grid-cols-3" style={{ gap: 20 }}>
+          {labels.map((label, i) => (
+            <div key={label} className="stat-item" style={{ textAlign: "center" }}>
+              <div style={{
+                fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1,
+                fontSize: "clamp(40px, 5vw, 68px)", letterSpacing: "-0.05em", color: S.text,
+              }}>
+                <span className="stat-num">0</span>{suffixes[i]}
               </div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub, lineHeight: 1.65, marginBottom: 20, fontStyle: "italic" }}>
-                "{t_.quote}"
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: S.amber, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "oklch(0.10 0.005 52)" }}>{t_.initials}</span>
-                </div>
-                <div>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: S.text }}>{t_.name}</p>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted }}>{t_.role}</p>
-                </div>
-              </div>
+              <div style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub, marginTop: 10, fontWeight: 500 }}>{label}</div>
             </div>
           ))}
         </div>
@@ -1281,149 +600,822 @@ function TestimonialsSection() {
   )
 }
 
-// ── Pricing — shelf lift with Solo overshoot ──────────────────────────────────
+// ── Feature: Jobs (dark section) — ScrollTrigger + progress scrub ─────────────
 
-function PricingSection() {
-  const [annual, setAnnual] = useState(true)
-  const { ref, inView } = useInView(0.15)
-  const prefersReduced = usePrefersReduced()
+function FeatureDark() {
   const t = useTranslations("Landing")
+  const sectionRef = useRef<HTMLElement>(null)
 
-  const plans = [
-    {
-      name: t("pricing.freeName"),
-      monthly: "0", annual: "0",
-      badge: null, featured: false,
-      features: [t("pricing.freeF1"), t("pricing.freeF2"), t("pricing.freeF3"), t("pricing.freeF4")],
-      locked: [t("pricing.freeL1"), t("pricing.freeL2"), t("pricing.freeL3"), t("pricing.freeL4")],
-      cta: t("pricing.freeCta"), href: "/sign-up",
-    },
-    {
-      name: t("pricing.soloName"),
-      monthly: "149", annual: "119",
-      badge: t("pricing.recommended"), featured: true,
-      features: [t("pricing.soloF1"), t("pricing.soloF2"), t("pricing.soloF3"), t("pricing.soloF4"), t("pricing.soloF5"), t("pricing.soloF6")],
-      locked: [],
-      cta: t("pricing.soloCta"), href: "/sign-up",
-    },
-    {
-      name: t("pricing.holdName"),
-      monthly: "299", annual: "239",
-      badge: null, featured: false,
-      features: [t("pricing.holdF1"), t("pricing.holdF2"), t("pricing.holdF3"), t("pricing.holdF4")],
-      locked: [],
-      cta: t("pricing.holdCta"), href: "/sign-up",
-    },
-  ]
+  useGSAP(() => {
+    const tl = gsap.timeline({ scrollTrigger: { trigger: sectionRef.current, start: "top 65%" } })
+    tl.from(".fd-text", { x: -50, opacity: 0, duration: 0.7, ease: "power2.out" })
+      .from(".fd-mockup", { x: 50, opacity: 0, duration: 0.7, ease: "power2.out" }, "<")
+      .from(".job-row", { x: -38, opacity: 0, stagger: 0.08, duration: 0.55, ease: "power2.out" }, "-=0.3")
+
+    // Progress bars fill (scrub)
+    gsap.utils.toArray<HTMLElement>(".progress-fill").forEach((el, i) => {
+      const target = [65, 92, 18, 78][i] ?? 50
+      gsap.from(el, {
+        scaleX: 0, transformOrigin: "left center", duration: 1, ease: "power2.out",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 55%", scrub: 1 },
+        delay: i * 0.08,
+      })
+      gsap.set(el, { scaleX: target / 100 })
+    })
+
+    // ── Blueprint SVG animations ────────────────────────────────────────────────
+    // DrawSVG: each decoration path draws itself in sequence
+    gsap.utils.toArray<SVGGeometryElement>(".bp-draw").forEach((el, i) => {
+      const len = el.getTotalLength()
+      gsap.set(el, { strokeDasharray: len, strokeDashoffset: len })
+      gsap.to(el, {
+        strokeDashoffset: 0, duration: 1.2, ease: "power2.inOut", delay: 0.2 + i * 0.15,
+        scrollTrigger: { trigger: sectionRef.current, start: "top 65%" },
+      })
+    })
+
+    // The main circuit path draws in separately (longer, is the MotionPath guide)
+    const circuit = sectionRef.current?.querySelector(".bp-circuit") as SVGGeometryElement | null
+    if (circuit) {
+      const cLen = circuit.getTotalLength()
+      gsap.set(circuit, { strokeDasharray: cLen, strokeDashoffset: cLen })
+      gsap.to(circuit, {
+        strokeDashoffset: 0, duration: 2.4, ease: "power2.inOut",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 65%" },
+      })
+    }
+
+    // MotionPath: amber dot rides the circuit, fades in after path is drawn
+    gsap.set(".bp-dot", { opacity: 0 })
+    gsap.to(".bp-dot", {
+      opacity: 1, duration: 0.5, delay: 1.8,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%", once: true },
+    })
+    gsap.to(".bp-dot", {
+      motionPath: { path: ".bp-circuit", align: ".bp-circuit", alignOrigin: [0.5, 0.5] },
+      duration: 16, ease: "none", repeat: -1,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%", once: true },
+    })
+    // Halo (slightly larger, more transparent) follows same path slightly behind
+    gsap.set(".bp-halo", { opacity: 0 })
+    gsap.to(".bp-halo", {
+      opacity: 1, duration: 0.5, delay: 1.8,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%", once: true },
+    })
+    gsap.to(".bp-halo", {
+      motionPath: { path: ".bp-circuit", align: ".bp-circuit", alignOrigin: [0.5, 0.5], start: -0.02, end: 0.98 },
+      duration: 16, ease: "none", repeat: -1,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%", once: true },
+    })
+  }, { scope: sectionRef })
 
   return (
-    <section id="pricing" style={{
-      backgroundColor: S.surfaceAlt,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
-    }}>
-      <div style={{ maxWidth: MAX_W, margin: "0 auto", width: "100%" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <SectionLabel>{t("pricing.label")}</SectionLabel>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 8 }}>
-            {t("pricing.headline")}
-          </h2>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 20, padding: "4px", borderRadius: 10, background: "oklch(1 0 0 / 5%)", border: `1px solid ${S.border}` }}>
-            {[{ label: t("pricing.monthly"), val: false }, { label: t("pricing.annual"), val: true }].map(({ label, val }) => (
-              <button key={String(val)} onClick={() => setAnnual(val)} style={{
-                padding: "6px 16px", borderRadius: 7, border: "none", cursor: "pointer",
-                fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500,
-                backgroundColor: annual === val ? S.amber : "transparent",
-                color: annual === val ? "oklch(0.10 0.005 52)" : S.textMuted,
-                transition: "all 150ms var(--ease-snap)",
+    <section id="features" ref={sectionRef} style={{ background: S.dark, padding: "120px 28px", position: "relative", overflow: "hidden" }}>
+      {/* Blueprint floor-plan SVG background — draws in on scroll */}
+      <svg aria-hidden viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none",
+      }}>
+        {/* Subtle blueprint grid */}
+        <defs>
+          <pattern id="bp-grid" width="70" height="70" patternUnits="userSpaceOnUse">
+            <path d="M 70 0 L 0 0 0 70" fill="none" stroke="rgba(247,243,238,0.025)" strokeWidth="0.8" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#bp-grid)" />
+
+        {/* Main floor-plan outline — the MotionPath circuit route */}
+        <path className="bp-circuit"
+          d="M 640 60 L 1170 60 L 1170 640 L 640 640 L 640 380 L 790 380 L 790 270 L 640 270 Z"
+          fill="none" stroke="rgba(247,243,238,0.07)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"
+        />
+
+        {/* Interior room dividers */}
+        <line className="bp-draw" x1="640" y1="380" x2="1170" y2="380" stroke="rgba(247,243,238,0.05)" strokeWidth="0.8" />
+        <line className="bp-draw" x1="900" y1="60" x2="900" y2="380" stroke="rgba(247,243,238,0.05)" strokeWidth="0.8" />
+        <line className="bp-draw" x1="900" y1="380" x2="900" y2="640" stroke="rgba(247,243,238,0.05)" strokeWidth="0.8" />
+
+        {/* Corner registration marks — amber accent */}
+        <path className="bp-draw" d="M 618 38 L 640 38 L 640 60" fill="none" stroke={S.amberRaw} strokeWidth="1.8" strokeLinecap="round" opacity="0.45" />
+        <path className="bp-draw" d="M 1192 38 L 1170 38 L 1170 60" fill="none" stroke={S.amberRaw} strokeWidth="1.8" strokeLinecap="round" opacity="0.45" />
+        <path className="bp-draw" d="M 618 662 L 640 662 L 640 640" fill="none" stroke={S.amberRaw} strokeWidth="1.8" strokeLinecap="round" opacity="0.45" />
+        <path className="bp-draw" d="M 1192 662 L 1170 662 L 1170 640" fill="none" stroke={S.amberRaw} strokeWidth="1.8" strokeLinecap="round" opacity="0.45" />
+
+        {/* Door swing arcs (engineering drawing detail) */}
+        <path className="bp-draw"
+          d="M 790 270 A 80 80 0 0 1 870 350"
+          fill="none" stroke="rgba(247,243,238,0.06)" strokeWidth="0.8" strokeDasharray="3 5"
+        />
+        <path className="bp-draw"
+          d="M 900 380 A 60 60 0 0 0 840 440"
+          fill="none" stroke="rgba(247,243,238,0.06)" strokeWidth="0.8" strokeDasharray="3 5"
+        />
+
+        {/* Dimension lines */}
+        <line className="bp-draw" x1="640" y1="30" x2="1170" y2="30" stroke="rgba(247,243,238,0.04)" strokeWidth="0.6" />
+        <line className="bp-draw" x1="640" y1="22" x2="640" y2="38" stroke="rgba(247,243,238,0.06)" strokeWidth="1" />
+        <line className="bp-draw" x1="1170" y1="22" x2="1170" y2="38" stroke="rgba(247,243,238,0.06)" strokeWidth="1" />
+
+        {/* The MotionPath dot (amber glow traveler) */}
+        <circle className="bp-halo" r="9" fill={S.amberRaw} opacity="0.12" />
+        <circle className="bp-dot"  r="4" fill={S.amberRaw} opacity="0.9" />
+      </svg>
+      <div style={{
+        maxWidth: MAX_W, margin: "0 auto",
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center",
+        position: "relative", zIndex: 1,
+      }}>
+        <div className="fd-mockup">
+          <div style={{
+            background: S.darkSurface, borderRadius: 20, border: `1px solid ${S.darkBorder}`,
+            padding: "24px", boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+              <div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: S.textInverse }}>Jobs</div>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textSubInv, marginTop: 2 }}>April 2026</div>
+              </div>
+              <div style={{
+                background: "rgba(247,243,238,0.08)", border: `1px solid ${S.darkBorder}`,
+                borderRadius: 8, padding: "6px 14px",
+                fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: S.textSubInv,
+              }}>+ New job</div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+              {["All (12)", "Active (7)", "Done (5)"].map((tab, i) => (
+                <div key={tab} style={{
+                  fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
+                  color: i === 0 ? S.textInverse : S.textSubInv,
+                  background: i === 0 ? "rgba(247,243,238,0.12)" : "transparent",
+                  border: `1px solid ${i === 0 ? S.darkBorderSt : S.darkBorder}`,
+                  borderRadius: 7, padding: "5px 12px",
+                }}>{tab}</div>
+              ))}
+            </div>
+            {[
+              { title: "Badeværelse — Jensens Vej", amount: "38.400 kr", pct: 65 },
+              { title: "El-installation — Sommerhus", amount: "12.800 kr", pct: 92 },
+              { title: "Tagudskiftning — Magleby", amount: "84.000 kr", pct: 18 },
+              { title: "VVS-eftersyn — Kontor", amount: "4.200 kr", pct: 78 },
+            ].map(({ title, amount, pct }) => (
+              <div key={title} className="job-row" style={{
+                padding: "14px 16px", borderRadius: 12, border: `1px solid ${S.darkBorder}`,
+                marginBottom: 8, background: "rgba(247,243,238,0.04)",
               }}>
-                {label}{val ? <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.8 }}>{t("pricing.save20")}</span> : ""}
-              </button>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: S.textInverse }}>{title}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: S.amberRaw }}>{amount}</span>
+                </div>
+                <div style={{ height: 3, background: "rgba(247,243,238,0.08)", borderRadius: 2, overflow: "hidden" }}>
+                  <div className="progress-fill" style={{
+                    height: "100%", width: `${pct}%`, transformOrigin: "left",
+                    background: `linear-gradient(90deg, ${S.amberRaw}, oklch(0.77 0.165 60))`,
+                    borderRadius: 2,
+                  }} />
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
-        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {plans.map((plan, i) => (
-            <div key={plan.name} style={{
-              backgroundColor: S.bg,
-              border: plan.featured ? `1px solid ${S.amber}` : `1px solid ${S.border}`,
-              borderRadius: 16, overflow: "hidden",
-              display: "flex", flexDirection: "column",
-              boxShadow: plan.featured ? `0 0 48px oklch(0.720 0.195 58 / 18%)` : "none",
-              position: "relative",
-              // Shelf lift — Solo overshoots then settles
-              opacity: inView ? 1 : 0,
-              transform: inView
-                ? "translateY(0)"
-                : `translateY(30px)`,
-              transition: prefersReduced
-                ? "none"
-                : plan.featured
-                  ? `opacity 400ms 100ms var(--ease-spring), transform 600ms 100ms cubic-bezier(0.34,1.56,0.64,1)`
-                  : `opacity 400ms ${i * 80}ms var(--ease-smooth), transform 400ms ${i * 80}ms var(--ease-smooth)`,
-              // Solo glow pulse
-              animation: plan.featured && inView ? "soloPulse 2s ease-in-out infinite" : "none",
-            }}>
-              {plan.featured && <div style={{ height: 2, background: `linear-gradient(90deg, var(--amber-600), var(--amber-500), var(--amber-400))` }} />}
-              {plan.badge && (
+        <div className="fd-text">
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: S.amber, marginBottom: 20 }}>
+            {t("feat.jobs.label")}
+          </div>
+          <h2 style={{
+            fontFamily: "var(--font-display)", fontWeight: 800,
+            fontSize: "clamp(36px, 4vw, 58px)", lineHeight: 1.02, letterSpacing: "-0.04em",
+            color: S.textInverse, margin: "0 0 24px",
+          }}>{t("feat.jobs.headline")}</h2>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 17, lineHeight: 1.65, color: S.textSubInv, margin: "0 0 40px" }}>{t("feat.jobs.b1")}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {[t("feat.jobs.b2"), t("feat.jobs.b3")].map((b, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
                 <div style={{
-                  position: "absolute", top: plan.featured ? 18 : 14, right: 16,
-                  padding: "3px 10px", borderRadius: 999, background: S.amber,
-                  fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600,
-                  color: "oklch(0.10 0.005 52)",
-                }}>{plan.badge}</div>
-              )}
-              <div style={{ padding: "24px 24px 28px", flex: 1, display: "flex", flexDirection: "column" }}>
-                <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: S.text, marginBottom: 12 }}>{plan.name}</p>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 48, fontWeight: 700, color: S.text, lineHeight: 1 }}>
-                    {annual ? plan.annual : plan.monthly}
-                  </span>
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted }}>{t("pricing.perMonth")}</span>
+                  width: 22, height: 22, borderRadius: "50%",
+                  background: "rgba(247,243,238,0.08)", border: `1px solid ${S.darkBorder}`,
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1,
+                }}>
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke={S.amberRaw} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
-                {annual && plan.featured && <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.amber, marginBottom: 16 }}>{t("pricing.billedAnnually")}</p>}
-                <div style={{ height: 1, background: S.border, margin: "20px 0" }} />
-                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
-                  {plan.features.map((f) => (
-                    <li key={f} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={S.amber} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                        <path d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textSub }}>{f}</span>
-                    </li>
-                  ))}
-                  {plan.locked.map((f) => (
-                    <li key={f} style={{ display: "flex", alignItems: "center", gap: 9, opacity: 0.35 }}>
-                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={S.textFaint} strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                      <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textFaint }}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href={plan.href} style={{
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  height: 46, borderRadius: 10,
-                  fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 500,
-                  textDecoration: "none",
-                  backgroundColor: plan.featured ? S.amber : "transparent",
-                  color: plan.featured ? "oklch(0.10 0.005 52)" : S.textSub,
-                  border: plan.featured ? "none" : `1.5px solid ${S.border}`,
-                  boxShadow: plan.featured ? "0 4px 16px oklch(0.720 0.195 58 / 0.40)" : "none",
-                  transition: "opacity 120ms",
-                }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = "1"}>
-                  {plan.cta}
-                </Link>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, color: S.textSubInv }}>{b}</span>
               </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── Feature: Documents — 3D invoice + clip-path row wipe ─────────────────────
+
+function FeatureLight() {
+  const t = useTranslations("Landing")
+  const sectionRef  = useRef<HTMLElement>(null)
+  const invoiceRef  = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    gsap.from(".fl-text", {
+      x: -50, opacity: 0, duration: 0.7, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%" },
+    })
+    // 3D rotateY entry
+    gsap.from(invoiceRef.current, {
+      rotationY: 24, rotationX: 7, transformPerspective: 1100,
+      x: 40, opacity: 0, duration: 1.0, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%" },
+    })
+    // Invoice rows clip-path wipe
+    gsap.utils.toArray<HTMLElement>(".invoice-row").forEach((el, i) => {
+      gsap.from(el, {
+        clipPath: "inset(0 100% 0 0)", opacity: 1,
+        duration: 0.5, ease: "power2.out",
+        scrollTrigger: { trigger: invoiceRef.current, start: "top 72%" },
+        delay: 0.4 + i * 0.08,
+      })
+    })
+
+    // ── Drafting SVG animations ─────────────────────────────────────────────────
+    // Compass arc + measurement lines draw in
+    gsap.utils.toArray<SVGGeometryElement>(".fl-draw").forEach((el, i) => {
+      const len = el.getTotalLength()
+      gsap.set(el, { strokeDasharray: len, strokeDashoffset: len })
+      gsap.to(el, {
+        strokeDashoffset: 0, duration: 1.4, ease: "power2.inOut", delay: 0.3 + i * 0.2,
+        scrollTrigger: { trigger: sectionRef.current, start: "top 65%" },
+      })
+    })
+
+    // MotionPath: pen tip traces the compass arc and then loops
+    const compassPath = sectionRef.current?.querySelector(".fl-compass") as SVGGeometryElement | null
+    if (compassPath) {
+      const cLen = compassPath.getTotalLength()
+      gsap.set(compassPath, { strokeDasharray: cLen, strokeDashoffset: cLen })
+      gsap.to(compassPath, {
+        strokeDashoffset: 0, duration: 2.2, ease: "power2.inOut",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 65%" },
+      })
+    }
+
+    gsap.set(".fl-pen", { opacity: 0 })
+    gsap.to(".fl-pen", {
+      opacity: 1, duration: 0.4, delay: 1.6,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%", once: true },
+    })
+    gsap.to(".fl-pen", {
+      motionPath: { path: ".fl-compass", align: ".fl-compass", alignOrigin: [0.5, 0.5] },
+      duration: 18, ease: "none", repeat: -1,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%", once: true },
+    })
+    gsap.to(".fl-pen-halo", {
+      motionPath: { path: ".fl-compass", align: ".fl-compass", alignOrigin: [0.5, 0.5], start: -0.015, end: 0.985 },
+      duration: 18, ease: "none", repeat: -1,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%", once: true },
+    })
+  }, { scope: sectionRef })
+
+  return (
+    <section ref={sectionRef} style={{ background: S.bg, padding: "120px 28px", position: "relative", overflow: "hidden" }}>
+      {/* Drafting / compass SVG background */}
+      <svg aria-hidden viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none",
+      }}>
+        {/* Large compass arc — path (not circle) so MotionPathPlugin can align to it */}
+        {/* Circle cx=260 cy=350 r=280 → top(260,70) right(540,350) bottom(260,630) left(-20,350) */}
+        <path className="fl-compass fl-draw"
+          d="M 260 70 A 280 280 0 0 1 540 350 A 280 280 0 0 1 260 630 A 280 280 0 0 1 -20 350 A 280 280 0 0 1 260 70 Z"
+          fill="none" stroke={S.amberRaw} strokeWidth="0.9" opacity="0.10"
+        />
+
+        {/* Inner concentric arc — circle is fine here (no MotionPath) */}
+        <circle className="fl-draw"
+          cx="260" cy="350" r="200"
+          fill="none" stroke={S.amberRaw} strokeWidth="0.6"
+          strokeDasharray="5 10" opacity="0.06"
+        />
+
+        {/* Crosshair — compass center point */}
+        <line className="fl-draw" x1="220" y1="350" x2="300" y2="350" stroke={S.amberRaw} strokeWidth="1" opacity="0.18" />
+        <line className="fl-draw" x1="260" y1="310" x2="260" y2="390" stroke={S.amberRaw} strokeWidth="1" opacity="0.18" />
+        <circle cx="260" cy="350" r="3.5" fill={S.amberRaw} opacity="0.22" />
+
+        {/* Radial measurement lines (drafting compass legs) */}
+        <line className="fl-draw" x1="260" y1="350" x2="260" y2="70"  stroke={S.amberRaw} strokeWidth="0.7" opacity="0.08" strokeDasharray="4 6" />
+        <line className="fl-draw" x1="260" y1="350" x2="520" y2="185" stroke={S.amberRaw} strokeWidth="0.7" opacity="0.08" strokeDasharray="4 6" />
+        <line className="fl-draw" x1="260" y1="350" x2="520" y2="515" stroke={S.amberRaw} strokeWidth="0.7" opacity="0.08" strokeDasharray="4 6" />
+        <line className="fl-draw" x1="260" y1="350" x2="0"   y2="185" stroke={S.amberRaw} strokeWidth="0.7" opacity="0.08" strokeDasharray="4 6" />
+
+        {/* Tick marks at the arc radius endpoints */}
+        <line className="fl-draw" x1="248" y1="70"  x2="272" y2="70"  stroke={S.amberRaw} strokeWidth="1.2" opacity="0.20" />
+        <line className="fl-draw" x1="248" y1="630" x2="272" y2="630" stroke={S.amberRaw} strokeWidth="1.2" opacity="0.20" />
+        <line className="fl-draw" x1="540" y1="338" x2="540" y2="362" stroke={S.amberRaw} strokeWidth="1.2" opacity="0.20" />
+        <line className="fl-draw" x1="-20" y1="338" x2="-20" y2="362" stroke={S.amberRaw} strokeWidth="1.2" opacity="0.20" />
+
+        {/* Pen tip dot + halo that travels the compass arc */}
+        <circle className="fl-pen-halo" r="10" fill={S.amberRaw} opacity="0.10" />
+        <circle className="fl-pen"      r="4"  fill={S.amberRaw} opacity="0.85" />
+      </svg>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center", position: "relative", zIndex: 1 }}>
+        <div className="fl-text">
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: S.amber, marginBottom: 20 }}>
+            {t("feat.quotes.label")} · {t("feat.invoices.label")}
+          </div>
+          <h2 style={{
+            fontFamily: "var(--font-display)", fontWeight: 800,
+            fontSize: "clamp(36px, 4vw, 58px)", lineHeight: 1.02, letterSpacing: "-0.04em",
+            color: S.text, margin: "0 0 24px",
+          }}>{t("feat.invoices.headline")}</h2>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 17, lineHeight: 1.65, color: S.textSub, margin: "0 0 40px" }}>
+            {t("feat.quotes.b2")}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 40 }}>
+            {[
+              { icon: "⚡", text: t("feat.quotes.headline") },
+              { icon: "📄", text: t("feat.invoices.b1") },
+              { icon: "🔔", text: t("feat.invoices.b2") },
+            ].map(({ icon, text }, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: "var(--amber-50)", border: "1px solid var(--amber-200)",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0,
+                }}>{icon}</div>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.5, color: S.textSub, marginTop: 9 }}>{text}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 10,
+            background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: "10px 16px",
+          }}>
+            <span style={{ fontSize: 18 }}>🇩🇰</span>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: S.textSub }}>{t("feat.invoices.trust")}</span>
+          </div>
+        </div>
+
+        <div ref={invoiceRef} style={{ transformStyle: "preserve-3d" }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, border: `1px solid ${S.borderStrong}`, padding: "28px",
+            boxShadow: "0 20px 60px rgba(26,20,13,0.10), 0 4px 16px rgba(26,20,13,0.06)",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 20, borderBottom: `1px solid ${S.border}`, marginBottom: 20 }}>
+              <div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: S.text, letterSpacing: "-0.03em" }}>FAKTURA</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.textMuted, marginTop: 4 }}>#F-2024-0087</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 14, color: S.text }}>Lars Byggeri ApS</div>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginTop: 3 }}>CVR: 28 73 91 04</div>
+              </div>
+            </div>
+            {[
+              { d: "Murværk — 24 timer", q: "24 t", p: "725", tot: "17.400" },
+              { d: "Materialer — teglsten", q: "1 lot", p: "8.200", tot: "8.200" },
+              { d: "Stilladsleje — 5 dage", q: "5 d", p: "420", tot: "2.100" },
+            ].map(({ d, q, p, tot }) => (
+              <div key={d} className="invoice-row" style={{
+                display: "grid", gridTemplateColumns: "1fr auto auto auto",
+                gap: 12, alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${S.border}`,
+              }}>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.text, fontWeight: 500 }}>{d}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{q}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: S.textMuted, textAlign: "right" }}>{p} kr</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: S.text, textAlign: "right" }}>{tot} kr</div>
+              </div>
+            ))}
+            <div style={{ marginTop: 16 }}>
+              {[{ l: "Subtotal", v: "27.700 kr" }, { l: "Moms 25%", v: "6.925 kr" }].map(({ l, v }) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted }}>{l}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: S.textSub }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 0", borderTop: `2px solid ${S.text}`, marginTop: 8 }}>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: S.text }}>Total</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 18, color: S.text }}>34.625 kr</span>
+              </div>
+            </div>
+            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 10, background: "#ecfdf5", border: "1px solid #a7f3d0", display: "flex", alignItems: "center", gap: 10 }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="7.5" stroke="#059669" />
+                <path d="M4.5 8L6.5 10L11.5 5.5" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "#059669" }}>Betalt 18. april 2026</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── Testimonials — SVG quote draw + word-by-word scroll scrub ─────────────────
+
+function Testimonials() {
+  const t = useTranslations("Landing")
+  const sectionRef = useRef<HTMLElement>(null)
+
+  useGSAP(() => {
+    // SVG opening-quote path draws in
+    const path = sectionRef.current?.querySelector(".quote-path") as SVGPathElement | null
+    if (path) {
+      const len = path.getTotalLength()
+      gsap.set(path, { strokeDasharray: len, strokeDashoffset: len })
+      gsap.to(path, {
+        strokeDashoffset: 0, duration: 1.2, ease: "power2.out",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 72%" },
+      })
+    }
+
+    // Pull-quote words illuminate one by one as you scroll (Stripe/Linear technique)
+    gsap.to(".pq-word", {
+      opacity: 1, y: 0,
+      stagger: { each: 0.04, from: "start" },
+      ease: "none",
+      scrollTrigger: {
+        trigger: ".pq-container",
+        start: "top 70%",
+        end: "bottom 35%",
+        scrub: 1.2,
+      },
+    })
+
+    // Attribution slides up after words
+    gsap.from(".pull-attribution", {
+      y: 14, opacity: 0, duration: 0.5, ease: "power2.out",
+      scrollTrigger: { trigger: ".pq-container", start: "center 50%" },
+    })
+
+    // Cards: scattered chaos entry with rotation (Jessica Walsh)
+    gsap.from(".tcard-0", { x: -56, y: 18, rotation: -2.5, opacity: 0, duration: 0.7, ease: "back.out(1.4)", scrollTrigger: { trigger: ".tcard-0", start: "top 80%" } })
+    gsap.from(".tcard-1", { x: 56, y: -18, rotation: 2, opacity: 0, duration: 0.7, ease: "back.out(1.4)", scrollTrigger: { trigger: ".tcard-1", start: "top 80%" }, delay: 0.1 })
+
+    // ── Sine wave DrawSVG + MotionPath ──────────────────────────────────────────
+    const testWave = sectionRef.current?.querySelector(".test-wave") as SVGGeometryElement | null
+    if (testWave) {
+      const tLen = testWave.getTotalLength()
+      gsap.set(testWave, { strokeDasharray: tLen, strokeDashoffset: tLen })
+      gsap.to(testWave, {
+        strokeDashoffset: 0, duration: 2.6, ease: "power2.inOut",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 72%" },
+      })
+    }
+    gsap.utils.toArray<SVGGeometryElement>(".test-accent").forEach((el, i) => {
+      const len = el.getTotalLength()
+      gsap.set(el, { strokeDasharray: len, strokeDashoffset: len })
+      gsap.to(el, {
+        strokeDashoffset: 0, duration: 0.7, ease: "power2.out", delay: 1.0 + i * 0.15,
+        scrollTrigger: { trigger: sectionRef.current, start: "top 72%" },
+      })
+    })
+    gsap.set([".test-dot", ".test-halo"], { opacity: 0 })
+    gsap.to([".test-dot", ".test-halo"], {
+      opacity: 1, duration: 0.5, delay: 2.0,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 72%", once: true },
+    })
+    gsap.to(".test-dot", {
+      motionPath: { path: ".test-wave", align: ".test-wave", alignOrigin: [0.5, 0.5] },
+      duration: 12, ease: "none", repeat: -1, yoyo: true,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 72%", once: true },
+    })
+    gsap.to(".test-halo", {
+      motionPath: { path: ".test-wave", align: ".test-wave", alignOrigin: [0.5, 0.5], start: -0.018, end: 0.982 },
+      duration: 12, ease: "none", repeat: -1, yoyo: true,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 72%", once: true },
+    })
+  }, { scope: sectionRef })
+
+  const quote1 = t("testimonials.t1quote")
+
+  return (
+    <section ref={sectionRef} style={{
+      background: S.surface, padding: "120px 28px", borderTop: `1px solid ${S.border}`,
+      position: "relative", overflow: "hidden",
+    }}>
+      {/* Sine-wave background — peak nodes mark each testimonial */}
+      <svg aria-hidden viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none",
+      }}>
+        {/* Primary sine wave — full width */}
+        <path className="test-wave"
+          d="M -80 400 C 200 140, 400 660, 600 380 C 800 100, 1000 640, 1280 360"
+          fill="none" stroke={S.amberRaw} strokeWidth="1.1" opacity="0.09"
+        />
+        {/* Secondary wave, offset down, darker */}
+        <path className="test-wave-b"
+          d="M -80 520 C 200 260, 400 780, 600 500 C 800 220, 1000 760, 1280 480"
+          fill="none" stroke={S.text} strokeWidth="0.7" opacity="0.03"
+        />
+        {/* Node circles at wave peaks/troughs — where testimonials "live" */}
+        <circle className="test-accent" cx="200"  cy="188" r="6" fill="none" stroke={S.amberRaw} strokeWidth="1.5" opacity="0.18" />
+        <circle className="test-accent" cx="200"  cy="188" r="14" fill="none" stroke={S.amberRaw} strokeWidth="0.7" opacity="0.07" />
+        <circle className="test-accent" cx="600"  cy="393" r="6" fill="none" stroke={S.amberRaw} strokeWidth="1.5" opacity="0.18" />
+        <circle className="test-accent" cx="600"  cy="393" r="14" fill="none" stroke={S.amberRaw} strokeWidth="0.7" opacity="0.07" />
+        <circle className="test-accent" cx="1000" cy="570" r="6" fill="none" stroke={S.amberRaw} strokeWidth="1.5" opacity="0.18" />
+        <circle className="test-accent" cx="1000" cy="570" r="14" fill="none" stroke={S.amberRaw} strokeWidth="0.7" opacity="0.07" />
+        {/* MotionPath traveler */}
+        <circle className="test-halo" r="11" fill={S.amberRaw} opacity="0.08" />
+        <circle className="test-dot"  r="4"  fill={S.amberRaw} opacity="0.9" />
+      </svg>
+
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div style={{
+          fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700,
+          letterSpacing: "0.14em", textTransform: "uppercase", color: S.amber,
+          marginBottom: 60, textAlign: "center",
+        }}>{t("testimonials.label")}</div>
+
+        {/* SVG decorative opening-quote mark */}
+        <svg aria-hidden viewBox="0 0 100 70" style={{
+          position: "absolute", left: 28, top: 140,
+          width: 110, height: 77, opacity: 0.09, pointerEvents: "none",
+        }}>
+          <path className="quote-path"
+            d="M10 60 C10 25 30 8 50 5 L50 28 C34 30 26 40 26 55 L26 70 L10 70 Z M54 60 C54 25 74 8 94 5 L94 28 C78 30 70 40 70 55 L70 70 L54 70 Z"
+            fill="none" stroke={S.amberHex} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+          />
+        </svg>
+
+        {/* Big editorial pull-quote with word scrub */}
+        <div className="pq-container" style={{ marginBottom: 64, paddingLeft: 40 }}>
+          <blockquote style={{
+            fontFamily: "var(--font-display)", fontWeight: 700,
+            fontSize: "clamp(26px, 3.5vw, 46px)", lineHeight: 1.18,
+            letterSpacing: "-0.03em", color: S.text, margin: "0 0 28px",
+          }}>
+            &ldquo;<WordScrub text={quote1} cls="pq-word" />&rdquo;
+          </blockquote>
+          <div className="pull-attribution" style={{ paddingLeft: 4 }}>
+            <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 15, color: S.text }}>{t("testimonials.t1name")}</div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted, marginTop: 2 }}>{t("testimonials.t1role")}</div>
+          </div>
+        </div>
+
+        {/* Two scattered cards */}
+        <div className="grid md:grid-cols-2 grid-cols-1" style={{ gap: 20 }}>
+          {[
+            { q: t("testimonials.t2quote"), n: t("testimonials.t2name"), r: t("testimonials.t2role"), cls: "tcard-0" },
+            { q: t("testimonials.t3quote"), n: t("testimonials.t3name"), r: t("testimonials.t3role"), cls: "tcard-1" },
+          ].map(({ q, n, r, cls }) => (
+            <div key={n} className={cls} style={{
+              background: "#fff", borderRadius: 16, border: `1px solid ${S.border}`,
+              padding: "28px 28px 24px", boxShadow: "0 4px 20px rgba(26,20,13,0.06)",
+              transformStyle: "preserve-3d", cursor: "default",
+            }}
+            onMouseMove={(e) => {
+              const card = e.currentTarget
+              const rect = card.getBoundingClientRect()
+              const x = (e.clientX - rect.left) / rect.width - 0.5
+              const y = (e.clientY - rect.top)  / rect.height - 0.5
+              gsap.to(card, { rotationY: x * 14, rotationX: -y * 9, transformPerspective: 900, ease: "power2.out", duration: 0.35 })
+            }}
+            onMouseLeave={(e) => {
+              gsap.to(e.currentTarget, { rotationY: 0, rotationX: 0, duration: 0.6, ease: "elastic.out(1, 0.5)" })
+            }}
+            >
+              <div style={{ display: "flex", gap: 3, marginBottom: 16 }}>
+                {[0,1,2,3,4].map(i => (
+                  <svg key={i} width="14" height="14" viewBox="0 0 14 14" fill={S.amberRaw}>
+                    <path d="M7 1l1.6 3.3 3.6.5-2.6 2.5.6 3.6L7 9.3l-3.2 1.7.6-3.6L1.8 4.8l3.6-.5z" />
+                  </svg>
+                ))}
+              </div>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.65, color: S.textSub, margin: "0 0 20px" }}>
+                &ldquo;{q}&rdquo;
+              </p>
+              <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 14, color: S.text }}>{n}</div>
+              <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textMuted, marginTop: 2 }}>{r}</div>
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textFaint, textAlign: "center", marginTop: 24 }}>
+      </div>
+    </section>
+  )
+}
+
+// ── Pricing — rotating SVG rings + card hover physics + price flip ─────────────
+
+function Pricing() {
+  const t = useTranslations("Landing")
+  const [annual, setAnnual] = useState(true)
+  const sectionRef = useRef<HTMLElement>(null)
+  const ringsRef   = useRef<SVGSVGElement>(null)
+
+  useGSAP(() => {
+    // Concentric rings rotate at different speeds (Eddie Opara geometry)
+    gsap.to(".ring-a", { rotation: 360,  transformOrigin: "50% 50%", duration: 80,  repeat: -1, ease: "none" })
+    gsap.to(".ring-b", { rotation: -360, transformOrigin: "50% 50%", duration: 55,  repeat: -1, ease: "none" })
+    gsap.to(".ring-c", { rotation: 360,  transformOrigin: "50% 50%", duration: 38,  repeat: -1, ease: "none" })
+
+    // Featured card: animated gradient border sweeps around (3s/revolution)
+    gsap.to(".price-ring", { rotation: 360, transformOrigin: "50% 50%", duration: 3, repeat: -1, ease: "none" })
+
+    // ── Wave path DrawSVG + MotionPath ──────────────────────────────────────────
+    const priceWave = sectionRef.current?.querySelector(".price-wave") as SVGGeometryElement | null
+    if (priceWave) {
+      const wLen = priceWave.getTotalLength()
+      gsap.set(priceWave, { strokeDasharray: wLen, strokeDashoffset: wLen })
+      gsap.to(priceWave, {
+        strokeDashoffset: 0, duration: 2.2, ease: "power2.inOut",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 75%" },
+      })
+    }
+    // Accent diamonds draw in
+    gsap.utils.toArray<SVGGeometryElement>(".price-accent").forEach((el, i) => {
+      const len = el.getTotalLength()
+      gsap.set(el, { strokeDasharray: len, strokeDashoffset: len })
+      gsap.to(el, {
+        strokeDashoffset: 0, duration: 0.9, ease: "power2.out", delay: 0.6 + i * 0.18,
+        scrollTrigger: { trigger: sectionRef.current, start: "top 75%" },
+      })
+    })
+    // Dot bounces back and forth along the wave (yoyo)
+    gsap.set([".price-mdot", ".price-mhalo"], { opacity: 0 })
+    gsap.to([".price-mdot", ".price-mhalo"], {
+      opacity: 1, duration: 0.4, delay: 2.0,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 75%", once: true },
+    })
+    gsap.to(".price-mdot", {
+      motionPath: { path: ".price-wave", align: ".price-wave", alignOrigin: [0.5, 0.5] },
+      duration: 9, ease: "power1.inOut", repeat: -1, yoyo: true,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 75%", once: true },
+    })
+    gsap.to(".price-mhalo", {
+      motionPath: { path: ".price-wave", align: ".price-wave", alignOrigin: [0.5, 0.5], start: -0.02, end: 0.98 },
+      duration: 9, ease: "power1.inOut", repeat: -1, yoyo: true,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 75%", once: true },
+    })
+
+    // Section entrance
+    gsap.from(".price-header", { y: 32, opacity: 0, duration: 0.65, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 75%" },
+    })
+    gsap.from(".pc-0, .pc-2", { y: 50, opacity: 0, stagger: 0.15, duration: 0.65, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 72%" },
+    })
+    gsap.from(".pc-1", { y: 72, opacity: 0, duration: 0.75, ease: "back.out(1.5)",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 72%" },
+      delay: 0.1,
+    })
+  }, { scope: sectionRef })
+
+  // Card hover physics: hovered card rises, siblings compress
+  const onCardEnter = (idx: number) => {
+    gsap.utils.toArray<HTMLElement>(".pricing-card").forEach((c, i) => {
+      if (i === idx) {
+        gsap.to(c, { y: -10, scale: 1.025, duration: 0.3, ease: "power2.out" })
+      } else {
+        gsap.to(c, { scale: 0.97, opacity: 0.75, duration: 0.3, ease: "power2.out" })
+      }
+    })
+  }
+  const onCardLeave = () => {
+    gsap.utils.toArray<HTMLElement>(".pricing-card").forEach(c => {
+      gsap.to(c, { y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "power2.out" })
+    })
+  }
+
+  const plans = [
+    { name: t("pricing.freeName"),  price: "0",                     cta: t("pricing.freeCta"),  href: "/sign-up",            features: [t("pricing.freeF1"), t("pricing.freeF2"), t("pricing.freeF3"), t("pricing.freeF4")], featured: false },
+    { name: t("pricing.soloName"),  price: annual ? "149" : "189",  cta: t("pricing.soloCta"),  href: "/sign-up?plan=solo",  features: [t("pricing.soloF1"), t("pricing.soloF2"), t("pricing.soloF3"), t("pricing.soloF4"), t("pricing.soloF5"), t("pricing.soloF6")], featured: true },
+    { name: t("pricing.holdName"),  price: annual ? "349" : "429",  cta: t("pricing.holdCta"),  href: "/sign-up?plan=team",  features: [t("pricing.holdF1"), t("pricing.holdF2"), t("pricing.holdF3"), t("pricing.holdF4")], featured: false },
+  ]
+
+  return (
+    <section id="pricing" ref={sectionRef} style={{ background: S.bg, padding: "120px 28px", position: "relative", overflow: "hidden" }}>
+      {/* Rotating concentric rings — subtle texture (Eddie Opara "Light and Line") */}
+      <svg ref={ringsRef} aria-hidden viewBox="0 0 900 900" style={{
+        position: "absolute", top: "50%", left: "50%",
+        transform: "translate(-50%,-50%)", width: 900, height: 900,
+        opacity: 0.035, pointerEvents: "none", zIndex: 0,
+      }}>
+        <circle className="ring-a" cx="450" cy="450" r="180" fill="none" stroke={S.text} strokeWidth="1" strokeDasharray="8 16" />
+        <circle className="ring-b" cx="450" cy="450" r="300" fill="none" stroke={S.text} strokeWidth="0.8" />
+        <circle className="ring-c" cx="450" cy="450" r="410" fill="none" stroke={S.text} strokeWidth="0.5" strokeDasharray="3 24" />
+        {Array.from({ length: 12 }).map((_, i) => {
+          const a = (i * 30 * Math.PI) / 180
+          return <circle key={i} cx={Math.round((450 + 300 * Math.cos(a)) * 100) / 100} cy={Math.round((450 + 300 * Math.sin(a)) * 100) / 100} r="3" fill={S.text} className="ring-b" />
+        })}
+      </svg>
+
+      {/* Wave path + MotionPath dot — connects the 3 tier positions */}
+      <svg aria-hidden viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0,
+      }}>
+        {/* Flowing S-curve through Free → Solo → Team card positions */}
+        <path className="price-wave"
+          d="M -60 600 C 150 260, 380 740, 600 490 C 820 180, 1050 700, 1260 420"
+          fill="none" stroke={S.text} strokeWidth="1.2" opacity="0.055"
+        />
+        {/* Diamond accent at each card top */}
+        <path className="price-accent" d="M 190 90 L 220 120 L 190 150 L 160 120 Z" fill="none" stroke={S.amberRaw} strokeWidth="1.2" opacity="0.14" />
+        <path className="price-accent" d="M 600 50 L 636 86 L 600 122 L 564 86 Z" fill="none" stroke={S.amberRaw} strokeWidth="1.5" opacity="0.20" />
+        <path className="price-accent" d="M 1010 90 L 1040 120 L 1010 150 L 980 120 Z" fill="none" stroke={S.amberRaw} strokeWidth="1.2" opacity="0.14" />
+        {/* Horizontal tier connector lines */}
+        <line className="price-accent" x1="220" y1="120" x2="564" y2="86" stroke={S.amberRaw} strokeWidth="0.6" opacity="0.08" />
+        <line className="price-accent" x1="636" y1="86" x2="980" y2="120" stroke={S.amberRaw} strokeWidth="0.6" opacity="0.08" />
+        {/* MotionPath traveler */}
+        <circle className="price-mhalo" r="11" fill={S.amberRaw} opacity="0.09" />
+        <circle className="price-mdot"  r="4.5" fill={S.amberRaw} opacity="0.9" />
+      </svg>
+
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div className="price-header" style={{ textAlign: "center", marginBottom: 60 }}>
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: S.amber, marginBottom: 16 }}>
+            {t("pricing.label")}
+          </div>
+          <h2 style={{
+            fontFamily: "var(--font-display)", fontWeight: 800,
+            fontSize: "clamp(36px, 4vw, 58px)", lineHeight: 1.02, letterSpacing: "-0.04em",
+            color: S.text, margin: "0 0 32px",
+          }}>{t("pricing.headline")}</h2>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500, color: !annual ? S.text : S.textMuted }}>{t("pricing.monthly")}</span>
+            <button onClick={() => setAnnual(a => !a)} style={{
+              width: 48, height: 26, borderRadius: 13, background: annual ? S.dark : S.surfaceAlt,
+              border: "none", cursor: "pointer", position: "relative", transition: "background 200ms",
+            }}>
+              <div style={{
+                position: "absolute", top: 3, width: 20, height: 20, borderRadius: "50%", background: "#fff",
+                left: annual ? 25 : 3, boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                transition: "left 200ms cubic-bezier(0.34,1.56,0.64,1)",
+              }} />
+            </button>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500, color: annual ? S.text : S.textMuted }}>{t("pricing.annual")}</span>
+              <span style={{ background: "var(--amber-50)", color: "var(--amber-700)", fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700, borderRadius: 100, padding: "2px 8px" }}>{t("pricing.save20")}</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 grid-cols-1" style={{ gap: 16 }}>
+          {plans.map(({ name, price, cta, href, features, featured }, i) => (
+            <div key={name} className={`pc-${i}`} style={{ position: "relative", isolation: "isolate" }}>
+              {/* Animated gradient border ring — only on featured card */}
+              {featured && (
+                <div className="price-ring" style={{
+                  position: "absolute", inset: -2, borderRadius: 21, zIndex: -1,
+                  background: `conic-gradient(from 0deg, transparent 0%, ${S.amberRaw}90 8%, transparent 16%, transparent 84%, ${S.amberRaw}70 92%, transparent 100%)`,
+                }} />
+              )}
+            <div className="pricing-card"
+              onMouseEnter={() => onCardEnter(i)}
+              onMouseLeave={onCardLeave}
+              style={{
+                background: featured ? S.dark : "#fff",
+                border: `1.5px solid ${featured ? "transparent" : S.border}`,
+                borderRadius: 18, padding: "32px 28px", position: "relative",
+                boxShadow: featured
+                  ? "0 20px 60px rgba(26,20,13,0.25), 0 4px 12px rgba(26,20,13,0.15)"
+                  : "0 4px 16px rgba(26,20,13,0.06)",
+                cursor: "default",
+              }}>
+              {featured && (
+                <div style={{
+                  position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)",
+                  background: S.amber, color: "#fff",
+                  fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 800,
+                  letterSpacing: "0.10em", textTransform: "uppercase",
+                  borderRadius: "0 0 8px 8px", padding: "4px 14px",
+                }}>Recommended</div>
+              )}
+              <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 15, color: featured ? S.textSubInv : S.textSub, marginBottom: 20, letterSpacing: "0.04em" }}>{name}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 24 }}>
+                <span style={{
+                  fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 52, lineHeight: 1, letterSpacing: "-0.05em",
+                  color: featured ? S.textInverse : S.text,
+                }}>{price}</span>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: featured ? S.textSubInv : S.textMuted }}>{t("pricing.perMonth")}</span>
+              </div>
+              <Link href={href} style={{
+                display: "block", textAlign: "center",
+                fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 700,
+                color: featured ? S.dark : S.textInverse, background: featured ? S.amber : S.dark,
+                padding: "13px 0", borderRadius: 10, textDecoration: "none", marginBottom: 28,
+                boxShadow: featured ? `0 4px 20px ${S.amberRaw}60` : "none",
+                transition: "transform 140ms",
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.transform = ""}
+              >{cta}</Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {features.map((f, j) => (
+                  <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                      <circle cx="8" cy="8" r="7.5" stroke={featured ? "rgba(247,243,238,0.2)" : S.border} />
+                      <path d="M5 8l2 2 4-4" stroke={featured ? S.amberRaw : "#059669"} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span style={{ fontFamily: "var(--font-body)", fontSize: 14, lineHeight: 1.5, color: featured ? S.textSubInv : S.textSub }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted, textAlign: "center", marginTop: 28 }}>
           {t("pricing.noBinding")}
         </p>
       </div>
@@ -1431,66 +1423,195 @@ function PricingSection() {
   )
 }
 
-// ── FAQ — clip-path ink reveal ────────────────────────────────────────────────
+// ── FAQ — GSAP height + TextPlugin typing + animated left border ───────────────
 
-function FAQSection() {
-  const [open, setOpen] = useState<number | null>(null)
+function FAQ() {
   const t = useTranslations("Landing")
+  const sectionRef   = useRef<HTMLElement>(null)
+  const answerRefs   = useRef<(HTMLDivElement | null)[]>([])
+  const borderRefs   = useRef<(HTMLDivElement | null)[]>([])
+  const pRefs        = useRef<(HTMLParagraphElement | null)[]>([])
+  const [open, setOpen] = useState<number | null>(null)
 
-  const faqs = [0, 1, 2, 3, 4, 5, 6, 7].map(i => ({
+  const items = [0,1,2,3,4].map(i => ({
     q: t(`faq.q${i}` as Parameters<typeof t>[0]),
     a: t(`faq.a${i}` as Parameters<typeof t>[0]),
   }))
 
+  // Initialise all answers collapsed
+  useEffect(() => {
+    answerRefs.current.forEach(el => {
+      if (el) gsap.set(el, { height: 0, overflow: "hidden" })
+    })
+    borderRefs.current.forEach(el => {
+      if (el) gsap.set(el, { scaleY: 0, transformOrigin: "top" })
+    })
+  }, [])
+
+  useGSAP(() => {
+    gsap.from(".faq-item", {
+      y: 22, opacity: 0, stagger: 0.07, duration: 0.55, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 76%" },
+    })
+
+    // ── Diamond DrawSVG + MotionPath ────────────────────────────────────────────
+    const faqDiamond = sectionRef.current?.querySelector(".faq-diamond") as SVGGeometryElement | null
+    if (faqDiamond) {
+      const dLen = faqDiamond.getTotalLength()
+      gsap.set(faqDiamond, { strokeDasharray: dLen, strokeDashoffset: dLen })
+      gsap.to(faqDiamond, {
+        strokeDashoffset: 0, duration: 2.4, ease: "power2.inOut",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 76%" },
+      })
+    }
+    gsap.utils.toArray<SVGGeometryElement>(".faq-cross").forEach((el, i) => {
+      const len = el.getTotalLength()
+      gsap.set(el, { strokeDasharray: len, strokeDashoffset: len })
+      gsap.to(el, {
+        strokeDashoffset: 0, duration: 0.9, ease: "power2.out", delay: 0.8 + i * 0.14,
+        scrollTrigger: { trigger: sectionRef.current, start: "top 76%" },
+      })
+    })
+    gsap.set([".faq-dot", ".faq-halo"], { opacity: 0 })
+    gsap.to([".faq-dot", ".faq-halo"], {
+      opacity: 1, duration: 0.4, delay: 2.2,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 76%", once: true },
+    })
+    gsap.to(".faq-dot", {
+      motionPath: { path: ".faq-diamond", align: ".faq-diamond", alignOrigin: [0.5, 0.5] },
+      duration: 14, ease: "none", repeat: -1,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 76%", once: true },
+    })
+    gsap.to(".faq-halo", {
+      motionPath: { path: ".faq-diamond", align: ".faq-diamond", alignOrigin: [0.5, 0.5], start: -0.02, end: 0.98 },
+      duration: 14, ease: "none", repeat: -1,
+      scrollTrigger: { trigger: sectionRef.current, start: "top 76%", once: true },
+    })
+  }, { scope: sectionRef })
+
+  const toggle = (i: number) => {
+    const el     = answerRefs.current[i]
+    const border = borderRefs.current[i]
+    const p      = pRefs.current[i]
+    if (!el) return
+
+    if (open === i) {
+      // Close
+      gsap.to(el, { height: 0, duration: 0.3, ease: "power2.inOut" })
+      if (border) gsap.to(border, { scaleY: 0, duration: 0.25, ease: "power2.inOut" })
+      setOpen(null)
+    } else {
+      // Close previous
+      if (open !== null) {
+        const prev = answerRefs.current[open]
+        const pb   = borderRefs.current[open]
+        if (prev) gsap.to(prev, { height: 0, duration: 0.25, ease: "power2.inOut" })
+        if (pb)   gsap.to(pb,   { scaleY: 0, duration: 0.22, ease: "power2.inOut" })
+      }
+      // Open: height first, then type the answer
+      gsap.to(el, { height: "auto", duration: 0.35, ease: "power2.out" })
+      // Left border "draws down"
+      if (border) gsap.to(border, { scaleY: 1, duration: 0.4, ease: "power3.out", delay: 0.05 })
+      // TextPlugin: words type out one by one
+      if (p) {
+        gsap.killTweensOf(p)
+        p.textContent = ""
+        gsap.to(p, {
+          text: { value: items[i].a, delimiter: " " },
+          duration: items[i].a.split(" ").length * 0.028,
+          ease: "none",
+          delay: 0.12,
+        })
+      }
+      setOpen(i)
+    }
+  }
+
   return (
-    <section id="faq" style={{
-      backgroundColor: S.bg,
-      minHeight: "100vh",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "80px 24px",
-      borderTop: `1px solid ${S.border}`,
+    <section id="faq" ref={sectionRef} style={{
+      background: S.surface, padding: "100px 28px", borderTop: `1px solid ${S.border}`,
+      position: "relative", overflow: "hidden",
     }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
-        <SectionLabel>{t("faq.label")}</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, color: S.text, letterSpacing: "-0.02em", marginBottom: 40 }}>
-          {t("faq.headline")}
-        </h2>
-        <div>
-          {faqs.map((faq, i) => (
-            <div key={i} style={{ borderBottom: `1px solid ${S.border}` }}>
-              <button onClick={() => setOpen(open === i ? null : i)} style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "18px 0", gap: 16, background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+      {/* Diamond outline — MotionPath dot traces its perimeter */}
+      <svg aria-hidden viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none",
+      }}>
+        {/* Diamond: top(600,80) right(1080,450) bottom(600,820) left(120,450) */}
+        <path className="faq-diamond"
+          d="M 600 80 L 1080 450 L 600 820 L 120 450 Z"
+          fill="none" stroke={S.text} strokeWidth="1" opacity="0.04"
+        />
+        {/* Interior cross lines */}
+        <line className="faq-cross" x1="600" y1="80"  x2="600"  y2="820" stroke={S.text} strokeWidth="0.6" opacity="0.025" />
+        <line className="faq-cross" x1="120" y1="450" x2="1080" y2="450" stroke={S.text} strokeWidth="0.6" opacity="0.025" />
+        {/* Diagonal bisectors */}
+        <line className="faq-cross" x1="360" y1="265" x2="840"  y2="635" stroke={S.text} strokeWidth="0.5" opacity="0.018" strokeDasharray="4 8" />
+        <line className="faq-cross" x1="840" y1="265" x2="360"  y2="635" stroke={S.text} strokeWidth="0.5" opacity="0.018" strokeDasharray="4 8" />
+        {/* Amber accent marks at diamond tips */}
+        <circle cx="600"  cy="80"  r="4" fill="none" stroke={S.amberRaw} strokeWidth="1.4" opacity="0.18" className="faq-cross" />
+        <circle cx="1080" cy="450" r="4" fill="none" stroke={S.amberRaw} strokeWidth="1.4" opacity="0.18" className="faq-cross" />
+        <circle cx="600"  cy="820" r="4" fill="none" stroke={S.amberRaw} strokeWidth="1.4" opacity="0.18" className="faq-cross" />
+        <circle cx="120"  cy="450" r="4" fill="none" stroke={S.amberRaw} strokeWidth="1.4" opacity="0.18" className="faq-cross" />
+        {/* MotionPath traveler */}
+        <circle className="faq-halo" r="10" fill={S.amberRaw} opacity="0.10" />
+        <circle className="faq-dot"  r="4"  fill={S.amberRaw} opacity="0.9" />
+      </svg>
+
+      <div style={{ maxWidth: 720, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: S.amber, marginBottom: 16 }}>
+            {t("faq.label")}
+          </div>
+          <h2 style={{
+            fontFamily: "var(--font-display)", fontWeight: 800,
+            fontSize: "clamp(30px, 3.5vw, 48px)", lineHeight: 1.05, letterSpacing: "-0.04em",
+            color: S.text, margin: 0,
+          }}>{t("faq.headline")}</h2>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {items.map(({ q }, i) => (
+            <div key={i} className="faq-item" style={{
+              background: "#fff", border: `1px solid ${S.border}`, borderRadius: 14, overflow: "hidden",
+              position: "relative",
+            }}>
+              {/* Animated amber left border */}
+              <div ref={el => { borderRefs.current[i] = el }} style={{
+                position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
+                background: S.amber, transformOrigin: "top", borderRadius: "3px 0 0 3px",
+              }} />
+
+              <button onClick={() => toggle(i)} style={{
+                width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "20px 22px 20px 26px", background: "transparent", border: "none", cursor: "pointer", gap: 16,
               }}>
-                <span style={{
-                  fontFamily: "var(--font-body)", fontSize: 15, fontWeight: open === i ? 600 : 500,
-                  color: open === i ? S.text : S.textSub,
-                  flex: 1, lineHeight: 1.4,
-                  transition: "color 120ms, font-weight 120ms",
-                }}>
-                  {faq.q}
-                </span>
-                <span style={{
-                  width: 24, height: 24, borderRadius: "50%",
-                  border: `1px solid ${open === i ? S.amber : S.border}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: open === i ? S.amber : S.textMuted, flexShrink: 0,
-                  transition: "all 180ms var(--ease-snap)",
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700,
+                    color: open === i ? S.amberRaw : S.textMuted, letterSpacing: "0.04em",
+                    transition: "color 200ms", minWidth: 24,
+                  }}>0{i + 1}</span>
+                  <span style={{
+                    fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 15,
+                    color: S.text, textAlign: "left", lineHeight: 1.4,
+                    transition: "color 200ms",
+                  }}>{q}</span>
+                </div>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{
+                  flexShrink: 0,
                   transform: open === i ? "rotate(45deg)" : "none",
+                  transition: "transform 300ms cubic-bezier(0.16,1,0.3,1)",
                 }}>
-                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-                </span>
+                  <path d="M10 4V16M4 10H16" stroke={open === i ? S.amberRaw : S.textMuted} strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
               </button>
-              {/* Ink-reveal: clip-path from top instead of max-height */}
-              <div style={{
-                overflow: "hidden",
-                clipPath: open === i ? "inset(0 0 0% 0)" : "inset(0 0 100% 0)",
-                transition: "clip-path 280ms var(--ease-smooth)",
-                maxHeight: open === i ? 300 : 0,
-              }}>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted, lineHeight: 1.7, paddingBottom: 18 }}>
-                  {faq.a}
-                </p>
+
+              <div ref={el => { answerRefs.current[i] = el }} style={{ overflow: "hidden" }}>
+                <p ref={el => { pRefs.current[i] = el }} style={{
+                  fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.65,
+                  color: S.textSub, margin: 0, padding: "0 22px 20px 64px",
+                  minHeight: "1em",
+                }}></p>
               </div>
             </div>
           ))}
@@ -1500,269 +1621,181 @@ function FAQSection() {
   )
 }
 
-// ── Trust Bar ─────────────────────────────────────────────────────────────────
+// ── Footer CTA — ember particles + headline slam + magnetic CTA ───────────────
 
-function TrustBar() {
+function FooterCTA() {
   const t = useTranslations("Landing")
-  const { ref, inView } = useInView(0.3)
-  const items = [
-    { icon: "🔒", text: t("trust.gdpr") },
-    { icon: "🇩🇰", text: t("trust.support") },
-    { icon: "💳", text: t("trust.noCard") },
-    { icon: "⚡", text: t("trust.setup") },
-  ]
-  return (
-    <div style={{ backgroundColor: S.surfaceAlt, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
-      <div ref={ref} style={{ maxWidth: MAX_W, margin: "0 auto", padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "12px 32px" }}>
-        {items.map((item, i) => (
-          <div key={i} style={{
-            display: "flex", alignItems: "center", gap: 8,
-            opacity: inView ? 1 : 0,
-            transform: inView ? "translateY(0)" : "translateY(6px)",
-            transition: `opacity 300ms ${i * 80}ms ease, transform 300ms ${i * 80}ms ease`,
-          }}>
-            {i > 0 && <span className="hidden md:inline" style={{ color: S.textFaint, marginRight: 20 }}>|</span>}
-            <span style={{ fontSize: 15 }}>{item.icon}</span>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textMuted }}>{item.text}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Footer CTA — ember particles ──────────────────────────────────────────────
-
-function EmberParticles() {
+  const sectionRef   = useRef<HTMLElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const ctaRef       = useRef<HTMLAnchorElement>(null)
+
+  const onCTAMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    gsap.to(e.currentTarget, {
+      x: (e.clientX - r.left - r.width  / 2) * 0.32,
+      y: (e.clientY - r.top  - r.height / 2) * 0.32,
+      duration: 0.25, ease: "power2.out",
+    })
+  }
+  const onCTALeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    gsap.to(e.currentTarget, { x: 0, y: 0, duration: 0.55, ease: "elastic.out(1,0.5)" })
+  }
 
   useGSAP(() => {
-    const container = containerRef.current
-    if (!container) return
-
+    // 48 ember particles drift upward infinitely
     const particles: HTMLDivElement[] = []
     for (let i = 0; i < 48; i++) {
       const p = document.createElement("div")
       const size = Math.random() * 3 + 1.5
-      p.style.cssText = `
-        position:absolute;
-        width:${size}px;height:${size}px;
-        border-radius:50%;
-        background:oklch(0.10 0.005 52);
-        left:${Math.random() * 100}%;
-        bottom:${Math.random() * 20}%;
-        opacity:${Math.random() * 0.12 + 0.05};
-        pointer-events:none;
-      `
-      container.appendChild(p)
+      p.style.cssText = `position:absolute;border-radius:50%;background:${S.amberRaw};pointer-events:none;width:${size}px;height:${size}px;left:${Math.random() * 100}%;bottom:${Math.random() * 30}px;`
+      containerRef.current?.appendChild(p)
       particles.push(p)
-
       gsap.to(p, {
-        y: -(Math.random() * 200 + 80),
-        x: (Math.random() - 0.5) * 60,
-        opacity: 0,
-        duration: Math.random() * 8 + 12,
-        delay: Math.random() * 8,
-        repeat: -1,
-        ease: "power1.out",
+        y: -(Math.random() * 240 + 80), x: (Math.random() - 0.5) * 80,
+        opacity: Math.random() * 0.14 + 0.04,
+        duration: Math.random() * 8 + 12, delay: Math.random() * 10,
+        repeat: -1, ease: "power1.out",
       })
     }
 
-    return () => {
-      particles.forEach(p => { if (p.parentNode) p.parentNode.removeChild(p) })
-    }
-  }, { scope: containerRef })
+    // Headline words slam in: scale 1.35 → 1 (Paula Scher scale)
+    gsap.from(".fcta-word", {
+      scale: 1.38, opacity: 0, stagger: 0.07, duration: 0.6, ease: "back.out(1.3)",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 72%" },
+    })
+    gsap.from(".fcta-sub", { y: 22, opacity: 0, duration: 0.5, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 68%" }, delay: 0.28,
+    })
+    gsap.from(ctaRef.current, { scale: 0.86, opacity: 0, duration: 0.55, ease: "back.out(1.7)",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 65%" }, delay: 0.5,
+    })
+    gsap.from(".trust-badge", { y: 12, opacity: 0, stagger: 0.07, duration: 0.4, ease: "power2.out",
+      scrollTrigger: { trigger: sectionRef.current, start: "top 60%" }, delay: 0.7,
+    })
 
-  return <div ref={containerRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} />
-}
+    return () => { particles.forEach(p => p.parentNode?.removeChild(p)) }
+  }, { scope: sectionRef })
 
-function FooterCTA() {
-  const t = useTranslations("Landing")
-  const { ref, inView } = useInView(0.2)
-  const prefersReduced = usePrefersReduced()
+  const headlineWords = t("footerCta.headline").split(" ")
 
   return (
-    <footer>
+    <section ref={sectionRef} style={{
+      background: S.dark, padding: "120px 28px", textAlign: "center",
+      position: "relative", overflow: "hidden",
+    }}>
+      <div ref={containerRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }} />
       <div style={{
-        background: `linear-gradient(135deg, var(--amber-600) 0%, var(--amber-500) 55%, var(--amber-400) 100%)`,
-        padding: "100px 24px", textAlign: "center", position: "relative", overflow: "hidden",
-      }}>
-        {!prefersReduced && <EmberParticles />}
-        <div ref={ref} style={{ maxWidth: 600, margin: "0 auto", position: "relative", zIndex: 1 }}>
-          <h2 style={{
-            fontFamily: "var(--font-display)", fontSize: "clamp(32px, 5vw, 56px)",
-            fontWeight: 800, color: "oklch(0.12 0.005 52)", letterSpacing: "-0.02em",
-            lineHeight: 1.1, marginBottom: 16,
-            opacity: inView ? 1 : 0,
-            transform: inView ? "scale(1)" : "scale(1.6)",
-            transition: prefersReduced ? "none" : "opacity 400ms var(--ease-spring), transform 500ms cubic-bezier(0.34,1.56,0.64,1)",
-          }}>
-            {t("footerCta.headline")}
-          </h2>
-          <p style={{
-            fontFamily: "var(--font-body)", fontSize: 18, color: "oklch(0.25 0.008 52)", marginBottom: 36,
-            opacity: inView ? 1 : 0,
-            transition: prefersReduced ? "none" : "opacity 400ms 120ms ease",
-          }}>
-            {t("footerCta.sub")}
-          </p>
-          <Link href="/sign-up" style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            height: 52, padding: "0 36px", borderRadius: 12,
-            fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 600,
-            color: S.text, backgroundColor: S.bg,
-            textDecoration: "none", transition: "opacity 120ms, transform 120ms",
-          }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLAnchorElement).style.opacity = "0.85"
-              ;(e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)"
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLAnchorElement).style.opacity = "1"
-              ;(e.currentTarget as HTMLAnchorElement).style.transform = ""
+        position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+        width: 700, height: 350,
+        background: `radial-gradient(ellipse at center, ${S.amberRaw}1A 0%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <h2 style={{
+          fontFamily: "var(--font-display)", fontWeight: 800,
+          fontSize: "clamp(56px, 8vw, 112px)", lineHeight: 1.0, letterSpacing: "-0.05em",
+          color: S.textInverse, margin: "0 0 20px",
+        }}>
+          {headlineWords.map((w, i) => (
+            <span key={i} className="fcta-word" style={{ display: "inline-block" }}>
+              {w}{i < headlineWords.length - 1 ? "\u00A0" : ""}
+            </span>
+          ))}
+        </h2>
+        <p className="fcta-sub" style={{
+          fontFamily: "var(--font-body)", fontSize: 18, color: S.textSubInv, margin: "0 auto 48px", maxWidth: 420,
+        }}>{t("footerCta.sub")}</p>
+        <Link ref={ctaRef} href="/sign-up" style={{
+          display: "inline-block",
+          fontFamily: "var(--font-body)", fontSize: 17, fontWeight: 700,
+          color: S.dark, background: S.amber, padding: "17px 40px", borderRadius: 12,
+          textDecoration: "none", letterSpacing: "-0.02em",
+          boxShadow: `0 6px 32px ${S.amberRaw}60`,
+        }}
+        onMouseMove={onCTAMove}
+        onMouseLeave={onCTALeave}
+        >{t("footerCta.cta")}</Link>
+        <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 24, marginTop: 44 }}>
+          {[t("trust.gdpr"), t("trust.support"), t("trust.noCard"), t("trust.setup")].map(badge => (
+            <div key={badge} className="trust-badge" style={{
+              display: "flex", alignItems: "center", gap: 6,
+              fontFamily: "var(--font-body)", fontSize: 13, color: S.textSubInv, fontWeight: 500,
             }}>
-            {t("footerCta.cta")}
-          </Link>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="6.5" stroke="rgba(247,243,238,0.2)" />
+                <path d="M4 7l2 2 4-3.5" stroke={S.amberRaw} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {badge}
+            </div>
+          ))}
         </div>
       </div>
+    </section>
+  )
+}
 
-      <div style={{ backgroundColor: S.bg, borderTop: `1px solid ${S.border}`, padding: "48px 24px 32px" }}>
-        <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 32, marginBottom: 48 }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 5, background: S.amber, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="oklch(0.10 0.005 52)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-                  </svg>
-                </div>
-                <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: S.text }}>Håndværk Pro</span>
-              </div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textFaint, lineHeight: 1.6 }}>{t("footer.tagline")}</p>
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+function Footer() {
+  const t = useTranslations("Landing")
+  return (
+    <footer style={{ background: S.dark, borderTop: `1px solid ${S.darkBorder}`, padding: "40px 28px 32px" }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+        <div className="grid md:grid-cols-4 grid-cols-2" style={{ gap: 32, marginBottom: 40 }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18, letterSpacing: "-0.04em", marginBottom: 10 }}>
+              <span style={{ color: S.textInverse }}>Håndværk</span><span style={{ color: S.amber }}>Pro</span>
             </div>
-            {[
-              { heading: t("footer.product"), links: [t("footer.features"), t("footer.pricing"), t("footer.changelog")] },
-              { heading: t("footer.company"), links: [t("footer.about"), t("footer.contact"), t("footer.blog")] },
-              { heading: t("footer.legal"), links: [t("footer.privacy"), t("footer.cookies"), t("footer.terms")] },
-            ].map(col => (
-              <div key={col.heading}>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: S.textMuted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>{col.heading}</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {col.links.map(link => (
-                    <a key={link} href="#" style={{ fontFamily: "var(--font-body)", fontSize: 14, color: S.textMuted, textDecoration: "none", transition: "color 120ms" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = S.textSub}
-                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = S.textMuted}>
-                      {link}
-                    </a>
-                  ))}
-                </div>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: S.textSubInv, margin: 0, lineHeight: 1.6 }}>{t("footer.tagline")}</p>
+          </div>
+          {[
+            { h: t("footer.product"), ls: [t("footer.features"), t("footer.pricing"), t("footer.changelog")] },
+            { h: t("footer.company"), ls: [t("footer.about"), t("footer.contact"), t("footer.blog")] },
+            { h: t("footer.legal"),   ls: [t("footer.privacy"), t("footer.terms"), t("footer.cookies")] },
+          ].map(({ h, ls }) => (
+            <div key={h}>
+              <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: S.textSubInv, marginBottom: 16 }}>{h}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {ls.map(l => (
+                  <a key={l} href="#" style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "rgba(247,243,238,0.4)", textDecoration: "none", transition: "color 120ms" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = S.textInverse)}
+                  onMouseLeave={e => (e.currentTarget.style.color = "rgba(247,243,238,0.4)")}
+                  >{l}</a>
+                ))}
               </div>
-            ))}
-          </div>
-          <div style={{ borderTop: `1px solid ${S.border}`, paddingTop: 24, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textFaint }}>{t("footer.copyright")}</span>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: S.textFaint }}>{t("footer.tagline")}</span>
-          </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ borderTop: `1px solid ${S.darkBorder}`, paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "rgba(247,243,238,0.3)", margin: 0 }}>{t("footer.copyright")}</p>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "rgba(247,243,238,0.3)" }}>🇩🇰 Made in Denmark</span>
         </div>
       </div>
     </footer>
   )
 }
 
-// ── Global keyframes ──────────────────────────────────────────────────────────
-
-const GlobalStyles = () => (
-  <style>{`
-    @keyframes pulse {
-      0%,100%{opacity:0.5;transform:scale(1)}
-      50%{opacity:1;transform:scale(1.3)}
-    }
-    @keyframes ctaPulse {
-      0%,100%{box-shadow:0 4px 16px oklch(0.720 0.195 58 / 0.35)}
-      50%{box-shadow:0 4px 24px oklch(0.720 0.195 58 / 0.55)}
-    }
-    @keyframes cardFloat {
-      0%,100%{transform:translateY(0px)}
-      50%{transform:translateY(-6px)}
-    }
-    @keyframes buoyFloat {
-      0%,100%{transform:translateY(0px)}
-      50%{transform:translateY(-4px)}
-    }
-    @keyframes sonarPulse {
-      0%{transform:scale(1);opacity:1}
-      80%,100%{transform:scale(3.5);opacity:0}
-    }
-    @keyframes progress {
-      from{width:0%} to{width:100%}
-    }
-    @keyframes soloPulse {
-      0%,100%{box-shadow:0 0 0 1px var(--amber-500), 0 0 32px oklch(0.720 0.195 58 / 0.15)}
-      50%{box-shadow:0 0 0 1px var(--amber-500), 0 0 48px oklch(0.720 0.195 58 / 0.28)}
-    }
-    @keyframes counterFlicker {
-      0%{opacity:1} 20%{opacity:0.3} 40%{opacity:1} 60%{opacity:0.5} 80%{opacity:1}
-    }
-    html{scroll-behavior:smooth}
-  `}</style>
-)
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  const { user, isLoaded } = useUser()
+  const { isLoaded, user } = useUser()
   const router = useRouter()
-  const t = useTranslations("Landing")
-
-  useEffect(() => {
-    if (isLoaded && user) router.replace("/overview")
-  }, [isLoaded, user, router])
+  useEffect(() => { if (isLoaded && user) router.replace("/overview") }, [isLoaded, user, router])
 
   return (
-    <div style={{ fontFamily: "var(--font-body)", backgroundColor: S.bg }}>
-      <GlobalStyles />
+    <div style={{ fontFamily: "var(--font-body)", background: S.bg }}>
+      <CursorGlow />
       <Nav />
       <Hero />
-      <StatsBar />
-      <ProblemSection />
-      <div id="features">
-        <FeatureRow
-          label={t("feat.jobs.label")}
-          headline={t("feat.jobs.headline")}
-          bullets={[t("feat.jobs.b1"), t("feat.jobs.b2"), t("feat.jobs.b3")]}
-          mockup={<JobsMockup />}
-        />
-        <FeatureRow
-          label={t("feat.quotes.label")}
-          headline={t("feat.quotes.headline")}
-          bullets={[t("feat.quotes.b1"), t("feat.quotes.b2"), t("feat.quotes.b3")]}
-          mockup={<QuoteMockup />}
-          reverse
-          extra={<QuoteCounter />}
-        />
-        <FeatureRow
-          label={t("feat.invoices.label")}
-          headline={t("feat.invoices.headline")}
-          bullets={[t("feat.invoices.b1"), t("feat.invoices.b2"), t("feat.invoices.b3")]}
-          mockup={<InvoiceMockup />}
-          extra={<InvoiceTrustLine text={t("feat.invoices.trust")} />}
-        />
-        <FeatureRow
-          label={t("feat.customers.label")}
-          headline={t("feat.customers.headline")}
-          bullets={[t("feat.customers.b1"), t("feat.customers.b2"), t("feat.customers.b3")]}
-          mockup={<CustomerMockup />}
-          reverse
-        />
-      </div>
-      <DemoSection />
-      <WhoSection />
-      <ComparisonTable />
-      <TestimonialsSection />
-      <PricingSection />
-      <FAQSection />
-      <TrustBar />
+      <StatsStrip />
+      <FeatureDark />
+      <FeatureLight />
+      <Testimonials />
+      <Pricing />
+      <FAQ />
       <FooterCTA />
+      <Footer />
     </div>
   )
 }
