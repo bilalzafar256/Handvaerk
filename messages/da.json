@@ -54,7 +54,8 @@
         "headline": "Fra job til betalt — automatisk.",
         "b1": "Professionelle PDF-fakturaer med dit logo",
         "b2": "Automatisk rykker efter 8 og 15 dage",
-        "b3": "Overholder dansk bogføringsloven"
+        "b3": "Overholder dansk bogføringsloven",
+        "trust": ""
       },
       "customers": {
         "label": "Kunder",

@@ -7,6 +7,24 @@
 :root {
   /* ── Håndværk Pro brand palette ── */
 
+  /* Nordic Blueprint — landing page palette (non-black, council-approved) */
+  --cobalt-50:  oklch(0.970 0.008 248);
+  --cobalt-100: oklch(0.930 0.015 248);
+  --cobalt-200: oklch(0.850 0.025 248);
+  --cobalt-300: oklch(0.720 0.035 248);
+  --cobalt-400: oklch(0.570 0.040 248);
+  --cobalt-500: oklch(0.440 0.038 248);
+  --cobalt-600: oklch(0.320 0.035 248);
+  --cobalt-700: oklch(0.320 0.078 248);
+  --cobalt-800: oklch(0.260 0.072 248);
+  --cobalt-900: oklch(0.200 0.065 245);
+  --birch:      oklch(0.930 0.022 75);
+  --fog:        oklch(0.630 0.030 245);
+  --fog-deep:   oklch(0.420 0.025 245);
+  --nordic-teal: oklch(0.680 0.120 185);
+  --fjord-blue:  oklch(0.520 0.130 250);
+  --shadow-cobalt-lg: 0 12px 32px oklch(0.08 0.035 245 / 0.6), 0 4px 8px oklch(0.08 0.035 245 / 0.3);
+
   /* Electric Amber — slightly cooler, more vivid than before */
   --amber-50:  oklch(0.975 0.025 72);
   --amber-100: oklch(0.945 0.055 68);
