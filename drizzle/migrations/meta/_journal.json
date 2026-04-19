@@ -57,6 +57,13 @@
       "when": 1745200000000,
       "tag": "0007_phase8_merge",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1745300000000,
+      "tag": "0008_phase10_google_review_url",
+      "breakpoints": true
     }
   ]
 }

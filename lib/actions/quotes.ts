@@ -181,6 +181,26 @@ export async function acceptQuoteByTokenAction(token: string) {
     acceptedAt: new Date(),
   })
   revalidatePath(`/quotes/${quote.id}`)
+
+  // Send thank-you email to customer (non-blocking)
+  if (quote.customer.email) {
+    try {
+      const { resend, EMAIL_FROM } = await import("@/lib/email/client")
+      const { QuoteAcceptedEmail } = await import("@/lib/email/templates/quote-accepted")
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [quote.customer.email],
+        subject: `Tilbud ${quote.quoteNumber} accepteret`,
+        react: QuoteAcceptedEmail({
+          customerName: quote.customer.name,
+          quoteNumber:  quote.quoteNumber,
+          companyName:  quote.user?.companyName ?? "",
+        }),
+      })
+    } catch {
+      // Non-fatal: email failure doesn't block status update
+    }
+  }
 }
 
 export async function rejectQuoteByTokenAction(token: string) {
@@ -193,6 +213,26 @@ export async function rejectQuoteByTokenAction(token: string) {
     rejectedAt: new Date(),
   })
   revalidatePath(`/quotes/${quote.id}`)
+
+  // Send feedback request email to customer (non-blocking)
+  if (quote.customer.email) {
+    try {
+      const { resend, EMAIL_FROM } = await import("@/lib/email/client")
+      const { QuoteRejectedEmail } = await import("@/lib/email/templates/quote-rejected")
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [quote.customer.email],
+        subject: `Ang. tilbud ${quote.quoteNumber}`,
+        react: QuoteRejectedEmail({
+          customerName: quote.customer.name,
+          quoteNumber:  quote.quoteNumber,
+          companyName:  quote.user?.companyName ?? "",
+        }),
+      })
+    } catch {
+      // Non-fatal: email failure doesn't block status update
+    }
+  }
 }
 
 // Send quote email

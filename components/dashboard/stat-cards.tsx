@@ -1,41 +1,37 @@
 import { TrendingUp, Briefcase, Clock, CheckCircle2 } from "lucide-react"
 import { formatDKK } from "@/lib/utils/currency"
+import type { StatCardData } from "@/lib/db/queries/overview"
 
-const STUB_STATS = {
-  revenueThisMonth: 82450,
-  activeJobs: 7,
-  outstanding: 54200,
-  paidThisMonth: 34750,
-}
+export function StatCards({ data }: { data: StatCardData }) {
+  const deltaStr =
+    data.paidDelta !== null
+      ? `${data.paidDelta >= 0 ? "+" : ""}${data.paidDelta}%`
+      : null
 
-export async function StatCards() {
-  const s = STUB_STATS
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
         label="Revenue this month"
-        amount={s.revenueThisMonth}
+        amount={data.revenueThisMonth}
         icon={TrendingUp}
-        delta="+12%"
-        positive
       />
       <StatCard
         label="Active jobs"
-        count={s.activeJobs}
+        count={data.activeJobs}
         icon={Briefcase}
       />
       <StatCard
         label="Outstanding"
-        amount={s.outstanding}
+        amount={data.outstandingTotal}
         icon={Clock}
-        sub="2 unpaid invoices"
+        sub={data.outstandingCount > 0 ? `${data.outstandingCount} unpaid invoice${data.outstandingCount !== 1 ? "s" : ""}` : undefined}
       />
       <StatCard
         label="Paid this month"
-        amount={s.paidThisMonth}
+        amount={data.paidThisMonth}
         icon={CheckCircle2}
-        delta="+8%"
-        positive
+        delta={deltaStr ?? undefined}
+        positive={(data.paidDelta ?? 0) >= 0}
       />
     </div>
   )

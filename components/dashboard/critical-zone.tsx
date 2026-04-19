@@ -1,14 +1,9 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { formatDKK } from "@/lib/utils/currency"
+import type { OverdueItem } from "@/lib/db/queries/overview"
 
-const STUB_OVERDUE = [
-  { id: "inv-1042", customer: "Niels Lund A/S", amount: 28400, daysOverdue: 12 },
-]
-
-export async function CriticalZone() {
-  const overdue = STUB_OVERDUE
-
+export function CriticalZone({ overdue }: { overdue: OverdueItem[] }) {
   if (overdue.length === 0) {
     return (
       <div
@@ -52,7 +47,7 @@ export async function CriticalZone() {
                 className="text-sm font-semibold truncate"
                 style={{ color: "var(--foreground)", fontFamily: "var(--font-body)" }}
               >
-                {item.customer}
+                {item.customerName}
               </p>
               <p
                 className="text-xs mt-0.5"
@@ -60,7 +55,9 @@ export async function CriticalZone() {
               >
                 <span style={{ fontFamily: "var(--font-mono)" }}>{formatDKK(item.amount)}</span>
                 {" · "}
-                {item.daysOverdue} dage forfalden
+                {item.daysOverdue} days overdue
+                {" · "}
+                <span style={{ fontFamily: "var(--font-mono)", opacity: 0.75 }}>{item.invoiceNumber}</span>
               </p>
             </div>
           </div>

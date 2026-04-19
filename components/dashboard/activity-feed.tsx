@@ -1,57 +1,29 @@
-import { FileText, CheckSquare, UserPlus, CreditCard, Send } from "lucide-react"
+import { FileText, CheckSquare, UserPlus, CreditCard, Send, ThumbsUp } from "lucide-react"
 import { formatDKK } from "@/lib/utils/currency"
+import type { ActivityEvent } from "@/lib/db/queries/overview"
 
-type ActivityItem = {
-  id: string
-  icon: React.ElementType
-  label: string
-  sub: string
-  time: string
-  amount?: number
+function timeAgo(ts: Date): string {
+  const diff = Date.now() - ts.getTime()
+  const mins = Math.floor(diff / 60_000)
+  const hours = Math.floor(diff / 3_600_000)
+  const days = Math.floor(diff / 86_400_000)
+  if (mins < 2) return "Just now"
+  if (mins < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days === 1) return "Yesterday"
+  return `${days} days ago`
 }
 
-const STUB_ACTIVITY: ActivityItem[] = [
-  {
-    id: "a1",
-    icon: Send,
-    label: "Invoice #1042 sent",
-    sub: "Niels Lund A/S",
-    time: "2t siden",
-  },
-  {
-    id: "a2",
-    icon: CheckSquare,
-    label: "Job marked done",
-    sub: "Elinstallation · Jens Møller",
-    time: "3t siden",
-  },
-  {
-    id: "a3",
-    icon: UserPlus,
-    label: "New customer added",
-    sub: "Birch & Partners ApS",
-    time: "I går",
-  },
-  {
-    id: "a4",
-    icon: CreditCard,
-    label: "Invoice #1039 paid",
-    sub: "Birch & Partners ApS",
-    time: "I går",
-    amount: 18750,
-  },
-  {
-    id: "a5",
-    icon: FileText,
-    label: "Quote sent",
-    sub: "Familie Christoffersen",
-    time: "2 dage siden",
-  },
-]
+const ICON_MAP: Record<ActivityEvent["type"], React.ElementType> = {
+  invoice_sent:    Send,
+  invoice_paid:    CreditCard,
+  job_done:        CheckSquare,
+  customer_added:  UserPlus,
+  quote_sent:      FileText,
+  quote_accepted:  ThumbsUp,
+}
 
-export async function ActivityFeed() {
-  const items = STUB_ACTIVITY
-
+export function ActivityFeed({ items }: { items: ActivityEvent[] }) {
   return (
     <div
       className="rounded-xl border p-4 flex flex-col gap-4"
@@ -64,46 +36,55 @@ export async function ActivityFeed() {
         Recent activity
       </p>
 
-      <div className="flex flex-col gap-3">
-        {items.map((item) => (
-          <div key={item.id} className="flex items-start gap-3">
-            <div
-              className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center mt-0.5"
-              style={{ backgroundColor: "var(--muted)" }}
-            >
-              <item.icon className="w-3.5 h-3.5" style={{ color: "var(--text-secondary)" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p
-                className="text-sm font-medium leading-none"
-                style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}
-              >
-                {item.label}
-              </p>
-              <p
-                className="text-xs mt-0.5 truncate"
-                style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
-              >
-                {item.sub}
-                {item.amount !== undefined && (
-                  <span
-                    className="ml-1"
-                    style={{ fontFamily: "var(--font-mono)" }}
+      {items.length === 0 ? (
+        <p
+          className="text-sm py-4 text-center"
+          style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
+        >
+          No recent activity.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {items.map((item) => {
+            const Icon = ICON_MAP[item.type]
+            return (
+              <div key={item.id} className="flex items-start gap-3">
+                <div
+                  className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center mt-0.5"
+                  style={{ backgroundColor: "var(--muted)" }}
+                >
+                  <Icon className="w-3.5 h-3.5" style={{ color: "var(--text-secondary)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-sm font-medium leading-none"
+                    style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}
                   >
-                    · {formatDKK(item.amount)}
-                  </span>
-                )}
-              </p>
-            </div>
-            <p
-              className="text-xs shrink-0 mt-0.5"
-              style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}
-            >
-              {item.time}
-            </p>
-          </div>
-        ))}
-      </div>
+                    {item.label}
+                  </p>
+                  <p
+                    className="text-xs mt-0.5 truncate"
+                    style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
+                  >
+                    {item.sub}
+                    {item.amount !== undefined && (
+                      <span className="ml-1" style={{ fontFamily: "var(--font-mono)" }}>
+                        · {formatDKK(item.amount)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <p
+                  className="text-xs shrink-0 mt-0.5"
+                  style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}
+                >
+                  {timeAgo(item.timestamp)}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

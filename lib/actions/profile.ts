@@ -77,6 +77,24 @@ export async function saveLogoUrl(logoUrl: string) {
   revalidatePath("/profile")
 }
 
+export async function updateGoogleReviewUrlAction(googleReviewUrl: string) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { rateLimiter } = await import("@/lib/upstash")
+    const { success } = await rateLimiter.limit(clerkId)
+    if (!success) throw new Error("Rate limit exceeded. Try again in a moment.")
+  }
+
+  await db
+    .update(users)
+    .set({ googleReviewUrl: googleReviewUrl || null, updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkId))
+
+  revalidatePath("/profile")
+}
+
 export async function updateMobilepayAction(mobilepayNumber: string) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")

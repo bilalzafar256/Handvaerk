@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   logoUrl:      text("logo_url"),
   tier:             text("tier").default("free"),  // 'free' | 'solo' | 'hold'
   mobilepayNumber:  text("mobilepay_number"),
+  googleReviewUrl:  text("google_review_url"),
   createdAt:        timestamp("created_at").defaultNow(),
   updatedAt:        timestamp("updated_at").defaultNow(),
 })

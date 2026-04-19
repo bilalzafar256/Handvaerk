@@ -473,6 +473,8 @@ export async function markInvoicePaidAction(id: string) {
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
 
+  const invoice = await getInvoiceById(id, user.id)
+
   await updateInvoice(id, user.id, {
     status: "paid",
     paidAt: new Date(),
@@ -484,6 +486,27 @@ export async function markInvoicePaidAction(id: string) {
     await inngest.send({ name: "invoice/paid", data: { invoiceId: id } })
   } catch {
     // Non-fatal
+  }
+
+  // Send thank-you + review request email to customer (non-blocking)
+  if (invoice?.customer.email) {
+    try {
+      const { resend, EMAIL_FROM } = await import("@/lib/email/client")
+      const { InvoicePaidThankyouEmail } = await import("@/lib/email/templates/invoice-paid-thankyou")
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [invoice.customer.email],
+        subject: `Tak for betalingen af faktura ${invoice.invoiceNumber}`,
+        react: InvoicePaidThankyouEmail({
+          customerName:    invoice.customer.name,
+          invoiceNumber:   invoice.invoiceNumber,
+          companyName:     user.companyName ?? "",
+          googleReviewUrl: user.googleReviewUrl ?? undefined,
+        }),
+      })
+    } catch {
+      // Non-fatal
+    }
   }
 
   revalidatePath(`/invoices/${id}`)
