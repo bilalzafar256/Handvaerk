@@ -6,10 +6,11 @@ import { useRouter } from "@/i18n/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import {
   Search, Plus, Briefcase, ChevronRight, ChevronDown, Check, X, LayoutList, LayoutGrid,
-  Pencil, Trash2, Loader2,
+  Pencil, Trash2, Loader2, Play, Square,
 } from "lucide-react"
 import { StatusBadge } from "@/components/jobs/status-changer"
 import { deleteJobAction } from "@/lib/actions/jobs"
+import { clockInAction, clockOutAction } from "@/lib/actions/time-tracking"
 import { toast } from "sonner"
 import { useTranslations } from "next-intl"
 import type { Job } from "@/lib/db/schema/jobs"
@@ -31,7 +32,7 @@ const ALL_STATUSES: Status[] = ["new", "scheduled", "in_progress", "done", "invo
 
 const PER_PAGE = 25
 
-export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
+export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCustomer[]; activeJobId?: string; activeEntryId?: string }) {
   const t = useTranslations("Jobs")
   const tStatus = useTranslations("JobStatus")
   const [query, setQuery] = useState("")
@@ -208,13 +209,13 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
           {viewMode === "list" ? (
             <div>
               {paged.map((job, i) => (
-                <JobRow key={job.id} job={job} index={i} />
+                <JobRow key={job.id} job={job} index={i} activeJobId={activeJobId} activeEntryId={activeEntryId} />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
               {paged.map((job, i) => (
-                <JobCard key={job.id} job={job} index={i} />
+                <JobCard key={job.id} job={job} index={i} activeJobId={activeJobId} activeEntryId={activeEntryId} />
               ))}
             </div>
           )}
@@ -225,13 +226,33 @@ export function JobList({ jobs }: { jobs: JobWithCustomer[] }) {
   )
 }
 
-function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
+function JobRow({ job, index, activeJobId, activeEntryId }: { job: JobWithCustomer; index: number; activeJobId?: string; activeEntryId?: string }) {
   const [hovered, setHovered] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [timerPending, setTimerPending] = useState(false)
   const router = useRouter()
   const status = job.status as Status
   const barColor = STATUS_COLORS[status] ?? "var(--muted-foreground)"
+  const isThisActive = activeJobId === job.id
+  const someOtherActive = !!activeJobId && !isThisActive
+
+  async function handleTimer(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation()
+    setTimerPending(true)
+    try {
+      if (isThisActive && activeEntryId) {
+        await clockOutAction(activeEntryId)
+      } else if (!someOtherActive) {
+        await clockInAction(job.id)
+      }
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Timer error")
+    } finally {
+      setTimerPending(false)
+    }
+  }
 
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
@@ -294,6 +315,20 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
 
       {/* Inline actions — always visible, outside Link */}
       <div className="flex items-center gap-1.5 pr-3 self-center flex-shrink-0">
+        {!someOtherActive && (
+          <button
+            onClick={handleTimer}
+            disabled={timerPending}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer disabled:opacity-50"
+            style={{
+              borderColor: isThisActive ? "oklch(0.85 0.10 58)" : "var(--border)",
+              backgroundColor: isThisActive ? "oklch(0.97 0.03 58)" : "var(--background)",
+              color: isThisActive ? "var(--primary)" : "var(--muted-foreground)",
+            }}
+          >
+            {timerPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isThisActive ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+          </button>
+        )}
         <Link
           href={`/jobs/${job.id}/edit`}
           onClick={e => e.stopPropagation()}
@@ -326,13 +361,33 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
   )
 }
 
-function JobCard({ job, index }: { job: JobWithCustomer; index: number }) {
+function JobCard({ job, index, activeJobId, activeEntryId }: { job: JobWithCustomer; index: number; activeJobId?: string; activeEntryId?: string }) {
   const [hovered, setHovered] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [timerPending, setTimerPending] = useState(false)
   const router = useRouter()
   const status = job.status as Status
   const barColor = STATUS_COLORS[status] ?? "var(--muted-foreground)"
+  const isThisActive = activeJobId === job.id
+  const someOtherActive = !!activeJobId && !isThisActive
+
+  async function handleTimer(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation()
+    setTimerPending(true)
+    try {
+      if (isThisActive && activeEntryId) {
+        await clockOutAction(activeEntryId)
+      } else if (!someOtherActive) {
+        await clockInAction(job.id)
+      }
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Timer error")
+    } finally {
+      setTimerPending(false)
+    }
+  }
 
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
@@ -395,6 +450,22 @@ function JobCard({ job, index }: { job: JobWithCustomer; index: number }) {
 
         {/* Inline actions — always visible */}
         <div className="flex items-center gap-1.5 px-3 pb-3 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+          {!someOtherActive && (
+            <button
+              onClick={handleTimer}
+              disabled={timerPending}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors disabled:opacity-50"
+              style={{
+                borderColor: isThisActive ? "oklch(0.85 0.10 58)" : "var(--border)",
+                backgroundColor: isThisActive ? "oklch(0.97 0.03 58)" : "var(--background)",
+                color: isThisActive ? "var(--primary)" : "var(--muted-foreground)",
+                fontFamily: "var(--font-body)",
+              }}
+            >
+              {timerPending ? <Loader2 className="w-3 h-3 animate-spin" /> : isThisActive ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              {isThisActive ? "Stop" : "Start"}
+            </button>
+          )}
           <Link
             href={`/jobs/${job.id}/edit`}
             onClick={e => e.stopPropagation()}

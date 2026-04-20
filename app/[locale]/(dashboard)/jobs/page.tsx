@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getJobsByUser } from "@/lib/db/queries/jobs"
+import { getActiveEntry } from "@/lib/db/queries/time-entries"
 import { Topbar } from "@/components/shared/topbar"
 import { JobList } from "@/components/jobs/job-list"
 import { Link } from "@/i18n/navigation"
@@ -32,7 +33,10 @@ export default async function JobsPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const jobs = await getJobsByUser(user.id)
+  const [jobs, activeEntry] = await Promise.all([
+    getJobsByUser(user.id),
+    getActiveEntry(user.id),
+  ])
 
   return (
     <>
@@ -50,7 +54,7 @@ export default async function JobsPage({ params }: Props) {
         }
       />
       <div>
-        <JobList jobs={jobs} />
+        <JobList jobs={jobs} activeJobId={activeEntry?.jobId} activeEntryId={activeEntry?.id} />
       </div>
     </>
   )

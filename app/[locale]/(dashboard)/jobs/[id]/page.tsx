@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm"
 import { getJobById } from "@/lib/db/queries/jobs"
 import { getQuotesByJob } from "@/lib/db/queries/quotes"
 import { getInvoicesByJob } from "@/lib/db/queries/invoices"
+import { getEntriesByJob, getActiveEntry, getBillingStatusForJob } from "@/lib/db/queries/time-entries"
+import { TimeLogPanel } from "@/components/time-tracking/time-log-panel"
 import { formatDKK } from "@/lib/utils/currency"
 import { Topbar } from "@/components/shared/topbar"
 import { StatusChanger } from "@/components/jobs/status-changer"
@@ -46,10 +48,13 @@ export default async function JobDetailPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [job, jobQuotes, jobInvoices] = await Promise.all([
+  const [job, jobQuotes, jobInvoices, timeEntries, activeEntry, billingStatus] = await Promise.all([
     getJobById(id, user.id),
     getQuotesByJob(id, user.id),
     getInvoicesByJob(id, user.id),
+    getEntriesByJob(id, user.id),
+    getActiveEntry(user.id),
+    getBillingStatusForJob(id, user.id),
   ])
   if (!job) notFound()
 
@@ -143,6 +148,18 @@ export default async function JobDetailPage({ params }: Props) {
               <Card title={t("photosSection")} accent="green">
                 <PhotoUpload jobId={job.id} photos={job.photos} />
               </Card>
+
+              {/* Time tracking */}
+              <TimeLogPanel
+                jobId={job.id}
+                entries={timeEntries}
+                activeEntry={activeEntry ?? null}
+                isThisJobActive={activeEntry?.jobId === job.id}
+                quotes={jobQuotes}
+                invoices={jobInvoices}
+                billingStatus={billingStatus}
+                hourlyRate={user.hourlyRate}
+              />
             </div>
 
             {/* ── Right column: command panel ── */}

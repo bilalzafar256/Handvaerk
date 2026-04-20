@@ -2,7 +2,7 @@
 
 import { auth, clerkClient } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { users, customers, jobs, jobPhotos, quotes, quoteItems, invoices, invoiceItems } from "@/lib/db/schema"
+import { users, customers, jobs, jobPhotos, quotes, quoteItems, invoices, invoiceItems, timeEntries } from "@/lib/db/schema"
 import { eq, and, isNull, inArray } from "drizzle-orm"
 import { resend, EMAIL_FROM } from "@/lib/email/client"
 import { AccountDeletionConfirmationEmail } from "@/lib/email/templates/account-deletion-confirmation"
@@ -44,7 +44,7 @@ export async function exportUserDataAction(): Promise<string> {
   const quoteIds = allQuotes.map((q) => q.id)
   const invoiceIds = allInvoices.map((i) => i.id)
 
-  const [allPhotos, allQuoteItems, allInvoiceItems] = await Promise.all([
+  const [allPhotos, allQuoteItems, allInvoiceItems, allTimeEntries] = await Promise.all([
     jobIds.length > 0
       ? db.select().from(jobPhotos).where(inArray(jobPhotos.jobId, jobIds))
       : Promise.resolve([]),
@@ -54,6 +54,7 @@ export async function exportUserDataAction(): Promise<string> {
     invoiceIds.length > 0
       ? db.select().from(invoiceItems).where(inArray(invoiceItems.invoiceId, invoiceIds))
       : Promise.resolve([]),
+    db.select().from(timeEntries).where(eq(timeEntries.userId, user.id)),
   ])
 
   const exportData = {
@@ -83,6 +84,7 @@ export async function exportUserDataAction(): Promise<string> {
       ...invoice,
       items: allInvoiceItems.filter((item) => item.invoiceId === invoice.id),
     })),
+    timeEntries: allTimeEntries,
   }
 
   return JSON.stringify(exportData, null, 2)

@@ -14,6 +14,9 @@ export default function OverviewLoading() {
           <Skeleton className="h-4 w-72 rounded-md" />
         </div>
 
+        {/* Quick timer */}
+        <Skeleton className="h-[68px] w-full rounded-xl" />
+
         {/* Record job CTA */}
         <Skeleton className="h-[68px] w-full rounded-xl" />
 

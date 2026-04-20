@@ -25,14 +25,16 @@ import {
   FileText,
   Receipt,
   Settings,
+  Timer,
 } from "lucide-react"
 
 const navItems = [
-  { icon: LayoutDashboard, labelKey: "overview",  href: "/overview" },
-  { icon: Briefcase,       labelKey: "jobs",      href: "/jobs" },
-  { icon: Users,           labelKey: "customers", href: "/customers" },
-  { icon: FileText,        labelKey: "quotes",    href: "/quotes" },
-  { icon: Receipt,         labelKey: "invoices",  href: "/invoices" },
+  { icon: LayoutDashboard, labelKey: "overview",      href: "/overview" },
+  { icon: Briefcase,       labelKey: "jobs",          href: "/jobs" },
+  { icon: Users,           labelKey: "customers",     href: "/customers" },
+  { icon: FileText,        labelKey: "quotes",        href: "/quotes" },
+  { icon: Receipt,         labelKey: "invoices",      href: "/invoices" },
+  { icon: Timer,           labelKey: "timeTracking",  href: "/time-tracking" },
 ] as const
 
 const settingsItems = [

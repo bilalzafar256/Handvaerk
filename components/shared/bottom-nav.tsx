@@ -2,14 +2,15 @@
 
 import { usePathname } from "@/i18n/navigation"
 import { Link } from "@/i18n/navigation"
-import { LayoutDashboard, Briefcase, FileText, UserCircle } from "lucide-react"
+import { LayoutDashboard, Briefcase, FileText, UserCircle, Timer } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 const navItems = [
-  { icon: LayoutDashboard, labelKey: "overview", href: "/overview" },
-  { icon: Briefcase,       labelKey: "jobs",     href: "/jobs" },
-  { icon: FileText,        labelKey: "invoices", href: "/invoices" },
-  { icon: UserCircle,      labelKey: "profile",  href: "/profile" },
+  { icon: LayoutDashboard, labelKey: "overview",     href: "/overview" },
+  { icon: Briefcase,       labelKey: "jobs",         href: "/jobs" },
+  { icon: Timer,           labelKey: "timeTracking", href: "/time-tracking" },
+  { icon: FileText,        labelKey: "invoices",     href: "/invoices" },
+  { icon: UserCircle,      labelKey: "profile",      href: "/profile" },
 ] as const
 
 export function BottomNav() {

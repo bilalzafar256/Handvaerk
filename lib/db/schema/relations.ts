@@ -6,6 +6,7 @@ import { quotes, quoteItems, quoteTemplates, materialsCatalog } from "./quotes"
 import { invoices, invoiceItems } from "./invoices"
 import { bankAccounts } from "./bank-accounts"
 import { notifications } from "./notifications"
+import { timeEntries } from "./time-entries"
 
 export const usersRelations = relations(users, ({ many }) => ({
   customers: many(customers),
@@ -34,6 +35,14 @@ export const jobsRelations = relations(jobs, ({ one, many }) => ({
   photos: many(jobPhotos),
   quotes: many(quotes),
   invoices: many(invoices),
+  timeEntries: many(timeEntries),
+}))
+
+export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
+  user: one(users, { fields: [timeEntries.userId], references: [users.id] }),
+  job: one(jobs, { fields: [timeEntries.jobId], references: [jobs.id] }),
+  billedToQuote: one(quotes, { fields: [timeEntries.billedToQuoteId], references: [quotes.id] }),
+  billedToInvoice: one(invoices, { fields: [timeEntries.billedToInvoiceId], references: [invoices.id] }),
 }))
 
 export const jobPhotosRelations = relations(jobPhotos, ({ one }) => ({

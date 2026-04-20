@@ -18,6 +18,8 @@ import {
   getMonthlyRevenue,
 } from "@/lib/db/queries/overview"
 import { getReadyRecordingsForUser } from "@/lib/db/queries/ai-recordings"
+import { getActiveEntry, getActiveJobsForUser } from "@/lib/db/queries/time-entries"
+import { QuickTimerCard } from "@/components/dashboard/quick-timer-card"
 import { Topbar } from "@/components/shared/topbar"
 import { Link } from "@/i18n/navigation"
 import { Briefcase, ChevronRight, Mic } from "lucide-react"
@@ -57,7 +59,7 @@ export default async function OverviewPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [stats, statCardData, overdueInvoices, todayJobsList, activityItems, readyRecordings, monthlyRevenue] =
+  const [stats, statCardData, overdueInvoices, todayJobsList, activityItems, readyRecordings, monthlyRevenue, activeEntry, activeJobs] =
     await Promise.all([
       getOverviewStats(user.id),
       getStatCardData(user.id),
@@ -66,6 +68,8 @@ export default async function OverviewPage({ params }: Props) {
       getRecentActivity(user.id),
       getReadyRecordingsForUser(user.id),
       getMonthlyRevenue(user.id),
+      getActiveEntry(user.id),
+      getActiveJobsForUser(user.id),
     ])
 
   const firstName = user.companyName?.split(" ")[0] ?? "der"
@@ -113,6 +117,9 @@ export default async function OverviewPage({ params }: Props) {
             {summary}
           </p>
         </div>
+
+        {/* Quick timer */}
+        <QuickTimerCard activeEntry={activeEntry ?? null} jobs={activeJobs} />
 
         {/* Ready recordings banner */}
         {readyRecordings.length > 0 && (
