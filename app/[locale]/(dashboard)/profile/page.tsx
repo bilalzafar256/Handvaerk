@@ -7,6 +7,7 @@ import { BankAccountsSection } from "@/components/profile/bank-accounts-section"
 import { GoogleReviewSection } from "@/components/profile/google-review-section"
 import { getBankAccountsByUser } from "@/lib/db/queries/bank-accounts"
 import { Building2, MapPin, Wrench } from "lucide-react"
+import { AccountDangerZone } from "@/components/profile/account-danger-zone"
 
 type Props = { params: Promise<{ locale: string }> }
 
@@ -134,6 +135,9 @@ export default async function ProfilePage({ params }: Props) {
 
         {/* Customer reviews */}
         <GoogleReviewSection googleReviewUrl={user?.googleReviewUrl} />
+
+        {/* Data export + account deletion */}
+        <AccountDangerZone />
       </div>
     </>
   )

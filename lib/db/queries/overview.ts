@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import { jobs, customers, quotes, invoices } from "@/lib/db/schema"
-import { eq, and, isNull, notInArray, count, desc, asc, sum, gte, lt } from "drizzle-orm"
+import { eq, and, isNull, notInArray, count, desc, asc, sum, gte, lt, inArray } from "drizzle-orm"
 
 export async function getOverviewStats(userId: string) {
   const now = new Date()
@@ -251,6 +251,22 @@ export async function getOverdueInvoices(userId: string) {
 }
 
 export type OverdueItem = Awaited<ReturnType<typeof getOverdueInvoices>>[number]
+
+// F-207: unpaid invoice count per customer (for "Owes money" badge)
+export async function getOutstandingByCustomer(userId: string): Promise<Record<string, number>> {
+  const rows = await db
+    .select({ customerId: invoices.customerId, cnt: count() })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.userId, userId),
+        isNull(invoices.deletedAt),
+        inArray(invoices.status, ["sent", "viewed", "overdue"])
+      )
+    )
+    .groupBy(invoices.customerId)
+  return Object.fromEntries(rows.map(r => [r.customerId, Number(r.cnt)]))
+}
 
 // ── Today's jobs ──────────────────────────────────────────────────────────────
 

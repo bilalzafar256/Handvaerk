@@ -59,6 +59,14 @@ async function applyRateLimit(clerkId: string) {
   }
 }
 
+async function applyStrictRateLimit(clerkId: string) {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { strictRateLimiter } = await import("@/lib/upstash")
+    const { success } = await strictRateLimiter.limit(clerkId)
+    if (!success) throw new Error("Too many requests. Please wait before trying again.")
+  }
+}
+
 function applyLineDiscount(gross: number, discountType?: string, discountValue?: string): number {
   if (!discountType || !discountValue) return gross
   const dv = parseFloat(discountValue) || 0
@@ -185,7 +193,7 @@ export async function createInvoiceFromJobAction(jobId: string) {
   ])
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(15)
+  const dueDate = makeDueDate(14)
   const bankAccountStr = defaultBankAccount
     ? `Reg. ${defaultBankAccount.regNumber} | Konto ${defaultBankAccount.accountNumber}`
     : null
@@ -246,7 +254,7 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
   ])
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(15)
+  const dueDate = makeDueDate(14)
   const bankAccountStr = defaultBankAccount
     ? `Reg. ${defaultBankAccount.regNumber} | Konto ${defaultBankAccount.accountNumber}`
     : null
@@ -282,7 +290,7 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
     status:           "draft",
     issueDate,
     dueDate,
-    paymentTermsDays: 15,
+    paymentTermsDays: 14,
     subtotalExVat:    subtotalExVat.toFixed(2),
     vatAmount:        vatAmount.toFixed(2),
     totalInclVat:     totalInclVat.toFixed(2),
@@ -370,7 +378,7 @@ export async function deleteInvoiceAction(id: string) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
-  await applyRateLimit(clerkId)
+  await applyStrictRateLimit(clerkId)
 
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
@@ -517,7 +525,7 @@ export async function createCreditNoteAction(originalInvoiceId: string) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
-  await applyRateLimit(clerkId)
+  await applyStrictRateLimit(clerkId)
 
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
@@ -528,7 +536,7 @@ export async function createCreditNoteAction(originalInvoiceId: string) {
   const total = await countAllInvoicesEver(user.id)
   const invoiceNumber = `KRE-${String(total + 1).padStart(4, "0")}`
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(15)
+  const dueDate = makeDueDate(14)
 
   // Negate all amounts
   const subtotalExVat = -(parseFloat(original.subtotalExVat ?? "0"))
@@ -585,7 +593,7 @@ export async function mergeInvoicesAction(ids: string[]): Promise<{ id: string }
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
-  await applyRateLimit(clerkId)
+  await applyStrictRateLimit(clerkId)
 
   if (ids.length < 2) throw new Error("Select at least 2 invoices to merge")
 
@@ -606,7 +614,7 @@ export async function mergeInvoicesAction(ids: string[]): Promise<{ id: string }
   const total = await countAllInvoicesEver(user.id)
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(15)
+  const dueDate = makeDueDate(14)
 
   // Combine all items from all invoices
   const allItems = rows.flatMap(inv => inv.items)

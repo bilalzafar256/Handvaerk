@@ -2,7 +2,7 @@ import { Webhook } from "svix"
 import { headers } from "next/headers"
 import type { WebhookEvent } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
+import { users, customers, jobs, quotes, invoices } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function POST(req: Request) {
@@ -47,10 +47,22 @@ export async function POST(req: Request) {
   }
 
   if (event.type === "user.deleted" && event.data.id) {
-    await db
-      .update(users)
-      .set({ updatedAt: new Date() })
-      .where(eq(users.clerkId, event.data.id))
+    const user = await db.query.users.findFirst({ where: eq(users.clerkId, event.data.id) })
+    if (user) {
+      const now = new Date()
+      await Promise.all([
+        db.update(customers).set({ deletedAt: now }).where(eq(customers.userId, user.id)),
+        db.update(jobs).set({ deletedAt: now }).where(eq(jobs.userId, user.id)),
+        db.update(quotes).set({ deletedAt: now }).where(eq(quotes.userId, user.id)),
+        db.update(invoices).set({ deletedAt: now }).where(eq(invoices.userId, user.id)),
+      ])
+      try {
+        const { inngest } = await import("@/lib/inngest/client")
+        await inngest.send({ name: "user/deleted", data: { userId: user.id } })
+      } catch {
+        // Non-fatal: hard-delete scheduling failure doesn't block the soft-delete
+      }
+    }
   }
 
   return new Response("OK", { status: 200 })

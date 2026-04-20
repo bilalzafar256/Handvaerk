@@ -70,6 +70,13 @@
 9. **MobilePay is stubbed.** Do not implement payment processing — show "coming soon".
 10. **No manual migration files.** Always run `npx drizzle-kit generate` — never hand-edit `_journal.json`.
 11. **VAT is always 25%.** Danish moms. Use `lib/utils/vat.ts` helpers. Never hardcode the rate inline.
+12. **Update files in project-context** Whenever any thing is updated or developed. Suppose I fix the task from WORK_TO_DO.md file. You hsould check all files in project-context and see if any file needs change you make that change.
+13. **Show the summary** at last of every task devlivered from Work to do file.
+14. **Standing maintenance rule — update with every new feature:**
+Every time a new DB table is added (e.g. expenses, time tracking, service agreements), update both:
+- `lib/actions/account.ts` → `exportUserDataAction` — add the new table to the export payload
+- `lib/inngest/user-deletion.ts` → `hardDeleteUser` step `hard-delete-data` — add a `db.delete(newTable).where(...)` in FK-safe order
+Failure to do this leaves orphaned data in the DB after user deletion (GDPR violation) and produces incomplete data exports.
 
 ---
 
@@ -80,7 +87,7 @@
 | App root | `app/layout.tsx` | Minimal — passes through to locale layout |
 | Locale layout | `app/[locale]/layout.tsx` | ClerkProvider, fonts (Bricolage Grotesque, DM Sans, JetBrains Mono), i18n, Toaster |
 | Dashboard layout | `app/[locale]/(dashboard)/layout.tsx` | Auth guard + profile completion gate + Sidebar + DashboardShell |
-| Middleware | — | [UNKNOWN — middleware.ts not found in tree; Clerk auth + next-intl routing expected here] |
+| Middleware | `proxy.ts` (root) | Clerk auth guard + next-intl i18n routing. Named `proxy.ts`, not `middleware.ts`. |
 | DB client | `lib/db/index.ts` | Lazy Proxy singleton — Neon + Drizzle |
 | Auth helper | `lib/auth/index.ts` | `getDbUser()` — resolves Clerk session to DB user row |
 | Inngest route | `app/api/inngest/route.ts` | Webhook receiver for background functions |

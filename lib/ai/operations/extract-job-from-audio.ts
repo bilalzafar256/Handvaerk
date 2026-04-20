@@ -58,6 +58,7 @@ export async function groqTranscribe(audioBase64: string, mimeType: string): Pro
     : mimeType.includes("ogg") ? "ogg"
     : mimeType.includes("wav") ? "wav"
     : mimeType.includes("mpeg") || mimeType.includes("mp3") ? "mp3"
+    : mimeType.includes("aiff") ? "aiff"
     : "webm"
   const file = new File([buffer], `recording.${ext}`, { type: mimeType })
   const result = await groq.audio.transcriptions.create({
