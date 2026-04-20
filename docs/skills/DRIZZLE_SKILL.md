@@ -10,6 +10,7 @@
 - NEVER use raw SQL strings. Always use Drizzle query builder.
 - Schema files live in `/lib/db/schema/`. One file per domain.
 - All DB queries live in `/lib/db/queries/`. One file per domain.
+- **NEVER manually create migration files or edit `_journal.json` by hand.** Always use `npx drizzle-kit generate` — it creates both the `.sql` file AND the `meta/XXXX_snapshot.json`. Missing snapshots corrupt future diffs. If a snapshot is missing, the next generate will produce an incorrect or empty migration.
 
 ---
 

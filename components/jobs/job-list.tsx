@@ -253,6 +253,7 @@ function JobRow({ job, index }: { job: JobWithCustomer; index: number }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.18), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ x: 4, transition: { type: "spring", stiffness: 500, damping: 35 } }}
       className="flex border-b"
       style={{
         borderColor: "var(--border)",
@@ -353,12 +354,18 @@ function JobCard({ job, index }: { job: JobWithCustomer; index: number }) {
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -6, scale: 1.03, transition: { type: "spring", stiffness: 400, damping: 25 } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); if (!deleting) setConfirming(false) }}
     >
       <div
         className="flex flex-col rounded-xl border overflow-hidden"
-        style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: hovered ? "var(--accent)" : "var(--card)",
+          boxShadow: hovered ? "0 12px 32px rgba(0,0,0,0.12)" : "none",
+          transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1), box-shadow 200ms ease",
+        }}
       >
         {/* Status bar top */}
         <div className="h-1 w-full" style={{ backgroundColor: barColor }} />

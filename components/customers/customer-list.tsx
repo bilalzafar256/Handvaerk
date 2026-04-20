@@ -17,6 +17,15 @@ interface CustomerWithOwed extends Customer {
   unpaidCount: number
 }
 
+const CUSTOMER_PALETTE = [
+  { bar: "oklch(0.72 0.195 58)",  avatar: "oklch(0.94 0.05 58)",  text: "oklch(0.42 0.14 58)"  },
+  { bar: "oklch(0.55 0.15 240)",  avatar: "oklch(0.92 0.05 240)", text: "oklch(0.38 0.12 240)" },
+  { bar: "oklch(0.52 0.14 145)",  avatar: "oklch(0.92 0.05 145)", text: "oklch(0.36 0.11 145)" },
+  { bar: "oklch(0.55 0.12 290)",  avatar: "oklch(0.92 0.04 290)", text: "oklch(0.38 0.10 290)" },
+  { bar: "oklch(0.55 0.14 20)",   avatar: "oklch(0.92 0.05 20)",  text: "oklch(0.38 0.12 20)"  },
+  { bar: "oklch(0.52 0.12 185)",  avatar: "oklch(0.92 0.04 185)", text: "oklch(0.38 0.10 185)" },
+]
+
 const PER_PAGE = 25
 
 export function CustomerList({ customers }: { customers: CustomerWithOwed[] }) {
@@ -113,6 +122,7 @@ function CustomerRow({ customer, index }: { customer: CustomerWithOwed; index: n
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
+  const palette = CUSTOMER_PALETTE[index % CUSTOMER_PALETTE.length]
 
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
@@ -134,6 +144,7 @@ function CustomerRow({ customer, index }: { customer: CustomerWithOwed; index: n
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.18), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ x: 5, transition: { type: "spring", stiffness: 450, damping: 32 } }}
       className="flex border-b"
       style={{
         borderColor: "var(--border)",
@@ -147,7 +158,7 @@ function CustomerRow({ customer, index }: { customer: CustomerWithOwed; index: n
       <Link href={`/customers/${customer.id}`} className="flex items-center gap-3 flex-1 px-4 py-3 min-w-0">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-          style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-display)" }}
+          style={{ backgroundColor: palette.avatar, color: palette.text, fontFamily: "var(--font-display)" }}
         >
           {customer.name.charAt(0).toUpperCase()}
         </div>
@@ -214,6 +225,7 @@ function CustomerCard({ customer, index }: { customer: CustomerWithOwed; index: 
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
+  const palette = CUSTOMER_PALETTE[index % CUSTOMER_PALETTE.length]
 
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
@@ -235,22 +247,28 @@ function CustomerCard({ customer, index }: { customer: CustomerWithOwed; index: 
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -6, scale: 1.02, transition: { type: "spring", stiffness: 380, damping: 26 } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); if (!deleting) setConfirming(false) }}
     >
       <div
         className="flex flex-col rounded-xl border overflow-hidden"
-        style={{ borderColor: "var(--border)", backgroundColor: hovered ? "var(--accent)" : "var(--card)", transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1)" }}
+        style={{
+          borderColor: hovered ? palette.bar : "var(--border)",
+          backgroundColor: hovered ? "var(--accent)" : "var(--card)",
+          boxShadow: hovered ? `0 12px 32px rgba(0,0,0,0.11), 0 0 0 1px ${palette.bar}55` : "none",
+          transition: "background-color 120ms cubic-bezier(0.4,0,0.2,1), box-shadow 220ms ease, border-color 180ms ease",
+        }}
       >
-        {/* Amber identity bar */}
-        <div className="h-1 w-full" style={{ backgroundColor: "var(--amber-500)" }} />
+        {/* Colored identity bar */}
+        <div className="h-1 w-full" style={{ backgroundColor: palette.bar }} />
 
         {/* Main content link */}
         <Link href={`/customers/${customer.id}`} className="p-3 flex flex-col gap-2">
           <div className="flex items-center gap-2.5">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-base font-bold"
-              style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-display)" }}
+              style={{ backgroundColor: palette.avatar, color: palette.text, fontFamily: "var(--font-display)" }}
             >
               {customer.name.charAt(0).toUpperCase()}
             </div>

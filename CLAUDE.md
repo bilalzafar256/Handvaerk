@@ -21,6 +21,7 @@ Full context in `/docs/CONTEXT.md`. Specs in `/docs/`. Skills in `/docs/skills/`
 11. **ALWAYS self-monitor docs for required updates** — whenever any decision, change, or new information affects anything defined in `/docs/`, `CLAUDE.md`, or `README.md`, proactively identify which file needs updating, show exactly what would change (old → new), and wait for explicit approval before applying. Never silently let docs go stale, and never edit without confirmation.
 12. **ALWAYS ship frontend AND backend together per feature** — when a feature is in progress, the DB schema, Server Action, and page/component are all completed in the same session. Never leave a feature half-wired.
 13. **English only** — all generated content must be in English: code, comments, seed data, string literals, names, notes, docs. Never use Danish in any output.
+14. **NEVER manually create Drizzle migration files or edit `_journal.json` by hand.** Always run `npx drizzle-kit generate` — it creates both the `.sql` and the `meta/XXXX_snapshot.json`. Missing snapshots corrupt future schema diffs.
 
 ---
 

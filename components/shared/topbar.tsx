@@ -4,6 +4,7 @@ import { useUIStore } from "@/stores/ui-store"
 import { Menu } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useRouter, usePathname } from "@/i18n/navigation"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 
 function LangToggle() {
   const params = useParams()
@@ -67,7 +68,8 @@ export function Topbar({ title, action }: TopbarProps) {
         {title}
       </h1>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
+        <NotificationBell />
         <LangToggle />
         {action}
       </div>
