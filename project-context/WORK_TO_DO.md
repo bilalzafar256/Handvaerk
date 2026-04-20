@@ -4,11 +4,11 @@
 
 ---
 
-## Current State (as of 2026-04-20)
+## Current State (as of 2026-04-21)
 
 | Status | Count | Notes |
 |---|---|---|
-| Phases fully shipped | 1, 2, 4, 7, 8 | Bug fixes, dashboard, onboarding, compliance, GDPR |
+| Phases fully shipped | 1, 2, 4, 7, 8, 15, 20, 22, 31 | Bug fixes, dashboard, onboarding, compliance, GDPR, AI follow-up drafts, pricebook, job profitability, time tracking |
 | Partially shipped | 11, 12 | AI pipeline + dashboard — backend done, FE stubs remain |
 | Not started | 9, 13, 14 | Reporting, compliance, growth |
 | Active known issues | 4 | KI-005 (pending), KI-009 (needs drizzle run), KI-011 (email domain), KI-012 (deferred Phase 3) |
@@ -460,21 +460,18 @@ New route: /portal/[customerId]?token=[accessToken]
 
 ---
 
-## Phase 20 — Growth — Flat-rate Pricebook
+## Phase 20 — Growth — Flat-rate Pricebook ✅ SHIPPED
 
-**Goal:** Tradesperson builds a catalog of pre-priced services ("Replace toilet valve — 850 kr"). One-click add to any quote.
+**Goal:** Tradesperson builds a catalog of pre-priced services ("Replace toilet valve — 850 kr"). One-click add to any quote or invoice.
 
-**Architecture:**
-```
-New /pricebook route
-  → CRUD for pricebook items: name, description, unitPrice, vatRate, category
-  → On QuoteBuilder: "Add from pricebook" button → searchable list → click to add line item
-  → Stored in new `pricebook_items` table (user-scoped)
-```
-
-**Schema:** New `pricebook_items` table: `id`, `userId`, `name`, `description`, `unitPrice` (cents), `category`, `isActive`, `createdAt`, `deletedAt`.
-
-**Success criteria:** Pricebook item added to quote in 2 clicks. Items persist across sessions. Soft delete works. Free tier: limit to 20 items; Pro: unlimited.
+**What's built:**
+- `/pricebook` page — full CRUD (add/edit/delete inline, search, type badges)
+- `pricebook_items` table: `id`, `userId`, `name`, `description`, `unitPrice`, `itemType`, `isActive`, `createdAt`, `deletedAt`
+- `getPricebookAction`, `createPricebookItemAction`, `updatePricebookItemAction`, `deletePricebookItemAction` (all rate-limited, Zod-validated)
+- Free tier gate: 20 items max
+- **QuoteForm** — "From pricebook" button next to Line Items label → searchable dropdown → click appends line item
+- **InvoiceForm** — same "From pricebook" picker
+- Sidebar nav item (BookOpen icon), i18n keys, GDPR export + deletion
 
 ---
 
@@ -713,24 +710,28 @@ New time panel on job detail page + /time-tracking weekly view
   → Weekly timesheet: all jobs this week, total hours per day
 ```
 
-**Schema:** New `time_entries` table — run `npx drizzle-kit generate` after adding.
+**Schema:** New `time_entries` table — migration 0012 applied.
 
 ```
 time_entries: id, userId, jobId (FK), startedAt, endedAt, durationMinutes,
-              description, isBillable, createdAt, deletedAt
+              description, isBillable, billedToQuoteId (FK), billedToInvoiceId (FK),
+              createdAt, deletedAt
 ```
 
 | Feature | BE | FE | Notes |
 |---|---|---|---|
-| F-3100: Time entries DB schema | `[ ]` | `N/A` | New table + migration |
-| F-3101: Clock in/out on job detail | `[ ]` | `[ ]` | Mobile-first; stores startedAt, computes duration on stop |
-| F-3102: Manual time entry form | `[ ]` | `[ ]` | Date, hours, minutes, description, billable toggle |
-| F-3103: Time log list per job | `[ ]` | `[ ]` | Expandable panel on job detail; total hours shown |
-| F-3104: Weekly timesheet view | `[ ]` | `[ ]` | `/time-tracking` route; all jobs this week, total per day |
-| F-3105: Convert billable hours → line item | `[ ]` | `[ ]` | 1-click: sum hours × hourly rate → labour line item on quote/invoice |
-| F-3106: Billable vs non-billable toggle | `[ ]` | `[ ]` | Only billable hours included in the line item calculation |
-| F-3107: Time summary per customer | `[ ]` | `[ ]` | Used in customer report (Phase 5) — total hours logged |
-| F-3108: Free tier gate: 50 entries max | `[ ]` | `[ ]` | Gate at action level; prompt to upgrade |
+| F-3100: Time entries DB schema | `[x]` | `N/A` | `lib/db/schema/time-entries.ts` — migration 0012 |
+| F-3101: Clock in/out on job detail | `[x]` | `[x]` | `ClockPanel` + `clockInAction` / `clockOutAction` |
+| F-3102: Manual time entry form | `[x]` | `[x]` | `ManualEntryForm` + `createManualEntryAction` |
+| F-3103: Time log list per job | `[x]` | `[x]` | `TimeEntryList` + `TimeLogPanel` on job detail page |
+| F-3104: Weekly timesheet view | `[x]` | `[x]` | `/time-tracking` route + `WeeklyTimesheet` with week nav |
+| F-3105: Convert billable hours → line item | `[x]` | `[x]` | `addBillableHoursToLineItemAction` + `AddToDocumentModal` |
+| F-3106: Billable vs non-billable toggle | `[x]` | `[x]` | `isBillable` field in form + filter in billing queries |
+| F-3107: Time summary per customer | `[ ]` | `[ ]` | Deferred to Phase 5 (customer report) |
+| F-3108: Free tier gate: 50 entries max | `[x]` | `[x]` | `countTimeEntries` checked in `clockInAction` |
+| F-3109: Clock button on jobs list | `[x]` | `[x]` | Play/Stop inline on `JobRow` + `JobCard` |
+| F-3110: QuickTimerCard on dashboard | `[x]` | `[x]` | `components/dashboard/quick-timer-card.tsx` |
+| F-3111: Already-billed safety indicator | `[x]` | `[x]` | `billedToQuoteId`/`billedToInvoiceId` + warning badge in modal |
 
 **Success criteria:** Tradesperson can clock in on a job from their phone in 1 tap. Weekly view shows all logged hours. Billable hours convert to a quote line item with the correct rate. Free tier gate fires at 50 entries.
 
@@ -810,4 +811,4 @@ These will not be built regardless of timeline:
 
 ---
 
-*Last updated: 2026-04-20 — Phase 2 complete: dashboard fully wired with live data + loading skeleton added. Phase 1: 11/15 bugs resolved, 4 remain open (KI-005, KI-009, KI-011, KI-012).*
+*Last updated: 2026-04-21 — Phase 31 complete: time tracking fully shipped. Phase 15 complete: AI follow-up drafts (Inngest cron, Groq, quote detail card, notification bell, dismiss + send actions). Phase 20 complete: flat-rate pricebook (schema, server actions, CRUD list, /pricebook page, sidebar nav, i18n, GDPR, "From pricebook" picker in QuoteForm + InvoiceForm). Phase 22 complete: job profitability card (invoiced vs quoted revenue, wired to job detail). Phase 2 complete. Phase 1: 11/15 bugs resolved, 4 remain open (KI-005, KI-009, KI-011, KI-012).*

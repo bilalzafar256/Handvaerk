@@ -7,6 +7,7 @@ import { invoices, invoiceItems } from "./invoices"
 import { bankAccounts } from "./bank-accounts"
 import { notifications } from "./notifications"
 import { timeEntries } from "./time-entries"
+import { pricebookItems } from "./pricebook"
 
 export const usersRelations = relations(users, ({ many }) => ({
   customers: many(customers),
@@ -17,6 +18,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   invoices: many(invoices),
   bankAccounts: many(bankAccounts),
   notifications: many(notifications),
+  pricebookItems: many(pricebookItems),
+}))
+
+export const pricebookItemsRelations = relations(pricebookItems, ({ one }) => ({
+  user: one(users, { fields: [pricebookItems.userId], references: [users.id] }),
 }))
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({

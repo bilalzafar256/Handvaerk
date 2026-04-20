@@ -1,6 +1,6 @@
 import { inngest } from "./client"
 import { db } from "@/lib/db"
-import { users, customers, jobs, quotes, invoices, jobPhotos, timeEntries } from "@/lib/db/schema"
+import { users, customers, jobs, quotes, invoices, jobPhotos, timeEntries, pricebookItems } from "@/lib/db/schema"
 import { eq, inArray } from "drizzle-orm"
 
 export const hardDeleteUser = inngest.createFunction(
@@ -40,6 +40,7 @@ export const hardDeleteUser = inngest.createFunction(
     await step.run("hard-delete-data", async () => {
       // Delete in FK dependency order (invoiceItems cascade from invoices automatically)
       await db.delete(timeEntries).where(eq(timeEntries.userId, userId))
+      await db.delete(pricebookItems).where(eq(pricebookItems.userId, userId))
       await db.delete(invoices).where(eq(invoices.userId, userId))
       await db.delete(quotes).where(eq(quotes.userId, userId))
 

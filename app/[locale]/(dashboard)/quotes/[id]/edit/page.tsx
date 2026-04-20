@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm"
 import { getQuoteById } from "@/lib/db/queries/quotes"
 import { getCustomersByUser } from "@/lib/db/queries/customers"
 import { getJobsByUser } from "@/lib/db/queries/jobs"
+import { getPricebookItemsByUser } from "@/lib/db/queries/pricebook"
 import { Topbar } from "@/components/shared/topbar"
 import { QuoteForm } from "@/components/forms/quote-form"
 import { Link } from "@/i18n/navigation"
@@ -26,10 +27,11 @@ export default async function EditQuotePage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [quote, customers, jobs] = await Promise.all([
+  const [quote, customers, jobs, pricebookItems] = await Promise.all([
     getQuoteById(id, user.id),
     getCustomersByUser(user.id),
     getJobsByUser(user.id),
+    getPricebookItemsByUser(user.id),
   ])
 
   if (!quote) notFound()
@@ -50,7 +52,7 @@ export default async function EditQuotePage({ params }: Props) {
       />
       <div className="pt-14">
         <div className="pt-6">
-          <QuoteForm quote={quote} customers={customers} jobs={jobs} />
+          <QuoteForm quote={quote} customers={customers} jobs={jobs} pricebookItems={pricebookItems} />
         </div>
       </div>
     </>

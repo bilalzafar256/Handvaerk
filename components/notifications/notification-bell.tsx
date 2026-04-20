@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useTransition } from "react"
-import { Bell, User, Briefcase, FileText } from "lucide-react"
+import { Bell, User, Briefcase, FileText, Mail } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -17,9 +17,10 @@ import {
 import type { Notification } from "@/lib/db/schema/notifications"
 
 const TYPE_CONFIG: Record<string, { Icon: React.ElementType; bg: string; color: string }> = {
-  ai_customer_found: { Icon: User,      bg: "oklch(0.91 0.05 250)", color: "oklch(0.35 0.14 250)" },
-  ai_job_found:      { Icon: Briefcase, bg: "oklch(0.91 0.07 145)", color: "oklch(0.30 0.14 145)" },
-  ai_quote_found:    { Icon: FileText,  bg: "oklch(0.93 0.06 55)",  color: "oklch(0.38 0.12 55)"  },
+  ai_customer_found:    { Icon: User,      bg: "oklch(0.91 0.05 250)", color: "oklch(0.35 0.14 250)" },
+  ai_job_found:         { Icon: Briefcase, bg: "oklch(0.91 0.07 145)", color: "oklch(0.30 0.14 145)" },
+  ai_quote_found:       { Icon: FileText,  bg: "oklch(0.93 0.06 55)",  color: "oklch(0.38 0.12 55)"  },
+  quote_followup_draft: { Icon: Mail,      bg: "oklch(0.93 0.06 220)", color: "oklch(0.35 0.12 220)" },
 }
 
 function timeAgo(date: Date | string): string {

@@ -369,6 +369,48 @@ export async function mergeQuotesAction(ids: string[]): Promise<{ id: string }> 
   return { id: newQuote.id }
 }
 
+export async function dismissFollowUpDraftAction(quoteId: string) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  const user = await getDbUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  await updateQuote(quoteId, user.id, { followUpDraft: null })
+  revalidatePath(`/quotes/${quoteId}`)
+}
+
+export async function sendFollowUpEmailAction(quoteId: string) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const user = await getDbUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  const quote = await getQuoteById(quoteId, user.id)
+  if (!quote) throw new Error("Quote not found")
+  if (!quote.followUpDraft) throw new Error("No follow-up draft found")
+  if (!quote.customer.email) throw new Error("Customer has no email address")
+
+  const { resend, EMAIL_FROM } = await import("@/lib/email/client")
+
+  const { data, error } = await resend.emails.send({
+    from:    EMAIL_FROM,
+    to:      [quote.customer.email],
+    subject: `Following up on Quote ${quote.quoteNumber}`,
+    text:    quote.followUpDraft,
+  })
+
+  if (error) throw new Error(`Email failed: ${error.message}`)
+
+  await updateQuote(quoteId, user.id, { followUpDraft: null })
+  revalidatePath(`/quotes/${quoteId}`)
+
+  return { emailId: data?.id }
+}
+
 // Upsert material to catalog
 export async function upsertMaterialAction(
   name: string,

@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm"
 import { getCustomersByUser } from "@/lib/db/queries/customers"
 import { getJobsByUser } from "@/lib/db/queries/jobs"
 import { getTemplatesByUser } from "@/lib/db/queries/quotes"
+import { getPricebookItemsByUser } from "@/lib/db/queries/pricebook"
 import { Topbar } from "@/components/shared/topbar"
 import { QuoteForm } from "@/components/forms/quote-form"
 import { Link } from "@/i18n/navigation"
@@ -35,10 +36,11 @@ export default async function NewQuotePage({ params, searchParams }: Props) {
   const defaultJobId      = sp?.jobId
   const defaultCustomerId = sp?.customerId
 
-  const [customers, jobs, templates] = await Promise.all([
+  const [customers, jobs, templates, pricebookItems] = await Promise.all([
     getCustomersByUser(user.id),
     getJobsByUser(user.id),
     getTemplatesByUser(user.id),
+    getPricebookItemsByUser(user.id),
   ])
 
   return (
@@ -60,6 +62,7 @@ export default async function NewQuotePage({ params, searchParams }: Props) {
           customers={customers}
           jobs={jobs}
           templates={templates}
+          pricebookItems={pricebookItems}
           defaultJobId={defaultJobId}
           defaultCustomerId={defaultCustomerId}
         />

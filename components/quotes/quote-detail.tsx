@@ -7,10 +7,12 @@ import { motion } from "motion/react"
 import {
   Edit2, Trash2, Send, Download, Copy, FileText, CheckCircle, XCircle,
   BookmarkPlus, Receipt, ChevronRight, MoreHorizontal, User as UserIcon, Calendar, Briefcase, StickyNote,
+  Mail, X,
 } from "lucide-react"
 import { formatDKK } from "@/lib/utils/currency"
 import {
   updateQuoteStatusAction, deleteQuoteAction, sendQuoteEmailAction, saveQuoteAsTemplateAction,
+  dismissFollowUpDraftAction, sendFollowUpEmailAction,
 } from "@/lib/actions/quotes"
 import { createInvoiceFromQuoteAction } from "@/lib/actions/invoices"
 import type { Quote, QuoteItem } from "@/lib/db/schema/quotes"
@@ -367,6 +369,40 @@ export function QuoteDetail({
               <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>{quote.notes}</p>
             </div>
           </Card>
+        )}
+
+        {/* Follow-up draft card */}
+        {status === "sent" && quote.followUpDraft && (
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--status-scheduled-border)" }}>
+            <div className="px-4 py-2.5 border-b flex items-center gap-2.5" style={{ borderColor: "var(--status-scheduled-border)", backgroundColor: "var(--status-scheduled-bg)" }}>
+              <Mail className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--status-scheduled-text)" }} />
+              <p className="text-xs font-semibold uppercase tracking-wider flex-1" style={{ fontFamily: "var(--font-body)", color: "var(--status-scheduled-text)" }}>
+                AI Follow-up Draft
+              </p>
+              <button
+                onClick={async () => { setBusy(true); try { await dismissFollowUpDraftAction(quote.id); router.refresh() } catch { toast.error("Failed to dismiss") } finally { setBusy(false) } }}
+                disabled={busy}
+                className="w-6 h-6 flex items-center justify-center rounded cursor-pointer hover:opacity-70 transition-opacity disabled:opacity-40"
+                style={{ color: "var(--status-scheduled-text)" }}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="px-4 py-3 space-y-3" style={{ backgroundColor: "var(--card)" }}>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                {quote.followUpDraft}
+              </p>
+              <button
+                onClick={async () => { setBusy(true); try { await sendFollowUpEmailAction(quote.id); toast.success("Follow-up sent"); router.refresh() } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to send") } finally { setBusy(false) } }}
+                disabled={busy}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium cursor-pointer disabled:opacity-50 bg-[var(--primary)] hover:bg-[var(--amber-600)] transition-colors"
+                style={{ color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+              >
+                <Send className="w-3.5 h-3.5" />
+                Send follow-up
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Save as template input */}

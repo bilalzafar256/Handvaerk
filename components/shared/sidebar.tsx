@@ -26,6 +26,7 @@ import {
   Receipt,
   Settings,
   Timer,
+  BookOpen,
 } from "lucide-react"
 
 const navItems = [
@@ -35,6 +36,7 @@ const navItems = [
   { icon: FileText,        labelKey: "quotes",        href: "/quotes" },
   { icon: Receipt,         labelKey: "invoices",      href: "/invoices" },
   { icon: Timer,           labelKey: "timeTracking",  href: "/time-tracking" },
+  { icon: BookOpen,        labelKey: "pricebook",     href: "/pricebook" },
 ] as const
 
 const settingsItems = [

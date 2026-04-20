@@ -26,6 +26,7 @@ export const quotes = pgTable("quotes", {
   internalNotes:  text("internal_notes"),
   shareToken:     text("share_token"),               // for shareable public link
   mergedInto:     uuid("merged_into"),               // set when status = 'merged'
+  followUpDraft:  text("follow_up_draft"),
   acceptedAt:     timestamp("accepted_at"),
   rejectedAt:     timestamp("rejected_at"),
   sentAt:         timestamp("sent_at"),

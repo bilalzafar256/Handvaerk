@@ -1,0 +1,111 @@
+"use server"
+
+import { auth } from "@clerk/nextjs/server"
+import { db } from "@/lib/db"
+import { users } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+import { z } from "zod"
+import { revalidatePath } from "next/cache"
+import {
+  getPricebookItemsByUser,
+  countPricebookItems,
+  createPricebookItem,
+  updatePricebookItem,
+  softDeletePricebookItem,
+} from "@/lib/db/queries/pricebook"
+
+const FREE_TIER_PRICEBOOK_LIMIT = 20
+
+const itemSchema = z.object({
+  name:        z.string().min(1).max(120),
+  description: z.string().max(300).optional(),
+  unitPrice:   z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price"),
+  itemType:    z.enum(["labour", "material", "fixed", "travel"]),
+  isActive:    z.boolean().default(true),
+})
+
+async function getUser(clerkId: string) {
+  return db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
+}
+
+async function applyRateLimit(clerkId: string) {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { rateLimiter } = await import("@/lib/upstash")
+    const { success } = await rateLimiter.limit(clerkId)
+    if (!success) throw new Error("Rate limit exceeded. Try again in a moment.")
+  }
+}
+
+export async function getPricebookAction() {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+  const user = await getUser(clerkId)
+  if (!user) throw new Error("User not found")
+  return getPricebookItemsByUser(user.id)
+}
+
+export async function createPricebookItemAction(data: z.infer<typeof itemSchema>) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const user = await getUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  const validated = itemSchema.parse(data)
+
+  if (user.tier === "free") {
+    const count = await countPricebookItems(user.id)
+    if (count >= FREE_TIER_PRICEBOOK_LIMIT) {
+      throw new Error(`Free tier limit: ${FREE_TIER_PRICEBOOK_LIMIT} pricebook items. Upgrade to add more.`)
+    }
+  }
+
+  const item = await createPricebookItem({
+    userId:      user.id,
+    name:        validated.name,
+    description: validated.description ?? null,
+    unitPrice:   validated.unitPrice,
+    itemType:    validated.itemType,
+    isActive:    validated.isActive,
+  })
+
+  revalidatePath("/pricebook")
+  return { id: item.id }
+}
+
+export async function updatePricebookItemAction(id: string, data: z.infer<typeof itemSchema>) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const user = await getUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  const validated = itemSchema.parse(data)
+
+  await updatePricebookItem(id, user.id, {
+    name:        validated.name,
+    description: validated.description ?? null,
+    unitPrice:   validated.unitPrice,
+    itemType:    validated.itemType,
+    isActive:    validated.isActive,
+  })
+
+  revalidatePath("/pricebook")
+}
+
+export async function deletePricebookItemAction(id: string) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const user = await getUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  await softDeletePricebookItem(id, user.id)
+  revalidatePath("/pricebook")
+}

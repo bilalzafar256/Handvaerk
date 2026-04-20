@@ -108,6 +108,7 @@
 | `internal_notes` | text | Not shown to customer |
 | `share_token` | text | 48-char hex token for shareable URL: `/en/q/[token]` |
 | `merged_into` | uuid | Set when status = `merged` — points to the new merged quote |
+| `follow_up_draft` | text | AI-generated follow-up email body; null = no draft pending |
 | `accepted_at` / `rejected_at` / `sent_at` | timestamp | |
 | `deleted_at` | timestamp | Soft delete |
 
@@ -239,16 +240,63 @@
 
 ---
 
+### `time_entries`
+**Source:** `lib/db/schema/time-entries.ts`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `user_id` | uuid FK → users | Owner isolation |
+| `job_id` | uuid FK → jobs | The job being timed |
+| `started_at` | timestamp NOT NULL | Written immediately on clock-in |
+| `ended_at` | timestamp | NULL = timer currently running |
+| `duration_minutes` | integer | Computed on clock-out: `Math.max(1, Math.round((endedAt - startedAt) / 60000))` |
+| `description` | text | Optional note |
+| `is_billable` | boolean DEFAULT true | Only billable entries count toward line item conversion |
+| `billed_to_quote_id` | uuid FK → quotes (nullable) | Set by `addBillableHoursToLineItemAction` to track duplication |
+| `billed_to_invoice_id` | uuid FK → invoices (nullable) | Same — prevents silent double-billing |
+| `created_at` | timestamp | |
+| `deleted_at` | timestamp | Soft delete |
+
+**Key invariants:**
+- One active entry per user enforced in `clockInAction` (checks `isNull(endedAt)` before insert)
+- Free tier gate: 50 entries max, checked via `countTimeEntries(userId)` in `clockInAction`
+- `billedToQuoteId` / `billedToInvoiceId` are informational — the UI warns but does not block re-billing
+- GDPR: included in `exportUserDataAction` and deleted in `hardDeleteUser` step before jobs
+
+---
+
+### `pricebook_items`
+**Source:** `lib/db/schema/pricebook.ts`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `user_id` | uuid FK → users | Owner isolation |
+| `name` | text NOT NULL | Display name, max 120 chars (validated in action) |
+| `description` | text | Optional detail |
+| `unit_price` | numeric(10,2) NOT NULL | Ex. VAT, DKK |
+| `item_type` | text DEFAULT 'material' | `labour` \| `material` \| `fixed` \| `travel` |
+| `is_active` | boolean DEFAULT true | Soft-disable without deleting |
+| `created_at` | timestamp | |
+| `deleted_at` | timestamp | Soft delete |
+
+**Key invariants:**
+- Free tier gate: 20 items max, checked via `countPricebookItems(userId)` in `createPricebookItemAction`
+- GDPR: included in `exportUserDataAction` and deleted in `hardDeleteUser` step
+
+---
+
 ### `notifications`
 **Source:** `lib/db/schema/notifications.ts`
 
 | Column | Type | Notes |
 |---|---|---|
 | `user_id` | uuid FK → users CASCADE DELETE | |
-| `type` | text NOT NULL | `ai_customer_found` \| `ai_job_found` \| `ai_quote_found` |
+| `type` | text NOT NULL | `ai_customer_found` \| `ai_job_found` \| `ai_quote_found` \| `quote_followup_draft` |
 | `title` | text NOT NULL | |
 | `body` | text NOT NULL | |
-| `metadata` | jsonb | `{ recordingId, entityType }` |
+| `metadata` | jsonb | `{ recordingId, entityType }` or `{ quoteId, quoteNumber }` |
 | `read` | boolean DEFAULT false | |
 | `read_at` | timestamp | |
 
@@ -272,8 +320,11 @@ Status transitions tracked via dedicated timestamp columns (e.g., `sentAt`, `pai
 - Runner: `drizzle-kit` (`npx drizzle-kit generate` then `npx drizzle-kit migrate`)
 - Files: `drizzle/migrations/` — `.sql` + `meta/XXXX_snapshot.json` pairs
 - **NEVER create `.sql` files manually or edit `_journal.json`** — missing snapshots corrupt future schema diffs
-- 12 migrations applied as of current state (0000 → 0011)
-- Note: snapshots 0005–0010 are missing from `drizzle/migrations/meta/` — only 0000–0004 and 0011 are present. This is a known gap. [INFERRED: migrations were manually created or snapshots were deleted]
+- 15 migrations applied as of current state (0000 → 0014)
+- Migration 0012 adds the `time_entries` table (Phase 31)
+- Migration 0013 adds `follow_up_draft` to `quotes` (Phase 15)
+- Migration 0014 adds `pricebook_items` table (Phase 20)
+- Note: snapshots 0005–0010 are missing from `drizzle/migrations/meta/` — only 0000–0004 and 0011+ are present. This is a known gap. [INFERRED: migrations were manually created or snapshots were deleted]
 
 ## Indexes (planned — not yet applied)
 

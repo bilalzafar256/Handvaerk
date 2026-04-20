@@ -75,7 +75,7 @@ export default async function OverviewPage({ params }: Props) {
   const firstName = user.companyName?.split(" ")[0] ?? "der"
   const greetingKey = getGreetingKey()
 
-  const todayJobCount = stats.statusCounts.in_progress + stats.statusCounts.scheduled
+  const todayJobCount = todayJobsList.length
   const pendingQuotes = stats.openQuoteCount
 
   const summaryParts: string[] = []
@@ -121,55 +121,51 @@ export default async function OverviewPage({ params }: Props) {
         {/* Quick timer */}
         <QuickTimerCard activeEntry={activeEntry ?? null} jobs={activeJobs} />
 
-        {/* Ready recordings banner */}
-        {readyRecordings.length > 0 && (
-          <Link
-            href={`/jobs/record/${readyRecordings[0].id}`}
-            className="flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all duration-150 active:scale-[0.99]"
-            style={{ backgroundColor: "oklch(0.97 0.03 145)", borderColor: "oklch(0.82 0.12 145)" }}
-          >
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "oklch(0.90 0.08 145)" }}
+        {/* Quick actions — 2-col grid when both banners present, full width otherwise */}
+        <div className={`grid gap-2.5 ${readyRecordings.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+          {readyRecordings.length > 0 && (
+            <Link
+              href={`/jobs/record/${readyRecordings[0].id}`}
+              className="flex flex-col justify-center gap-1.5 px-4 py-4 rounded-xl border transition-all duration-150 active:scale-[0.99]"
+              style={{ backgroundColor: "oklch(0.97 0.03 145)", borderColor: "oklch(0.82 0.12 145)" }}
             >
-              <Mic className="w-4 h-4" style={{ color: "oklch(0.32 0.14 145)" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-body)", color: "oklch(0.28 0.14 145)" }}>
-                {readyRecordings.length === 1
-                  ? "1 recording ready to review"
-                  : `${readyRecordings.length} recordings ready to review`}
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: "oklch(0.90 0.08 145)" }}
+              >
+                <Mic className="w-4 h-4" style={{ color: "oklch(0.32 0.14 145)" }} />
+              </div>
+              <p className="text-sm font-semibold leading-tight" style={{ fontFamily: "var(--font-body)", color: "oklch(0.28 0.14 145)" }}>
+                {readyRecordings.length === 1 ? "1 recording ready" : `${readyRecordings.length} recordings ready`}
               </p>
-              <p className="text-xs" style={{ fontFamily: "var(--font-body)", color: "oklch(0.40 0.10 145)" }}>
-                AI has finished processing — tap to confirm and create job
+              <p className="text-xs leading-tight" style={{ fontFamily: "var(--font-body)", color: "oklch(0.40 0.10 145)" }}>
+                Tap to review
               </p>
-            </div>
-            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "oklch(0.40 0.10 145)" }} />
-          </Link>
-        )}
+            </Link>
+          )}
 
-        {/* Record job quick action */}
-        <Link
-          href="/jobs/record"
-          className="flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-150 active:scale-[0.99]"
-          style={{ backgroundColor: "var(--primary)", boxShadow: "var(--shadow-accent)" }}
-        >
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.18)" }}>
-            <Mic className="w-4 h-4" style={{ color: "var(--primary-foreground)" }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)" }}>
+          <Link
+            href="/jobs/record"
+            className="flex flex-col justify-center gap-1.5 px-4 py-4 rounded-xl transition-all duration-150 active:scale-[0.99]"
+            style={{ backgroundColor: "var(--primary)", boxShadow: "var(--shadow-accent)" }}
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.18)" }}>
+              <Mic className="w-4 h-4" style={{ color: "var(--primary-foreground)" }} />
+            </div>
+            <p className="text-sm font-semibold leading-tight" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)" }}>
               Record job
             </p>
-            <p className="text-xs" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)", opacity: 0.75 }}>
-              AI extracts customer, job & quote from conversation
+            <p className="text-xs leading-tight" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)", opacity: 0.75 }}>
+              AI extracts details
             </p>
-          </div>
-          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--primary-foreground)", opacity: 0.6 }} />
-        </Link>
+          </Link>
+        </div>
 
         {/* Critical zone */}
         <CriticalZone overdue={overdueInvoices} />
+
+        {/* Financial overview group */}
+        <div className="space-y-3">
 
         {/* 6 stat cards */}
         <StatCards
@@ -203,13 +199,13 @@ export default async function OverviewPage({ params }: Props) {
             )}
           </div>
           <div className="px-5 pt-5 pb-4">
-            <div className="flex items-end gap-2 h-[96px]">
+            <div className="flex items-end gap-1.5 h-[112px]">
               {monthlyRevenue.map((m, i) => {
                 const pct = revenueMax > 0 ? (m.value / revenueMax) * 100 : 0
                 const isCurrent = i === monthlyRevenue.length - 1
                 const opacity = 0.2 + (i / 5) * 0.8
                 return (
-                  <div key={m.label} className="flex-1 flex flex-col items-center gap-1.5 h-full">
+                  <div key={m.label} className="flex-1 flex flex-col items-center gap-1 h-full">
                     <div className="flex-1 w-full flex items-end">
                       <div
                         className="w-full rounded-t-sm"
@@ -220,6 +216,15 @@ export default async function OverviewPage({ params }: Props) {
                         }}
                       />
                     </div>
+                    <p
+                      className="text-[9px] leading-none font-medium"
+                      style={{
+                        color: isCurrent ? "var(--primary)" : "var(--muted-foreground)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {m.value >= 1000 ? `${Math.round(m.value / 1000)}k` : m.value > 0 ? String(m.value) : "·"}
+                    </p>
                     <p
                       className="text-[10px] leading-none"
                       style={{
@@ -245,6 +250,8 @@ export default async function OverviewPage({ params }: Props) {
           </div>
         </section>
 
+        </div>{/* end financial overview group */}
+
         {/* Job pipeline */}
         {pipelineStages.length > 0 && (
           <section
@@ -269,34 +276,37 @@ export default async function OverviewPage({ params }: Props) {
               </p>
             </div>
             <div className="px-5 py-4 space-y-3">
-              {pipelineStages.map(stage => (
-                <div key={stage.key} className="flex items-center gap-3">
-                  <p
-                    className="text-xs font-medium w-[72px] shrink-0"
-                    style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
-                  >
-                    {stage.label}
-                  </p>
+              <div className="flex h-4 rounded-full overflow-hidden">
+                {pipelineStages.map((stage, idx) => (
                   <div
-                    className="flex-1 h-2 rounded-full overflow-hidden"
-                    style={{ backgroundColor: "var(--muted)" }}
-                  >
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${totalJobCount > 0 ? (stage.count / totalJobCount) * 100 : 0}%`,
-                        backgroundColor: STATUS_BAR_COLOR[stage.key],
-                      }}
-                    />
+                    key={stage.key}
+                    style={{
+                      width: `${(stage.count / totalJobCount) * 100}%`,
+                      backgroundColor: STATUS_BAR_COLOR[stage.key],
+                      marginLeft: idx > 0 ? "2px" : 0,
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-0.5">
+                {pipelineStages.map(stage => (
+                  <div key={stage.key} className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: STATUS_BAR_COLOR[stage.key] }} />
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
+                    >
+                      {stage.label}
+                    </p>
+                    <p
+                      className="text-xs font-bold"
+                      style={{ color: "var(--foreground)", fontFamily: "var(--font-mono)" }}
+                    >
+                      {stage.count}
+                    </p>
                   </div>
-                  <p
-                    className="text-xs font-bold w-5 text-right shrink-0"
-                    style={{ color: "var(--foreground)", fontFamily: "var(--font-mono)" }}
-                  >
-                    {stage.count}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}

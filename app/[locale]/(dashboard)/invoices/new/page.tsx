@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm"
 import { getCustomersByUser } from "@/lib/db/queries/customers"
 import { getQuotesByUser } from "@/lib/db/queries/quotes"
 import { getDefaultBankAccount } from "@/lib/db/queries/bank-accounts"
+import { getPricebookItemsByUser } from "@/lib/db/queries/pricebook"
 import { Topbar } from "@/components/shared/topbar"
 import { InvoiceForm } from "@/components/forms/invoice-form"
 import { Link } from "@/i18n/navigation"
@@ -35,10 +36,11 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
   const defaultJobId      = sp?.jobId
   const defaultCustomerId = sp?.customerId
 
-  const [customers, allQuotes, defaultBankAccount] = await Promise.all([
+  const [customers, allQuotes, defaultBankAccount, pricebookItems] = await Promise.all([
     getCustomersByUser(user.id),
     getQuotesByUser(user.id),
     getDefaultBankAccount(user.id),
+    getPricebookItemsByUser(user.id),
   ])
 
   const defaultBankAccountStr = defaultBankAccount
@@ -70,6 +72,7 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
         <InvoiceForm
           customers={customers}
           quotesByCustomer={quotesByCustomer}
+          pricebookItems={pricebookItems}
           defaultJobId={defaultJobId}
           defaultCustomerId={defaultCustomerId}
           defaultBankAccount={defaultBankAccountStr}

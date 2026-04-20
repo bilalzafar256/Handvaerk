@@ -9,13 +9,12 @@ import type { TimeEntry } from "@/lib/db/schema/time-entries"
 import type { Job } from "@/lib/db/schema/jobs"
 import type { Customer } from "@/lib/db/schema/customers"
 
-function formatElapsed(ms: number) {
+function formatDigital(ms: number) {
   const s = Math.floor(ms / 1000)
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
   const sec = s % 60
-  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}m`
-  return `${m.toString().padStart(2, "0")}m ${sec.toString().padStart(2, "0")}s`
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`
 }
 
 type ActiveEntry = TimeEntry & {
@@ -71,30 +70,30 @@ export function QuickTimerCard({ activeEntry, jobs }: QuickTimerCardProps) {
     return (
       <div
         className="rounded-xl border overflow-hidden"
-        style={{ backgroundColor: "var(--card)", borderColor: "oklch(0.85 0.10 58)" }}
+        style={{ backgroundColor: "oklch(0.987 0.020 58)", borderColor: "oklch(0.88 0.08 58)" }}
       >
         <div
-          className="px-4 py-3 border-b flex items-center gap-2"
-          style={{ borderColor: "oklch(0.85 0.10 58)", backgroundColor: "oklch(0.97 0.03 58)" }}
+          className="px-4 py-2.5 border-b flex items-center gap-2"
+          style={{ borderColor: "oklch(0.88 0.08 58)", backgroundColor: "oklch(0.970 0.035 58)" }}
         >
           <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "var(--primary)" }} />
           <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--primary)" }}>
             Timer running
           </p>
         </div>
-        <div className="px-4 py-3 flex items-center gap-3">
-          <Timer className="w-5 h-5 shrink-0" style={{ color: "var(--primary)" }} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
-              {activeEntry.job.title}
+        <div className="px-4 py-3.5 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p
+              className="font-bold leading-none tracking-wider"
+              style={{ fontFamily: "var(--font-mono)", color: "var(--primary)", fontSize: "2rem" }}
+            >
+              {formatDigital(elapsed)}
             </p>
-            <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
-              {activeEntry.job.customer.name}
+            <p className="text-xs mt-1.5 truncate flex items-center gap-1.5" style={{ fontFamily: "var(--font-body)", color: "oklch(0.55 0.18 58)" }}>
+              <Timer className="w-3 h-3 shrink-0" />
+              {activeEntry.job.title} · {activeEntry.job.customer.name}
             </p>
           </div>
-          <p className="text-lg font-bold shrink-0" style={{ fontFamily: "var(--font-mono)", color: "var(--primary)" }}>
-            {formatElapsed(elapsed)}
-          </p>
           <button
             onClick={handleClockOut}
             disabled={isPending}

@@ -1,22 +1,113 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "@/i18n/navigation"
 import { toast } from "sonner"
-import { FileText, ChevronDown, Check, X } from "lucide-react"
+import { FileText, ChevronDown, Check, X, BookOpen, Search } from "lucide-react"
 import { createInvoiceAction, updateInvoiceAction } from "@/lib/actions/invoices"
 import { LineItemBuilder, type LineItem } from "@/components/shared/line-item-builder"
 import type { Invoice, InvoiceItem } from "@/lib/db/schema/invoices"
 import type { Customer } from "@/lib/db/schema/customers"
 import type { Quote, QuoteItem } from "@/lib/db/schema/quotes"
+import type { PricebookItem } from "@/lib/db/schema/pricebook"
 
 type QuoteForImport = Pick<Quote, "id" | "quoteNumber" | "status"> & { items: QuoteItem[] }
+
+function PricebookPicker({
+  items,
+  onAdd,
+}: {
+  items: PricebookItem[]
+  onAdd: (item: PricebookItem) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [open])
+
+  const filtered = items.filter(i =>
+    i.isActive !== false && (
+      !query ||
+      i.name.toLowerCase().includes(query.toLowerCase()) ||
+      i.description?.toLowerCase().includes(query.toLowerCase())
+    )
+  )
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen(v => !v); setQuery("") }}
+        className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer hover:bg-[var(--accent)]"
+        style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
+      >
+        <BookOpen className="w-3.5 h-3.5" />
+        From pricebook
+      </button>
+      {open && (
+        <div
+          className="absolute z-30 right-0 mt-1 w-72 rounded-xl border overflow-hidden"
+          style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-md)" }}
+        >
+          <div className="p-2 border-b" style={{ borderColor: "var(--border)" }}>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
+              <input
+                autoFocus
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search items…"
+                className="w-full h-8 pl-7 pr-3 rounded-lg border text-sm focus:outline-none transition-colors"
+                style={{ borderColor: "var(--border)", backgroundColor: "var(--background)", fontFamily: "var(--font-body)", color: "var(--foreground)", outline: "none" }}
+              />
+            </div>
+          </div>
+          <ul className="max-h-56 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-4 text-xs text-center" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+                {items.length === 0 ? "No items in pricebook yet" : "No matches"}
+              </li>
+            ) : filtered.map(item => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => { onAdd(item); setOpen(false); setQuery("") }}
+                  className="w-full text-left px-3 py-2.5 hover:bg-[var(--accent)] transition-colors cursor-pointer flex items-start justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>{item.name}</p>
+                    {item.description && (
+                      <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>{item.description}</p>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold flex-shrink-0" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
+                    {parseFloat(item.unitPrice).toLocaleString("da-DK", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} kr
+                  </p>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface InvoiceFormProps {
   invoice?: Invoice & { items: InvoiceItem[] }
   customers: Pick<Customer, "id" | "name">[]
   /** All quotes keyed by customerId — used for the "load from quotes" picker */
   quotesByCustomer?: Record<string, QuoteForImport[]>
+  pricebookItems?: PricebookItem[]
   defaultCustomerId?: string
   defaultJobId?: string
   defaultQuoteId?: string
@@ -73,6 +164,7 @@ export function InvoiceForm({
   invoice,
   customers,
   quotesByCustomer = {},
+  pricebookItems = [],
   defaultCustomerId,
   defaultJobId,
   defaultQuoteId,
@@ -323,9 +415,30 @@ export function InvoiceForm({
 
       {/* Line items */}
       <div>
-        <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
-          Line items
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className={labelCls} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)", marginBottom: 0 }}>
+            Line items
+          </label>
+          {pricebookItems.length > 0 && (
+            <PricebookPicker
+              items={pricebookItems}
+              onAdd={item => setItems(prev => [
+                ...prev,
+                {
+                  id:            crypto.randomUUID(),
+                  itemType:      (item.itemType ?? "material") as LineItem["itemType"],
+                  description:   item.name,
+                  quantity:      "1",
+                  unitPrice:     item.unitPrice,
+                  discountType:  "",
+                  discountValue: "",
+                  vatRate:       "25.00",
+                  sortOrder:     prev.length,
+                },
+              ])}
+            />
+          )}
+        </div>
         <LineItemBuilder items={items} onChange={setItems} />
       </div>
 

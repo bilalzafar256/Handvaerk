@@ -14,13 +14,13 @@ function timeAgo(ts: Date): string {
   return `${days} days ago`
 }
 
-const ICON_MAP: Record<ActivityEvent["type"], React.ElementType> = {
-  invoice_sent:    Send,
-  invoice_paid:    CreditCard,
-  job_done:        CheckSquare,
-  customer_added:  UserPlus,
-  quote_sent:      FileText,
-  quote_accepted:  ThumbsUp,
+const ICON_CONFIG: Record<ActivityEvent["type"], { Icon: React.ElementType; bg: string; color: string }> = {
+  invoice_sent:   { Icon: Send,        bg: "oklch(0.93 0.04 240)", color: "oklch(0.45 0.16 240)" },
+  invoice_paid:   { Icon: CreditCard,  bg: "oklch(0.93 0.06 145)", color: "oklch(0.45 0.14 145)" },
+  job_done:       { Icon: CheckSquare, bg: "oklch(0.93 0.04 290)", color: "oklch(0.45 0.12 290)" },
+  customer_added: { Icon: UserPlus,    bg: "oklch(0.93 0.04 200)", color: "oklch(0.45 0.16 200)" },
+  quote_sent:     { Icon: FileText,    bg: "oklch(0.97 0.04 58)",  color: "oklch(0.60 0.18 58)" },
+  quote_accepted: { Icon: ThumbsUp,    bg: "oklch(0.93 0.06 145)", color: "oklch(0.52 0.14 145)" },
 }
 
 export function ActivityFeed({ items }: { items: ActivityEvent[] }) {
@@ -46,14 +46,14 @@ export function ActivityFeed({ items }: { items: ActivityEvent[] }) {
       ) : (
         <div className="flex flex-col gap-3">
           {items.map((item) => {
-            const Icon = ICON_MAP[item.type]
+            const { Icon, bg, color } = ICON_CONFIG[item.type]
             return (
               <div key={item.id} className="flex items-start gap-3">
                 <div
                   className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center mt-0.5"
-                  style={{ backgroundColor: "var(--muted)" }}
+                  style={{ backgroundColor: bg }}
                 >
-                  <Icon className="w-3.5 h-3.5" style={{ color: "var(--text-secondary)" }} />
+                  <Icon className="w-3.5 h-3.5" style={{ color }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p

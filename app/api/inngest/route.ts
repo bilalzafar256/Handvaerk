@@ -5,8 +5,9 @@ import { invoiceReminder } from "@/lib/inngest/invoice-reminder"
 import { processJobRecording } from "@/lib/inngest/process-job-recording"
 import { markOverdueInvoicesCron } from "@/lib/inngest/overdue-invoices"
 import { hardDeleteUser } from "@/lib/inngest/user-deletion"
+import { quoteFollowup } from "@/lib/inngest/quote-followup"
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [helloWorld, invoiceReminder, processJobRecording, markOverdueInvoicesCron, hardDeleteUser],
+  functions: [helloWorld, invoiceReminder, processJobRecording, markOverdueInvoicesCron, hardDeleteUser, quoteFollowup],
 })
