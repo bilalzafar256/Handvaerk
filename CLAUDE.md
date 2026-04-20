@@ -25,6 +25,8 @@ Web App, Mobile-first SaaS for Danish tradespeople. Next.js 15 / Neon / Drizzle 
 | Bugs, debt, gotchas, gaps | `project-context/context/KNOWN_ISSUES.md` |
 | Feature specs + phase tracking | `project-context/features/FEATURES.md` |
 | Skills (Drizzle, Clerk, etc.) | `project-context/skills/` |
+| Work to do | `project-context/WORK_TO_DO.md` |
+| Roadmap | `project-context/roadmap/*.md` |
 
 ---
 

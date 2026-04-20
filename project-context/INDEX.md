@@ -52,7 +52,8 @@
 | File uploads | `project-context/skills/BLOB_SKILL.md` |
 | Animations / motion | `design/UI_DESIGN_SYSTEM.md` + `project-context/skills/MOTION_SKILL.md` |
 | Debugging / incidents | `context/KNOWN_ISSUES.md` → `architecture/OVERVIEW.md` |
-| Roadmap | `context/KNOWN_ISSUES.md` → `architecture/OVERVIEW.md` |
+| Roadmap | `roadmap/COMPETITIVE_ANALYSIS.md` + `roadmap/DANISH_INTEGRATIONS_CHECKLIST.md` + `roadmap/RISKS.md` +`roadmap/RISKS.md` + |
+| Work to do / Project progress  | `WORK_TO_DO.md` |
 
 ---
 

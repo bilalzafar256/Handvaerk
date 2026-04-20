@@ -162,10 +162,10 @@
 | ML-05 | MobilePay application (admin) | MVP Launch | S | Payment method | — | Yes |
 | ML-06 | KLS compliance module | MVP Launch | L | VVS/electrical legal req | PL-12 | Yes |
 | ML-07 | Flat-rate pricebook | MVP Launch | M | Reduce quote friction | — | No |
-| ML-08 | Time tracking per job | MVP Launch | M | Competitor parity | — | No |
+| ML-08 | Time tracking per job | MVP Launch | M | Competitor parity — every direct competitor has this; critical gap | — | No |
 | ML-09 | Sentry error tracking | MVP Launch | S | Production visibility | PL-15 | No |
 | ML-10 | Trustpilot.dk profile | MVP Launch | S | Social proof | — | Yes |
-| RT-01 | e-conomic integration | Retention | L | Accountant demand | — | Yes |
+| RT-01 | e-conomic integration | Retention | L | Accountant demand — procurement blocker for buyers with existing e-conomic setup | — | Yes |
 | RT-02 | Auto Google review request | Retention | S | Passive reputation | ML-10 | No |
 | RT-03 | SMS notifications | Retention | M | Preferred DK channel | — | Yes |
 | RT-04 | Job profitability tracking | Retention | M | Core business insight | ML-01 | No |

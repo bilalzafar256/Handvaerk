@@ -25,8 +25,10 @@
 | 12 | Dashboard & Tier Gates | 8 | 3 | 4 | 1 |
 | 13 | Compliance Pre-GoLive | 11 | 0 | 0 | 11 |
 | 14 | Growth, Retention & Compliance | 10 | 0 | 0 | 10 |
+| 15 | Time Tracking | 9 | 0 | 0 | 9 |
+| 16 | E-conomic Integration | 8 | 0 | 0 | 8 |
 
-**Overall:** ~97 complete / ~136 total · Phases 0–8, 10 shipped · Phases 9, 13, 14 not started
+**Overall:** ~97 complete / ~153 total · Phases 0–8, 10 shipped · Phases 9, 13, 14, 15, 16 not started
 
 ---
 
@@ -332,6 +334,49 @@
 | Supplier price list integration | Requires supplier API agreements (KlarPris-style) | 8+ |
 | Accountant portal | Separate auth flow; high-value retention but post-launch | 8+ |
 | Team features (Hold tier) | Multi-user, job assignment, team dashboard; build single-user first | 8+ |
+
+---
+
+---
+
+## PHASE 15 — Time Tracking
+
+→ Detailed: `project-context/WORK_TO_DO.md` (Phase 31)
+→ Schema: new `time_entries` table — see WORK_TO_DO.md for columns
+
+**Competitive context:** Direct gap vs Minuba, Apacta, Ordrestyring.dk — all have time tracking. Required for tradespeople who charge by the hour and need to log on-site time from mobile.
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-3100 | Time entries DB schema | `[ ]` | `N/A` | New table + migration |
+| F-3101 | Clock in/out on job detail | `[ ]` | `[ ]` | Mobile-first; stores startedAt, computes duration on stop |
+| F-3102 | Manual time entry form | `[ ]` | `[ ]` | Date, hours, minutes, description, billable toggle |
+| F-3103 | Time log list per job | `[ ]` | `[ ]` | Expandable panel; total hours shown |
+| F-3104 | Weekly timesheet view | `[ ]` | `[ ]` | `/time-tracking` route; all jobs this week, total per day |
+| F-3105 | Convert billable hours → invoice line item | `[ ]` | `[ ]` | 1-click: sum hours × hourly rate → labour line item |
+| F-3106 | Billable vs non-billable toggle | `[ ]` | `[ ]` | Only billable hours included in line item calculation |
+| F-3107 | Time summary per customer (reporting) | `[ ]` | `[ ]` | Feeds into customer report (Phase 9) |
+| F-3108 | Free tier gate: 50 entries max | `[ ]` | `[ ]` | Gate at action level; prompt to upgrade |
+
+---
+
+## PHASE 16 — E-conomic / Accounting Integration
+
+→ Detailed: `project-context/WORK_TO_DO.md` (Phase 32)
+→ Schema changes: `users`, `invoices`, `customers`, `expenses` — see WORK_TO_DO.md for columns
+
+**Competitive context:** Direct gap vs Minuba and Apacta — both integrate with e-conomic. Without this, any buyer whose accountant uses e-conomic faces a procurement blocker. One-way sync only (Håndværk Pro → e-conomic).
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-3200 | E-conomic OAuth connection flow | `[ ]` | `[ ]` | Profile settings; OAuth2 redirect + callback |
+| F-3201 | Store + refresh OAuth tokens | `[ ]` | `N/A` | Tokens encrypted at rest; auto-refresh |
+| F-3202 | Sync invoices to e-conomic | `[ ]` | `[ ]` | Auto on "paid"; manual trigger on invoice detail |
+| F-3203 | Sync customers to e-conomic | `[ ]` | `[ ]` | Auto on create/update via Inngest |
+| F-3204 | Sync expenses to e-conomic | `[ ]` | `[ ]` | Auto on create via Inngest |
+| F-3205 | Connection status in profile settings | `[ ]` | `[ ]` | Connected / disconnected indicator + disconnect button |
+| F-3206 | Sync status badges on list pages | `[ ]` | `[ ]` | "synced" / "error" badge on invoice + customer rows |
+| F-3207 | Sync error handling + retry | `[ ]` | `N/A` | Inngest: 3 retries, exponential backoff; error stored on record |
 
 ---
 
