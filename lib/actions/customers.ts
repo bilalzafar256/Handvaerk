@@ -41,6 +41,14 @@ async function applyRateLimit(clerkId: string) {
   }
 }
 
+async function applyStrictRateLimit(clerkId: string) {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { strictRateLimiter } = await import("@/lib/upstash")
+    const { success } = await strictRateLimiter.limit(clerkId)
+    if (!success) throw new Error("Too many requests. Please wait before trying again.")
+  }
+}
+
 export async function createCustomerAction(data: CustomerFormData) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
@@ -96,7 +104,7 @@ export async function deleteCustomerAction(id: string) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
-  await applyRateLimit(clerkId)
+  await applyStrictRateLimit(clerkId)
 
   const userId = await getDbUserId(clerkId)
   if (!userId) throw new Error("User not found")

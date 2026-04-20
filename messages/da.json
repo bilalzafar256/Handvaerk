@@ -528,5 +528,16 @@
     "errJobTitleRequired": "",
     "dashboardCta": "",
     "dashboardCtaSub": ""
+  },
+  "CookieConsent": {
+    "title": "",
+    "description": "",
+    "privacyLink": "",
+    "accept": "",
+    "decline": ""
+  },
+  "Legal": {
+    "privacyTitle": "",
+    "termsTitle": ""
   }
 }

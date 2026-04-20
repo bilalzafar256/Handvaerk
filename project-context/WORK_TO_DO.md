@@ -8,10 +8,10 @@
 
 | Status | Count | Notes |
 |---|---|---|
-| Phases fully shipped | 0–8, 10 | Core job lifecycle complete |
+| Phases fully shipped | 1, 2, 4, 7, 8 | Bug fixes, dashboard, onboarding, compliance, GDPR |
 | Partially shipped | 11, 12 | AI pipeline + dashboard — backend done, FE stubs remain |
 | Not started | 9, 13, 14 | Reporting, compliance, growth |
-| Active known issues | 15 | See Phase 1 — must clear before building new features |
+| Active known issues | 4 | KI-005 (pending), KI-009 (needs drizzle run), KI-011 (email domain), KI-012 (deferred Phase 3) |
 
 **Core feature coverage:** Customer → Job → Quote → Invoice → Email → AI recording. The foundation is solid. Everything ahead is polish, intelligence, compliance, and growth.
 
@@ -62,42 +62,16 @@
 
 **Rules:** Fix bugs surgically. Don't refactor surrounding code. Don't introduce new abstractions.
 
-### Critical / Security
+### Remaining (4 open)
 
-| Issue | File | Fix |
+| Issue | File | Status |
 |---|---|---|
-| KI-001: `NEXT_PUBLIC_APP_URL` missing from `.env.example` | `lib/actions/quotes.ts:252` | Add `NEXT_PUBLIC_APP_URL=https://your-domain.com` to `.env.example` and `.env.local` |
-| KI-002: User deletion webhook incomplete | `app/api/webhooks/clerk/route.ts:48` | On `user.deleted`: cascade soft-delete all user data (customers, jobs, quotes, invoices, photos). Schedule hard-delete via Inngest after 30 days |
-| KI-003: Photo deletion doesn't clean Vercel Blob | `lib/actions/jobs.ts:176` | Call `del(photo.fileUrl)` from `@vercel/blob` before removing DB row in `deleteJobPhotoAction` |
+| KI-005: Job number format `"1"` instead of `JOB-0001` | `lib/actions/jobs.ts:67` | Pending — existing records stay as plain integers |
+| KI-009: Missing DB migration snapshots 0005–0010 | `drizzle/migrations/meta/` | Needs `npx drizzle-kit generate` run by developer |
+| KI-011: EMAIL_FROM uses sandbox domain | `lib/email/client.ts:4` | Needs Resend custom domain verification |
+| KI-012: No CI/CD pipeline | — | Deferred to Phase 3 |
 
-### Data / Logic
-
-| Issue | File | Fix |
-|---|---|---|
-| KI-004: Tier limit constant mismatch (3 vs 10) | `lib/utils/tier.ts:4`, `lib/actions/jobs.ts:21` | Set `TIER_LIMITS.free.activeJobs = 10` in `tier.ts`; use `TIER_LIMITS` constant in action, delete `FREE_TIER_JOB_LIMIT` |
-| KI-005: Job number format `"1"` instead of `JOB-0001` | `lib/actions/jobs.ts:67` | Change to `JOB-${String(total + 1).padStart(4, "0")}` per-user |
-| KI-006: `paymentTermsDays` inconsistency (14 vs 15) | `lib/actions/invoices.ts` | Standardise all three invoice creation paths to `paymentTermsDays: 14` |
-| KI-007: Overdue detection is manual-only | `lib/actions/invoices.ts:573` | Add Inngest cron scheduled function: daily scan, mark invoices overdue when `due_date < today` and status is `sent` or `viewed` |
-| KI-008: `strictRateLimiter` unused | `lib/upstash/index.ts` | Audit all Server Actions — wire `strictRateLimiter` to mutation-heavy actions; wire `aiRateLimiter` to all AI actions |
-
-### Infrastructure
-
-| Issue | File | Fix |
-|---|---|---|
-| KI-009: Missing DB migration snapshots 0005–0010 | `drizzle/migrations/meta/` | Regenerate snapshots: review existing schema and run `npx drizzle-kit generate` against current DB to produce a clean baseline |
-| KI-010: Inngest function registration | `lib/inngest/functions.ts` | Verify `processJobRecording` and `invoiceReminder` are imported and served in `app/api/inngest/route.ts` |
-| KI-011: EMAIL_FROM uses sandbox domain | `lib/email/client.ts:4` | Verify a custom domain in Resend; update `EMAIL_FROM` to `Håndværk Pro <no-reply@yourdomain.com>` |
-| KI-012: No CI/CD pipeline | — | Defer to Phase 3 |
-
-### UX / Frontend
-
-| Issue | File | Fix |
-|---|---|---|
-| KI-013: Dashboard stat cards show stub data | `components/dashboard/stat-cards.tsx` | Defer to Phase 2 |
-| KI-014: "Owes money" badge stubbed at 0 | `components/customers/` | Wire to `getOutstandingByCustomer()` query from `overview.ts` |
-| KI-015: AIFF audio maps to wrong extension | `lib/ai/operations/extract-job-from-audio.ts:57` | Add `mimeType.includes("aiff") ? "aiff" :` before the `webm` fallback |
-
-**Success criteria:** All 15 issues resolved. No grep hits for stub data values. Blob cleanup confirmed in Vercel dashboard.
+**Resolved (11/15):** KI-001, KI-002, KI-003, KI-004, KI-006, KI-007, KI-008, KI-010, KI-013, KI-014, KI-015
 
 ---
 
@@ -836,4 +810,4 @@ These will not be built regardless of timeline:
 
 ---
 
-*Last updated: 2026-04-20 — Added Phase 31 (Time Tracking) and Phase 32 (E-conomic Integration) based on competitive gap analysis vs Minuba/Apacta/Ordrestyring.*
+*Last updated: 2026-04-20 — Phase 2 complete: dashboard fully wired with live data + loading skeleton added. Phase 1: 11/15 bugs resolved, 4 remain open (KI-005, KI-009, KI-011, KI-012).*

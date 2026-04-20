@@ -2,8 +2,8 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { users, jobPhotos } from "@/lib/db/schema"
+import { eq, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -16,8 +16,7 @@ import {
   addJobPhoto,
   deleteJobPhoto,
 } from "@/lib/db/queries/jobs"
-
-const FREE_TIER_JOB_LIMIT = 10
+import { TIER_LIMITS } from "@/lib/utils/tier"
 
 const jobSchema = z.object({
   customerId:    z.string().uuid("Invalid customer"),
@@ -44,6 +43,14 @@ async function applyRateLimit(clerkId: string) {
   }
 }
 
+async function applyStrictRateLimit(clerkId: string) {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { strictRateLimiter } = await import("@/lib/upstash")
+    const { success } = await strictRateLimiter.limit(clerkId)
+    if (!success) throw new Error("Too many requests. Please wait before trying again.")
+  }
+}
+
 export async function createJobAction(data: JobFormData) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
@@ -55,11 +62,11 @@ export async function createJobAction(data: JobFormData) {
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
 
-  // F-307: free tier gate — max 10 active jobs
+  // F-307: free tier gate
   if (user.tier === "free") {
     const activeCount = await countActiveJobs(user.id)
-    if (activeCount >= FREE_TIER_JOB_LIMIT) {
-      throw new Error(`Free tier is limited to ${FREE_TIER_JOB_LIMIT} active jobs.`)
+    if (activeCount >= TIER_LIMITS.free.activeJobs) {
+      throw new Error(`Free tier is limited to ${TIER_LIMITS.free.activeJobs} active jobs.`)
     }
   }
 
@@ -150,7 +157,7 @@ export async function deleteJobAction(id: string) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
-  await applyRateLimit(clerkId)
+  await applyStrictRateLimit(clerkId)
 
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
@@ -177,6 +184,16 @@ export async function deleteJobPhotoAction(photoId: string, jobId: string) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
+  const photo = await db.query.jobPhotos.findFirst({
+    where: and(eq(jobPhotos.id, photoId), eq(jobPhotos.jobId, jobId)),
+  })
+
   await deleteJobPhoto(photoId, jobId)
+
+  if (photo?.fileUrl) {
+    const { del } = await import("@vercel/blob")
+    await del(photo.fileUrl)
+  }
+
   revalidatePath(`/jobs/${jobId}`)
 }

@@ -528,5 +528,16 @@
     "errJobTitleRequired": "Job title is required",
     "dashboardCta": "Record job",
     "dashboardCtaSub": "AI extracts customer, job & quote from conversation"
+  },
+  "CookieConsent": {
+    "title": "We use analytics cookies",
+    "description": "We use PostHog to improve the product. No advertising. No selling of data.",
+    "privacyLink": "Privacy policy",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
+  "Legal": {
+    "privacyTitle": "Privacy Policy",
+    "termsTitle": "Terms of Service"
   }
 }

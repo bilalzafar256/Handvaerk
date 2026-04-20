@@ -8,6 +8,7 @@ import { Bricolage_Grotesque, DM_Sans, JetBrains_Mono } from "next/font/google"
 import { routing } from "@/i18n/routing"
 import { Toaster } from "@/components/ui/sonner"
 import { AnalyticsProvider } from "@/components/shared/analytics-provider"
+import { CookieConsent } from "@/components/shared/cookie-consent"
 import "@/app/globals.css"
 
 const bricolage = Bricolage_Grotesque({
@@ -65,6 +66,7 @@ export default async function LocaleLayout({ children, params }: Props) {
               {children}
             </AnalyticsProvider>
             <Toaster position="top-center" />
+            <CookieConsent />
             <Analytics />
           </NextIntlClientProvider>
         </body>

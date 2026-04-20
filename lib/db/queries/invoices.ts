@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import { invoices, invoiceItems } from "@/lib/db/schema"
-import { eq, and, isNull, desc, count, lt, ne, isNotNull, sum } from "drizzle-orm"
+import { eq, and, isNull, desc, count, lt, ne, isNotNull, sum, inArray } from "drizzle-orm"
 import type { NewInvoice, NewInvoiceItem } from "@/lib/db/schema/invoices"
 
 export async function getInvoicesByUser(userId: string) {
@@ -84,6 +84,22 @@ export async function markOverdueInvoices(userId: string) {
         isNull(invoices.paidAt),
         isNull(invoices.deletedAt),
         lt(invoices.dueDate, today)
+      )
+    )
+}
+
+// Cron: mark overdue for ALL users (sent or viewed, past due date)
+export async function markAllOverdueInvoices() {
+  const today = new Date().toISOString().split("T")[0]
+  await db
+    .update(invoices)
+    .set({ status: "overdue", updatedAt: new Date() })
+    .where(
+      and(
+        isNull(invoices.paidAt),
+        isNull(invoices.deletedAt),
+        lt(invoices.dueDate, today),
+        inArray(invoices.status, ["sent", "viewed"])
       )
     )
 }

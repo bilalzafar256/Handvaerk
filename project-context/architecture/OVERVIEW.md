@@ -12,7 +12,7 @@ Browser / Mobile PWA
        │         │
        │         ├── Server Components → Drizzle → Neon (PostgreSQL)
        │         ├── Server Actions → Drizzle → Neon
-       │         ├── Clerk middleware (auth + i18n routing)
+       │         ├── proxy.ts (root) — Clerk auth + next-intl i18n routing (named proxy.ts, not middleware.ts)
        │         └── API routes
        │                   ├── /api/webhooks/clerk  → users table sync
        │                   ├── /api/inngest          → Inngest function receiver
@@ -34,7 +34,7 @@ Browser / Mobile PWA
               ├── Inngest (background job orchestration)
               │      ├── invoice-reminder (8d + 7d after sent)
               │      └── process-job-recording (5-step audio pipeline)
-              ├── Resend (transactional email — 6 templates)
+              ├── Resend (transactional email — 7 templates)
               ├── Groq API (Whisper transcription + LLaMA extraction)
               ├── Google Gemini Flash (AI fallback — currently unused in pipeline)
               ├── PostHog (analytics)

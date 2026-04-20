@@ -2,7 +2,7 @@ export type Tier = "free" | "solo" | "hold"
 
 export const TIER_LIMITS = {
   free: {
-    activeJobs: 3,
+    activeJobs: 10,
   },
   solo: {
     activeJobs: Infinity,
