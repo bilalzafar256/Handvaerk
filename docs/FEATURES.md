@@ -443,10 +443,10 @@ CREATE INDEX idx_expenses_user_date ON expenses(user_id, expense_date);
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-1000 | Quote accepted → thank-you email to customer | `[ ]` | `N/A` | Triggered by customer accept action on shareable quote link; Resend template |
-| F-1001 | Quote rejected → "help us improve" email | `[ ]` | `N/A` | Triggered by customer reject action; email asks for feedback |
-| F-1002 | Invoice paid → thank-you email + review request | `[ ]` | `N/A` | Triggered on "Mark as paid"; includes Google review link if configured |
-| F-1003 | Google review URL on profile | `[ ]` | `[ ]` | New `google_review_url` field on users table; input on profile page |
+| F-1000 | Quote accepted → thank-you email to customer | `[x]` | `N/A` | Triggered by acceptQuoteByTokenAction; Resend template |
+| F-1001 | Quote rejected → "help us improve" email | `[x]` | `N/A` | Triggered by rejectQuoteByTokenAction; Resend template |
+| F-1002 | Invoice paid → thank-you email + review request | `[x]` | `N/A` | Triggered on markInvoicePaidAction; includes google_review_url if set |
+| F-1003 | Google review URL on profile | `[x]` | `[x]` | google_review_url on users table; components/profile/google-review-section.tsx |
 
 ### DB Schema changes
 ```sql
@@ -463,12 +463,12 @@ ALTER TABLE users ADD COLUMN google_review_url text;
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
 | F-1100 | Photo → Quote draft | `[ ]` | `[ ]` | Snap photo of problem on site → Claude Vision identifies issue → matches materials catalog + past quotes → pre-fills editable draft quote with line items + quantities |
-| F-1101 | Job site recording → full job record | `[ ]` | `[ ]` | Record 1–3 min on-site conversation → AI transcribes + extracts: customer name, scope, materials, date, notes, draft quote line items → creates full job record in one tap |
+| F-1101 | Job site recording → full job record | `[x]` | `[x]` | Voice recorder + file upload (MP3/WAV/M4A/WebM/OGG/AIFF) → Groq Whisper transcription → LLaMA 3.3 70b extraction → job record created; Inngest background pipeline; migration 0009 |
 | F-1102 | Dynamic pricing intelligence | `[ ]` | `[ ]` | Analyses user's own quote/invoice history → suggests price for new quote: "Your last 4 bathroom jobs averaged 28.500 kr. Materials up 11%. Suggested: 31.900 kr." |
 | F-1103 | Customer risk profiling | `[ ]` | `[ ]` | Non-blocking hint on job/invoice creation: "Lars Nielsen — 2 of 3 invoices paid late (avg 23 days). Consider requesting 30% deposit." Derived from payment history |
 | F-1104 | Auto job handover report | `[ ]` | `[ ]` | After job marked done: AI uses notes + photos → generates professional PDF handover doc (before/after photos, work description, materials, warranty statement) for customer |
 | F-1105 | Cash flow forecast | `[ ]` | `[ ]` | Based on outstanding quotes, scheduled jobs, and historical payment timing → 30/60/90 day revenue projection shown as dashboard card |
-| F-1106 | CVR smart lookup | `[ ]` | `[ ]` | Type company name in customer form → fuzzy-match against CVR.dk API → auto-fill company name, address, CVR. No manual lookup needed |
+| F-1106 | CVR smart lookup | `[x]` | `[x]` | Debounced fetch to cvrapi.dk proxy (app/api/cvr/route.ts) → suggestion banner auto-fills name, CVR, address on select. Works in CustomerForm + CompanyProfileForm |
 | F-1107 | AI response drafts | `[ ]` | `[ ]` | When quote unseen for 7+ days or customer note has complaint tone → AI drafts professional Danish follow-up matching user's past tone. User reviews + sends |
 | F-1108 | Job clustering & insights | `[ ]` | `[ ]` | Auto-tag jobs by type/season/revenue. Dashboard insight card: "Bathroom renovations: avg 3.1 days, avg 24.200 kr — your most profitable job type" |
 

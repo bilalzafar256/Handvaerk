@@ -194,6 +194,42 @@ export async function getStatCardData(userId: string) {
 
 export type StatCardData = Awaited<ReturnType<typeof getStatCardData>>
 
+// ── Monthly revenue (last 6 months) ───────────────────────────────────────────
+
+export async function getMonthlyRevenue(userId: string) {
+  const now = new Date()
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+    return {
+      label: d.toLocaleString("en-GB", { month: "short" }),
+      start: d,
+      end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999),
+    }
+  })
+
+  const rows = await Promise.all(
+    months.map(({ start, end }) =>
+      db
+        .select({ total: sum(invoices.totalInclVat) })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.userId, userId),
+            isNull(invoices.deletedAt),
+            eq(invoices.status, "paid"),
+            gte(invoices.paidAt, start),
+            lt(invoices.paidAt, end)
+          )
+        )
+    )
+  )
+
+  return months.map((m, i) => ({
+    label: m.label,
+    value: parseFloat(rows[i][0]?.total ?? "0") || 0,
+  }))
+}
+
 // ── Critical zone ─────────────────────────────────────────────────────────────
 
 export async function getOverdueInvoices(userId: string) {
