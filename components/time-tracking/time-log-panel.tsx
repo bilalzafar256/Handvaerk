@@ -22,8 +22,13 @@ interface TimeEntryWithRefs extends TimeEntry {
   billedToInvoice?: { invoiceNumber: string } | null
 }
 
+const CLOSED_JOB_STATUSES = ["done", "invoiced", "paid"]
+const BLOCKED_QUOTE_STATUSES = ["rejected", "expired"]
+const BLOCKED_INVOICE_STATUSES = ["paid"]
+
 interface TimeLogPanelProps {
   jobId: string
+  jobStatus: string
   entries: TimeEntryWithRefs[]
   activeEntry: TimeEntry | null
   isThisJobActive: boolean
@@ -35,6 +40,7 @@ interface TimeLogPanelProps {
 
 export function TimeLogPanel({
   jobId,
+  jobStatus,
   entries,
   activeEntry,
   isThisJobActive,
@@ -46,8 +52,12 @@ export function TimeLogPanel({
   const [showManualForm, setShowManualForm] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
 
+  const isJobClosed = CLOSED_JOB_STATUSES.includes(jobStatus)
+  const eligibleQuotes = quotes.filter(q => !BLOCKED_QUOTE_STATUSES.includes(q.status ?? ""))
+  const eligibleInvoices = invoices.filter(inv => !BLOCKED_INVOICE_STATUSES.includes(inv.status ?? ""))
+
   const hasBillableHours = billingStatus.totalBillableMinutes > 0
-  const hasDocuments = quotes.length > 0 || invoices.length > 0
+  const hasDocuments = eligibleQuotes.length > 0 || eligibleInvoices.length > 0
 
   return (
     <div
@@ -66,19 +76,21 @@ export function TimeLogPanel({
         >
           Time tracking
         </p>
-        <button
-          onClick={() => setShowManualForm(s => !s)}
-          className="flex items-center gap-1 h-6 px-2 rounded-md text-xs border transition-colors"
-          style={{
-            fontFamily: "var(--font-body)",
-            borderColor: "var(--border)",
-            color: "var(--muted-foreground)",
-            backgroundColor: showManualForm ? "var(--accent)" : "transparent",
-          }}
-        >
-          <Plus className="w-3 h-3" />
-          Manual
-        </button>
+        {!isJobClosed && (
+          <button
+            onClick={() => setShowManualForm(s => !s)}
+            className="flex items-center gap-1 h-6 px-2 rounded-md text-xs border transition-colors"
+            style={{
+              fontFamily: "var(--font-body)",
+              borderColor: "var(--border)",
+              color: "var(--muted-foreground)",
+              backgroundColor: showManualForm ? "var(--accent)" : "transparent",
+            }}
+          >
+            <Plus className="w-3 h-3" />
+            Manual
+          </button>
+        )}
       </div>
 
       <div className="px-4 py-3 space-y-3" style={{ backgroundColor: "var(--card)" }}>
@@ -87,6 +99,7 @@ export function TimeLogPanel({
           jobId={jobId}
           activeEntry={activeEntry}
           isThisJobActive={isThisJobActive}
+          jobStatus={jobStatus}
         />
 
         {/* Manual entry form */}
@@ -132,8 +145,8 @@ export function TimeLogPanel({
       {showAddModal && (
         <AddToDocumentModal
           jobId={jobId}
-          quotes={quotes}
-          invoices={invoices}
+          quotes={eligibleQuotes}
+          invoices={eligibleInvoices}
           billingStatus={billingStatus}
           onClose={() => setShowAddModal(false)}
         />

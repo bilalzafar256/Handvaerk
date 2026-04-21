@@ -348,15 +348,20 @@
 
 | # | Feature | BE | FE | Notes |
 |---|---|---|---|---|
-| F-3100 | Time entries DB schema | `[ ]` | `N/A` | New table + migration |
-| F-3101 | Clock in/out on job detail | `[ ]` | `[ ]` | Mobile-first; stores startedAt, computes duration on stop |
-| F-3102 | Manual time entry form | `[ ]` | `[ ]` | Date, hours, minutes, description, billable toggle |
-| F-3103 | Time log list per job | `[ ]` | `[ ]` | Expandable panel; total hours shown |
-| F-3104 | Weekly timesheet view | `[ ]` | `[ ]` | `/time-tracking` route; all jobs this week, total per day |
-| F-3105 | Convert billable hours → invoice line item | `[ ]` | `[ ]` | 1-click: sum hours × hourly rate → labour line item |
-| F-3106 | Billable vs non-billable toggle | `[ ]` | `[ ]` | Only billable hours included in line item calculation |
-| F-3107 | Time summary per customer (reporting) | `[ ]` | `[ ]` | Feeds into customer report (Phase 9) |
-| F-3108 | Free tier gate: 50 entries max | `[ ]` | `[ ]` | Gate at action level; prompt to upgrade |
+| F-3100 | Time entries DB schema | `[x]` | `N/A` | `lib/db/schema/time-entries.ts` — migration 0012 |
+| F-3101 | Clock in/out on job detail | `[x]` | `[x]` | `ClockPanel` + `clockInAction` / `clockOutAction` |
+| F-3102 | Manual time entry form | `[x]` | `[x]` | `ManualEntryForm` + `createManualEntryAction` |
+| F-3103 | Time log list per job | `[x]` | `[x]` | `TimeEntryList` + `TimeLogPanel` on job detail page |
+| F-3104 | Weekly timesheet view | `[x]` | `[x]` | `/time-tracking` route + `WeeklyTimesheet` with week nav |
+| F-3105 | Convert billable hours → invoice line item | `[x]` | `[x]` | `addBillableHoursToLineItemAction` + `AddToDocumentModal` |
+| F-3106 | Billable vs non-billable toggle | `[x]` | `[x]` | `isBillable` field in form + filter in billing queries |
+| F-3107 | Time summary per customer (reporting) | `[-]` | `[-]` | Deferred — feeds into customer report (Phase 9) |
+| F-3108 | Free tier gate: 50 entries max | `[x]` | `[x]` | `countTimeEntries` checked in `clockInAction` |
+| F-3109 | Clock button on jobs list | `[x]` | `[x]` | Play/Stop inline on `JobRow` + `JobCard` |
+| F-3110 | QuickTimerCard on dashboard | `[x]` | `[x]` | `components/dashboard/quick-timer-card.tsx` |
+| F-3111 | Already-billed safety indicator | `[x]` | `[x]` | `billedToQuoteId`/`billedToInvoiceId` + warning badge in modal |
+| F-3112 | Status-based access control | `[x]` | `[x]` | Clock-in/manual entry blocked for done/invoiced/paid jobs; add-to-document blocked for rejected/expired quotes and paid invoices |
+| F-3113 | Enhanced `/time-tracking` page | `[x]` | `[x]` | Timer zone, summary bar, month calendar, expandable timesheet, inline entry edit, per-day log with job selector, unbilled nudge |
 
 ---
 

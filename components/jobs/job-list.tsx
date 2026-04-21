@@ -18,6 +18,7 @@ import type { Customer } from "@/lib/db/schema/customers"
 
 type JobWithCustomer = Job & { customer: Customer }
 type Status = "new" | "scheduled" | "in_progress" | "done" | "invoiced" | "paid"
+const CLOSED_JOB_STATUSES: Status[] = ["done", "invoiced", "paid"]
 
 const STATUS_COLORS: Record<Status, string> = {
   new:         "var(--status-new-text)",
@@ -315,7 +316,7 @@ function JobRow({ job, index, activeJobId, activeEntryId }: { job: JobWithCustom
 
       {/* Inline actions — always visible, outside Link */}
       <div className="flex items-center gap-1.5 pr-3 self-center flex-shrink-0">
-        {!someOtherActive && (
+        {!someOtherActive && (isThisActive || !CLOSED_JOB_STATUSES.includes(status)) && (
           <button
             onClick={handleTimer}
             disabled={timerPending}
@@ -450,7 +451,7 @@ function JobCard({ job, index, activeJobId, activeEntryId }: { job: JobWithCusto
 
         {/* Inline actions — always visible */}
         <div className="flex items-center gap-1.5 px-3 pb-3 border-t pt-2" style={{ borderColor: "var(--border)" }}>
-          {!someOtherActive && (
+          {!someOtherActive && (isThisActive || !CLOSED_JOB_STATUSES.includes(status)) && (
             <button
               onClick={handleTimer}
               disabled={timerPending}

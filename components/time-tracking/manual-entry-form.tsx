@@ -16,23 +16,35 @@ const inputCls = `
   transition-colors duration-150 text-sm
 `
 
+interface JobOption {
+  id: string
+  title: string
+  customer: { name: string }
+}
+
 interface ManualEntryFormProps {
-  jobId: string
+  jobId?: string
+  jobs?: JobOption[]
+  defaultDate?: string
   onClose: () => void
 }
 
-export function ManualEntryForm({ jobId, onClose }: ManualEntryFormProps) {
+export function ManualEntryForm({ jobId: jobIdProp, jobs, defaultDate, onClose }: ManualEntryFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const today = new Date().toISOString().split("T")[0]
+  const today = defaultDate ?? new Date().toISOString().split("T")[0]
+  const [selectedJobId, setSelectedJobId] = useState(jobIdProp ?? jobs?.[0]?.id ?? "")
   const [date, setDate] = useState(today)
   const [startTime, setStartTime] = useState("08:00")
   const [endTime, setEndTime] = useState("09:00")
   const [description, setDescription] = useState("")
   const [isBillable, setIsBillable] = useState(true)
 
+  const jobId = jobIdProp ?? selectedJobId
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!jobId) return
     startTransition(async () => {
       try {
         await createManualEntryAction({ jobId, date, startTime, endTime, description, isBillable })
@@ -64,6 +76,23 @@ export function ManualEntryForm({ jobId, onClose }: ManualEntryFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
+        {!jobIdProp && jobs && jobs.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>Job</label>
+            <select
+              value={selectedJobId}
+              onChange={e => setSelectedJobId(e.target.value)}
+              required
+              className={inputCls}
+              style={{ appearance: "none" }}
+            >
+              <option value="">Select a job…</option>
+              {jobs.map(j => (
+                <option key={j.id} value={j.id}>{j.title} · {j.customer.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <div>
             <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>Date</label>

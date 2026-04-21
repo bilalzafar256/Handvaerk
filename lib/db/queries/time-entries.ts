@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import { timeEntries, jobs } from "@/lib/db/schema"
-import { eq, and, isNull, isNotNull, gte, lte, sum, count, desc } from "drizzle-orm"
+import { eq, and, isNull, isNotNull, gte, lte, sum, count, desc, notInArray } from "drizzle-orm"
 import type { NewTimeEntry } from "@/lib/db/schema/time-entries"
 
 export async function getActiveEntry(userId: string) {
@@ -157,11 +157,33 @@ export async function markEntriesAsBilledToInvoice(jobId: string, userId: string
     )
 }
 
+export async function getMonthlyEntries(userId: string, monthStart: Date, monthEnd: Date) {
+  return db
+    .select({
+      startedAt: timeEntries.startedAt,
+      durationMinutes: timeEntries.durationMinutes,
+      isBillable: timeEntries.isBillable,
+    })
+    .from(timeEntries)
+    .where(
+      and(
+        eq(timeEntries.userId, userId),
+        isNull(timeEntries.deletedAt),
+        isNotNull(timeEntries.endedAt),
+        gte(timeEntries.startedAt, monthStart),
+        lte(timeEntries.startedAt, monthEnd),
+      )
+    )
+}
+
+const ACTIVE_JOB_STATUSES = ["new", "scheduled", "in_progress"] as const
+
 export async function getActiveJobsForUser(userId: string) {
   return db.query.jobs.findMany({
     where: and(
       eq(jobs.userId, userId),
       isNull(jobs.deletedAt),
+      notInArray(jobs.status, ["done", "invoiced", "paid"]),
     ),
     with: { customer: true },
     orderBy: [desc(jobs.createdAt)],

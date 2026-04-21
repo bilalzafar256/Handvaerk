@@ -155,6 +155,7 @@ export default async function JobDetailPage({ params }: Props) {
               {/* Time tracking */}
               <TimeLogPanel
                 jobId={job.id}
+                jobStatus={job.status ?? "new"}
                 entries={timeEntries}
                 activeEntry={activeEntry ?? null}
                 isThisJobActive={activeEntry?.jobId === job.id}

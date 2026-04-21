@@ -732,8 +732,10 @@ time_entries: id, userId, jobId (FK), startedAt, endedAt, durationMinutes,
 | F-3109: Clock button on jobs list | `[x]` | `[x]` | Play/Stop inline on `JobRow` + `JobCard` |
 | F-3110: QuickTimerCard on dashboard | `[x]` | `[x]` | `components/dashboard/quick-timer-card.tsx` |
 | F-3111: Already-billed safety indicator | `[x]` | `[x]` | `billedToQuoteId`/`billedToInvoiceId` + warning badge in modal |
+| F-3112: Status-based access control | `[x]` | `[x]` | Clock-in + manual entry blocked for done/invoiced/paid jobs. Add-to-document blocked for rejected/expired quotes and paid invoices. Enforced in server actions + UI (ClockPanel locked state, manual button hidden, job picker filtered, start button hidden in list/card). |
+| F-3113: Enhanced `/time-tracking` page | `[x]` | `[x]` | Timer zone (job picker + recent jobs + stale-timer recovery + clock-out description prompt), weekly summary bar (total/billable/earnings est.), collapsible month calendar with heat-map dots, expandable day rows grouped by job, per-entry inline edit (times + description + billable), per-day manual entry with job selector, unbilled nudge. |
 
-**Success criteria:** Tradesperson can clock in on a job from their phone in 1 tap. Weekly view shows all logged hours. Billable hours convert to a quote line item with the correct rate. Free tier gate fires at 50 entries.
+**Success criteria:** Tradesperson can clock in on a job from their phone in 1 tap. Weekly view shows all logged hours. Billable hours convert to a quote line item with the correct rate. Free tier gate fires at 50 entries. No time entry or billing action is possible on closed jobs or ineligible documents.
 
 ---
 
@@ -811,4 +813,4 @@ These will not be built regardless of timeline:
 
 ---
 
-*Last updated: 2026-04-21 — Phase 31 complete: time tracking fully shipped. Phase 15 complete: AI follow-up drafts (Inngest cron, Groq, quote detail card, notification bell, dismiss + send actions). Phase 20 complete: flat-rate pricebook (schema, server actions, CRUD list, /pricebook page, sidebar nav, i18n, GDPR, "From pricebook" picker in QuoteForm + InvoiceForm). Phase 22 complete: job profitability card (invoiced vs quoted revenue, wired to job detail). Phase 2 complete. Phase 1: 11/15 bugs resolved, 4 remain open (KI-005, KI-009, KI-011, KI-012).*
+*Last updated: 2026-04-21 — Phase 31 extended: F-3112 (status-based access control) + F-3113 (enhanced time-tracking page) added and shipped. Phase 31 original complete: time tracking fully shipped. Phase 15 complete: AI follow-up drafts (Inngest cron, Groq, quote detail card, notification bell, dismiss + send actions). Phase 20 complete: flat-rate pricebook (schema, server actions, CRUD list, /pricebook page, sidebar nav, i18n, GDPR, "From pricebook" picker in QuoteForm + InvoiceForm). Phase 22 complete: job profitability card (invoiced vs quoted revenue, wired to job detail). Phase 2 complete. Phase 1: 11/15 bugs resolved, 4 remain open (KI-005, KI-009, KI-011, KI-012).*

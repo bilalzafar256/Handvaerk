@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react"
 import { toast } from "sonner"
 import { useRouter } from "@/i18n/navigation"
-import { Play, Square, Loader2 } from "lucide-react"
+import { Play, Square, Loader2, Lock } from "lucide-react"
 import { clockInAction, clockOutAction } from "@/lib/actions/time-tracking"
 import type { TimeEntry } from "@/lib/db/schema/time-entries"
 
@@ -16,13 +16,16 @@ function formatElapsed(ms: number) {
   return `${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`
 }
 
+const CLOSED_JOB_STATUSES = ["done", "invoiced", "paid"]
+
 interface ClockPanelProps {
   jobId: string
   activeEntry: TimeEntry | null // null = no active timer for any job
   isThisJobActive: boolean      // true = this job specifically has the active timer
+  jobStatus?: string
 }
 
-export function ClockPanel({ jobId, activeEntry, isThisJobActive }: ClockPanelProps) {
+export function ClockPanel({ jobId, activeEntry, isThisJobActive, jobStatus }: ClockPanelProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [elapsed, setElapsed] = useState(0)
@@ -56,6 +59,19 @@ export function ClockPanel({ jobId, activeEntry, isThisJobActive }: ClockPanelPr
         toast.error(err instanceof Error ? err.message : "Failed to clock out")
       }
     })
+  }
+
+  // Job is closed — show locked state (unless timer is actively running, so user can still stop it)
+  if (jobStatus && CLOSED_JOB_STATUSES.includes(jobStatus) && !isThisJobActive) {
+    return (
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-xl border text-sm"
+        style={{ backgroundColor: "var(--background-subtle)", borderColor: "var(--border)", color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}
+      >
+        <Lock className="w-4 h-4 shrink-0" style={{ color: "var(--text-tertiary)" }} />
+        Time tracking is closed — job is {jobStatus}
+      </div>
+    )
   }
 
   // Another job is currently active

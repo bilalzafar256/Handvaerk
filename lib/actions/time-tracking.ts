@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { users, quotes, invoices, quoteItems, invoiceItems, timeEntries } from "@/lib/db/schema"
+import { users, quotes, invoices, quoteItems, invoiceItems, timeEntries, jobs } from "@/lib/db/schema"
 import { eq, and, isNull } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -18,6 +18,9 @@ import {
 } from "@/lib/db/queries/time-entries"
 
 const FREE_TIER_ENTRY_LIMIT = 50
+const CLOSED_JOB_STATUSES = ["done", "invoiced", "paid"] as const
+const BLOCKED_QUOTE_STATUSES = ["rejected", "expired"] as const
+const BLOCKED_INVOICE_STATUSES = ["paid"] as const
 
 async function resolveUser(clerkId: string) {
   return db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
@@ -49,6 +52,13 @@ export async function clockInAction(jobId: string): Promise<{ id: string }> {
   const user = await resolveUser(clerkId)
   if (!user) throw new Error("User not found")
 
+  const job = await db.query.jobs.findFirst({
+    where: and(eq(jobs.id, jobId), eq(jobs.userId, user.id), isNull(jobs.deletedAt)),
+  })
+  if (!job) throw new Error("Job not found")
+  if (CLOSED_JOB_STATUSES.includes(job.status as typeof CLOSED_JOB_STATUSES[number]))
+    throw new Error("Time tracking is not allowed on a job that is done, invoiced, or paid.")
+
   const existing = await getActiveEntry(user.id)
   if (existing) throw new Error("You already have an active timer running.")
 
@@ -75,7 +85,10 @@ export async function clockInAction(jobId: string): Promise<{ id: string }> {
 
 // ─── Clock out ───────────────────────────────────────────────────────────────
 
-export async function clockOutAction(entryId: string): Promise<void> {
+export async function clockOutAction(
+  entryId: string,
+  opts?: { customEndedAt?: string; description?: string },
+): Promise<void> {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
   await applyRateLimit(clerkId)
@@ -93,10 +106,15 @@ export async function clockOutAction(entryId: string): Promise<void> {
   if (!entry) throw new Error("Time entry not found")
   if (entry.endedAt) throw new Error("Timer is already stopped")
 
-  const now = new Date()
+  const now = opts?.customEndedAt ? new Date(opts.customEndedAt) : new Date()
+  if (now <= entry.startedAt) throw new Error("End time must be after start time")
   const durationMinutes = Math.max(1, Math.round((now.getTime() - entry.startedAt.getTime()) / 60000))
 
-  await updateTimeEntry(entryId, user.id, { endedAt: now, durationMinutes })
+  await updateTimeEntry(entryId, user.id, {
+    endedAt: now,
+    durationMinutes,
+    ...(opts?.description ? { description: opts.description } : {}),
+  })
 
   revalidatePath("/overview")
   revalidatePath("/jobs")
@@ -130,6 +148,14 @@ export async function createManualEntryAction(raw: z.infer<typeof manualSchema>)
   }
 
   const data = manualSchema.parse(raw)
+
+  const job = await db.query.jobs.findFirst({
+    where: and(eq(jobs.id, data.jobId), eq(jobs.userId, user.id), isNull(jobs.deletedAt)),
+  })
+  if (!job) throw new Error("Job not found")
+  if (CLOSED_JOB_STATUSES.includes(job.status as typeof CLOSED_JOB_STATUSES[number]))
+    throw new Error("Time tracking is not allowed on a job that is done, invoiced, or paid.")
+
   const startedAt = new Date(`${data.date}T${data.startTime}:00`)
   const endedAt = new Date(`${data.date}T${data.endTime}:00`)
   if (endedAt <= startedAt) throw new Error("End time must be after start time")
@@ -154,6 +180,8 @@ export async function createManualEntryAction(raw: z.infer<typeof manualSchema>)
 const updateSchema = z.object({
   description: z.string().optional(),
   isBillable:  z.boolean(),
+  startedAt:   z.string().datetime().optional(),
+  endedAt:     z.string().datetime().optional(),
 })
 
 export async function updateTimeEntryAction(entryId: string, raw: z.infer<typeof updateSchema>): Promise<void> {
@@ -165,11 +193,31 @@ export async function updateTimeEntryAction(entryId: string, raw: z.infer<typeof
   if (!user) throw new Error("User not found")
 
   const data = updateSchema.parse(raw)
-  await updateTimeEntry(entryId, user.id, {
+
+  const updates: Parameters<typeof updateTimeEntry>[2] = {
     description: data.description ?? null,
     isBillable: data.isBillable,
-  })
+  }
 
+  if (data.startedAt || data.endedAt) {
+    const entry = await db.query.timeEntries.findFirst({
+      where: and(eq(timeEntries.id, entryId), eq(timeEntries.userId, user.id), isNull(timeEntries.deletedAt)),
+    })
+    if (!entry) throw new Error("Entry not found")
+
+    const newStart = data.startedAt ? new Date(data.startedAt) : entry.startedAt
+    const newEnd   = data.endedAt   ? new Date(data.endedAt)   : entry.endedAt
+
+    if (data.startedAt) updates.startedAt = newStart
+    if (data.endedAt)   updates.endedAt   = newEnd
+
+    if (newEnd) {
+      if (newEnd <= newStart) throw new Error("End time must be after start time")
+      updates.durationMinutes = Math.max(1, Math.round((newEnd.getTime() - newStart.getTime()) / 60000))
+    }
+  }
+
+  await updateTimeEntry(entryId, user.id, updates)
   revalidatePath("/time-tracking")
 }
 
@@ -214,6 +262,8 @@ export async function addBillableHoursToLineItemAction(
       where: and(eq(quotes.id, targetId), eq(quotes.userId, user.id), isNull(quotes.deletedAt)),
     })
     if (!quote) throw new Error("Quote not found")
+    if (BLOCKED_QUOTE_STATUSES.includes(quote.status as typeof BLOCKED_QUOTE_STATUSES[number]))
+      throw new Error("Cannot add hours to a quote that is rejected or expired.")
 
     const existingCount = await db.query.quoteItems.findMany({
       where: eq(quoteItems.quoteId, targetId),
@@ -237,6 +287,8 @@ export async function addBillableHoursToLineItemAction(
       where: and(eq(invoices.id, targetId), eq(invoices.userId, user.id), isNull(invoices.deletedAt)),
     })
     if (!invoice) throw new Error("Invoice not found")
+    if (BLOCKED_INVOICE_STATUSES.includes(invoice.status as typeof BLOCKED_INVOICE_STATUSES[number]))
+      throw new Error("Cannot add hours to a paid invoice.")
 
     const existingCount = await db.query.invoiceItems.findMany({
       where: eq(invoiceItems.invoiceId, targetId),
