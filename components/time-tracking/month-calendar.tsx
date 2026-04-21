@@ -4,8 +4,8 @@ import { useState } from "react"
 import { ChevronDown } from "lucide-react"
 import { useRouter } from "@/i18n/navigation"
 
-function toISO(d: Date) {
-  return d.toISOString().split("T")[0]
+function toISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
 function mondayOfWeek(date: Date): Date {
@@ -26,11 +26,12 @@ interface MonthCalendarProps {
   entries: MonthEntry[]
   weekStart: Date
   monthStart: Date
+  selectedDay?: string
 }
 
 const DAY_HEADERS = ["M", "T", "W", "T", "F", "S", "S"]
 
-export function MonthCalendar({ entries, weekStart, monthStart }: MonthCalendarProps) {
+export function MonthCalendar({ entries, weekStart, monthStart, selectedDay }: MonthCalendarProps) {
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
 
@@ -60,7 +61,8 @@ export function MonthCalendar({ entries, weekStart, monthStart }: MonthCalendarP
   while (cells.length % 7 !== 0) cells.push(null)
 
   function navigateToDay(day: Date) {
-    router.push(`/time-tracking?week=${toISO(mondayOfWeek(day))}`)
+    const monday = mondayOfWeek(day)
+    router.push(`/time-tracking?week=${toISO(monday)}&day=${toISO(day)}`)
   }
 
   return (
@@ -101,6 +103,7 @@ export function MonthCalendar({ entries, weekStart, monthStart }: MonthCalendarP
               const iso = toISO(day)
               const data = dayMap[iso]
               const isToday = iso === today
+              const isSelectedDay = selectedDay ? iso === selectedDay : false
               const weekISO = toISO(mondayOfWeek(day))
               const isInCurrentWeek = weekISO === currentWeekISO
 
@@ -119,20 +122,28 @@ export function MonthCalendar({ entries, weekStart, monthStart }: MonthCalendarP
                   key={iso}
                   onClick={() => navigateToDay(day)}
                   className="flex flex-col items-center py-1.5 rounded-lg transition-colors"
-                  style={{ backgroundColor: isInCurrentWeek ? "oklch(0.97 0.03 58)" : undefined }}
+                  style={{
+                    backgroundColor: isSelectedDay
+                      ? "oklch(0.94 0.06 58)"
+                      : isInCurrentWeek
+                      ? "oklch(0.97 0.03 58)"
+                      : undefined,
+                  }}
                   onMouseEnter={e => {
-                    if (!isInCurrentWeek) (e.currentTarget as HTMLElement).style.backgroundColor = "var(--background-subtle)"
+                    if (!isInCurrentWeek && !isSelectedDay)
+                      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--background-subtle)"
                   }}
                   onMouseLeave={e => {
-                    if (!isInCurrentWeek) (e.currentTarget as HTMLElement).style.backgroundColor = ""
+                    if (!isInCurrentWeek && !isSelectedDay)
+                      (e.currentTarget as HTMLElement).style.backgroundColor = ""
                   }}
                 >
                   <span
                     className="text-xs leading-tight"
                     style={{
                       fontFamily: "var(--font-mono)",
-                      color: isToday ? "var(--primary)" : "var(--text-primary)",
-                      fontWeight: isToday ? 700 : 400,
+                      color: isToday || isSelectedDay ? "var(--primary)" : "var(--text-primary)",
+                      fontWeight: isToday || isSelectedDay ? 700 : 400,
                     }}
                   >
                     {day.getDate()}

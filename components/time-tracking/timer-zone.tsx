@@ -16,8 +16,8 @@ function formatElapsed(ms: number) {
   return `${m.toString().padStart(2, "0")}m ${sec.toString().padStart(2, "0")}s`
 }
 
-function toISO(d: Date) {
-  return d.toISOString().split("T")[0]
+function toISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
 function isStaleTimer(startedAt: Date) {

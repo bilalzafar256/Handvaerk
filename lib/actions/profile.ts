@@ -2,8 +2,8 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { users, pricebookItems } from "@/lib/db/schema"
+import { eq, and, isNull } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -17,6 +17,35 @@ const profileSchema = z.object({
 })
 
 export type ProfileFormData = z.infer<typeof profileSchema>
+
+async function syncDefaultLabourRate(userId: string, rate: string | null) {
+  const existing = await db.query.pricebookItems.findFirst({
+    where: and(
+      eq(pricebookItems.userId, userId),
+      eq(pricebookItems.name, "Labour"),
+      eq(pricebookItems.itemType, "labour"),
+      isNull(pricebookItems.deletedAt),
+    ),
+  })
+
+  if (existing) {
+    // Update price — clear to "0" when rate is removed
+    await db
+      .update(pricebookItems)
+      .set({ unitPrice: rate ?? "0" })
+      .where(eq(pricebookItems.id, existing.id))
+  } else if (rate) {
+    // Only create a new item when a rate is actually set
+    await db.insert(pricebookItems).values({
+      userId,
+      name: "Labour",
+      description: "Default hourly labour rate from company profile",
+      unitPrice: rate,
+      itemType: "labour",
+      isActive: true,
+    })
+  }
+}
 
 export async function updateProfile(data: ProfileFormData) {
   const { userId: clerkId } = await auth()
@@ -60,6 +89,14 @@ export async function updateProfile(data: ProfileFormData) {
         updatedAt: new Date(),
       },
     })
+
+  // Sync the default Labour pricebook item — update price or clear to 0 when rate removed
+  const dbUser = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
+  if (dbUser) {
+    const rate = validated.hourlyRate?.length ? validated.hourlyRate : null
+    await syncDefaultLabourRate(dbUser.id, rate)
+    revalidatePath("/pricebook")
+  }
 
   revalidatePath("/profile")
   revalidatePath("/overview")

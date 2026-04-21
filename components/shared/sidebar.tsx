@@ -43,7 +43,25 @@ const settingsItems = [
   { icon: UserCircle, labelKey: "profile", href: "/profile" },
 ] as const
 
-export function Sidebar() {
+function TierBadge({ tier }: { tier: string }) {
+  const label = tier === "solo" ? "Solo" : tier === "hold" ? "Hold" : "Free"
+  const style =
+    tier === "solo"
+      ? { bg: "var(--accent-light)", color: "var(--primary)" }
+      : tier === "hold"
+      ? { bg: "oklch(0.93 0.05 240)", color: "oklch(0.42 0.15 240)" }
+      : { bg: "var(--muted)", color: "var(--text-tertiary)" }
+  return (
+    <span
+      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+      style={{ backgroundColor: style.bg, color: style.color, fontFamily: "var(--font-body)" }}
+    >
+      {label}
+    </span>
+  )
+}
+
+export function Sidebar({ tier = "free" }: { tier?: string }) {
   const t = useTranslations("Sidebar")
   const pathname = usePathname()
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
@@ -150,12 +168,15 @@ export function Sidebar() {
                 {!user?.imageUrl && (user?.fullName?.charAt(0) ?? user?.primaryEmailAddress?.emailAddress?.charAt(0) ?? "?")}
               </div>
               <div className="min-w-0 flex-1">
-                <p
-                  className="text-[13px] font-medium truncate leading-tight"
-                  style={{ fontFamily: "var(--font-body)", color: "var(--sidebar-foreground)" }}
-                >
-                  {user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? ""}
-                </p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p
+                    className="text-[13px] font-medium truncate leading-tight"
+                    style={{ fontFamily: "var(--font-body)", color: "var(--sidebar-foreground)" }}
+                  >
+                    {user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? ""}
+                  </p>
+                  <TierBadge tier={tier} />
+                </div>
                 <p
                   className="text-[11px] truncate leading-tight"
                   style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}

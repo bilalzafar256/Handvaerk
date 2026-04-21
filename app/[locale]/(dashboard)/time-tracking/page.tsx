@@ -11,9 +11,9 @@ import {
   getMonthlyEntries,
 } from "@/lib/db/queries/time-entries"
 import { Topbar } from "@/components/shared/topbar"
-import { WeeklyTimesheet } from "@/components/time-tracking/weekly-timesheet"
 import { TimerZone } from "@/components/time-tracking/timer-zone"
-import { WeeklySummaryBar } from "@/components/time-tracking/weekly-summary-bar"
+import { DayStrip } from "@/components/time-tracking/day-strip"
+import { DayView } from "@/components/time-tracking/day-view"
 import { MonthCalendar } from "@/components/time-tracking/month-calendar"
 import { AlertTriangle } from "lucide-react"
 import Link from "next/link"
@@ -22,7 +22,20 @@ import type { Metadata } from "next"
 export const metadata: Metadata = { title: "Time tracking | Håndværk Pro" }
 export const dynamic = "force-dynamic"
 
-type Props = { params: Promise<{ locale: string }>; searchParams: Promise<{ week?: string }> }
+type Props = {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ week?: string; day?: string }>
+}
+
+function toISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+function startOfDay(d: Date): Date {
+  const r = new Date(d)
+  r.setHours(0, 0, 0, 0)
+  return r
+}
 
 function startOfWeek(date: Date): Date {
   const d = new Date(date)
@@ -30,6 +43,12 @@ function startOfWeek(date: Date): Date {
   d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
   d.setHours(0, 0, 0, 0)
   return d
+}
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d)
+  r.setDate(r.getDate() + n)
+  return r
 }
 
 function formatDuration(minutes: number) {
@@ -43,7 +62,7 @@ function formatDuration(minutes: number) {
 
 export default async function TimeTrackingPage({ params, searchParams }: Props) {
   const { locale } = await params
-  const { week } = await searchParams
+  const { week, day } = await searchParams
   setRequestLocale(locale)
 
   const { userId: clerkId } = await auth()
@@ -60,8 +79,19 @@ export default async function TimeTrackingPage({ params, searchParams }: Props) 
   weekEnd.setDate(weekEnd.getDate() + 6)
   weekEnd.setHours(23, 59, 59, 999)
 
+  // Determine selected day
+  const today = startOfDay(new Date())
+  let selectedDay: Date
+  if (day) {
+    selectedDay = startOfDay(new Date(day + "T00:00:00"))
+  } else {
+    const todayTime = today.getTime()
+    const inThisWeek = todayTime >= weekStart.getTime() && todayTime <= weekEnd.getTime()
+    selectedDay = inThisWeek ? today : weekStart
+  }
+
   const monthStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1)
-  const monthEnd   = new Date(weekStart.getFullYear(), weekStart.getMonth() + 1, 0, 23, 59, 59, 999)
+  const monthEnd = new Date(weekStart.getFullYear(), weekStart.getMonth() + 1, 0, 23, 59, 59, 999)
 
   const [entries, activeEntry, activeJobs, monthEntries] = await Promise.all([
     getWeeklyEntries(user.id, weekStart, weekEnd),
@@ -70,18 +100,18 @@ export default async function TimeTrackingPage({ params, searchParams }: Props) 
     getMonthlyEntries(user.id, monthStart, monthEnd),
   ])
 
-  const totalMinutes    = entries.filter(e => e.endedAt).reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
-  const billableMinutes = entries.filter(e => e.endedAt && e.isBillable).reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
+  // Weekly unbilled nudge
   const unbilledMinutes = entries
     .filter(e => e.endedAt && e.isBillable && !e.billedToQuoteId && !e.billedToInvoiceId)
     .reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
 
-  // Cast activeJobs to the shape both TimerZone and WeeklyTimesheet expect
   const jobOptions = activeJobs.map(j => ({
     id: j.id,
     title: j.title,
     customer: { name: j.customer.name },
   }))
+
+  const selectedDayISO = toISO(selectedDay)
 
   return (
     <>
@@ -96,17 +126,17 @@ export default async function TimeTrackingPage({ params, searchParams }: Props) 
           </h1>
         </div>
 
-        {/* 1. Timer zone — clock in/out + stale recovery */}
+        {/* 1. Active timer */}
         <TimerZone
           activeEntry={activeEntry as Parameters<typeof TimerZone>[0]["activeEntry"]}
           jobs={jobOptions}
         />
 
-        {/* 2. Weekly stats */}
-        <WeeklySummaryBar
-          totalMinutes={totalMinutes}
-          billableMinutes={billableMinutes}
-          hourlyRate={user.hourlyRate ?? null}
+        {/* 2. Week strip with day selector */}
+        <DayStrip
+          entries={entries}
+          weekStart={weekStart}
+          selectedDay={selectedDayISO}
         />
 
         {/* 3. Unbilled nudge */}
@@ -129,19 +159,20 @@ export default async function TimeTrackingPage({ params, searchParams }: Props) 
           </div>
         )}
 
-        {/* 4. Month calendar */}
+        {/* 4. Day view — timeline + entry list */}
+        <DayView
+          entries={entries as Parameters<typeof DayView>[0]["entries"]}
+          selectedDay={selectedDay}
+          activeJobs={jobOptions}
+          hourlyRate={user.hourlyRate ?? null}
+        />
+
+        {/* 5. Month calendar */}
         <MonthCalendar
           entries={monthEntries}
           weekStart={weekStart}
           monthStart={monthStart}
-        />
-
-        {/* 5. Weekly timesheet */}
-        <WeeklyTimesheet
-          entries={entries as Parameters<typeof WeeklyTimesheet>[0]["entries"]}
-          weekStart={weekStart}
-          activeJobs={jobOptions}
-          hourlyRate={user.hourlyRate ?? null}
+          selectedDay={selectedDayISO}
         />
       </main>
     </>

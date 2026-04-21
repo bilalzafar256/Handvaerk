@@ -284,6 +284,7 @@
 **Key invariants:**
 - Free tier gate: 20 items max, checked via `countPricebookItems(userId)` in `createPricebookItemAction`
 - GDPR: included in `exportUserDataAction` and deleted in `hardDeleteUser` step
+- **Two-way sync with `users.hourlyRate`:** item with `name="Labour"` + `itemType="labour"` is the anchor. Profile save upserts it (`syncDefaultLabourRate` in `lib/actions/profile.ts`); updating that item from the pricebook writes back to `users.hourlyRate` (`updatePricebookItemAction` in `lib/actions/pricebook.ts`). Sync breaks silently if the user renames the item.
 
 ---
 

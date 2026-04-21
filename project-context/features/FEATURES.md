@@ -361,7 +361,7 @@
 | F-3110 | QuickTimerCard on dashboard | `[x]` | `[x]` | `components/dashboard/quick-timer-card.tsx` |
 | F-3111 | Already-billed safety indicator | `[x]` | `[x]` | `billedToQuoteId`/`billedToInvoiceId` + warning badge in modal |
 | F-3112 | Status-based access control | `[x]` | `[x]` | Clock-in/manual entry blocked for done/invoiced/paid jobs; add-to-document blocked for rejected/expired quotes and paid invoices |
-| F-3113 | Enhanced `/time-tracking` page | `[x]` | `[x]` | Timer zone, summary bar, month calendar, expandable timesheet, inline entry edit, per-day log with job selector, unbilled nudge |
+| F-3113 | Enhanced `/time-tracking` page | `[x]` | `[x]` | Timer zone, `DayStrip` (week nav + day selector), `DayView` (visual hour timeline + entry cards), month calendar, inline entry edit, unbilled nudge. Day-centric navigation: `?week=` + `?day=` params. Timezone bug fixed (local ISO dates instead of UTC). |
 
 ---
 

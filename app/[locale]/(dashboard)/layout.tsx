@@ -24,7 +24,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--background)" }}>
-      <Sidebar />
+      <Sidebar tier={user?.tier ?? "free"} />
       <DashboardShell>{children}</DashboardShell>
     </div>
   )

@@ -62,6 +62,8 @@ Tier is stored in `users.tier` (text field). No automated upgrade flow — must 
 
 **`TierGate` component** (`components/shared/tier-gate.tsx`): renders children only if `TIER_RANK[userTier] >= TIER_RANK[requiredTier]`. Ranks: `free=0`, `solo=1`, `hold=2`.
 
+**Sidebar tier badge:** `Sidebar` accepts a `tier` prop (passed from `app/[locale]/(dashboard)/layout.tsx` via `user.tier`). A small pill badge ("Free" / "Solo" / "Hold") is shown next to the user's name in the expanded sidebar. Free = gray, Solo = amber, Hold = blue.
+
 ---
 
 ## Logo Upload
@@ -102,7 +104,10 @@ Clerk webhook verified with svix library:
 1. **User deletion is incomplete.** Clerk `user.deleted` webhook only updates `updatedAt`. All user data remains. This is a GDPR concern — no soft-delete, no cascade. [See `context/KNOWN_ISSUES.md`]
 2. **Tier not validated server-side on all operations.** Only `createJobAction` checks tier. Quote/invoice creation has no tier limits enforced.
 3. **Profile gate on companyName only.** A user can bypass profile setup by directly navigating to a page that doesn't check the gate — but all `/(dashboard)/layout.tsx` routes are protected.
-4. **`hourlyRate` on users** — intended as the default rate pre-filled into labour line items in quote builder. [INFERRED: connection to quote form not confirmed implemented]
+4. **`hourlyRate` on users** — two-way sync with the pricebook:
+   - Saving a profile hourly rate → upserts a `Labour` / `itemType=labour` pricebook item via `syncDefaultLabourRate()` in `lib/actions/profile.ts`. Clearing the rate sets the item price to `0`.
+   - Updating that pricebook item's price from the pricebook UI → writes back to `users.hourlyRate` via `updatePricebookItemAction` in `lib/actions/pricebook.ts` (triggered when `name="Labour"` AND `itemType="labour"`).
+   - The convention anchor is **name = "Labour" + itemType = "labour"**. If the user renames the item, the sync link is silently broken (by design).
 
 ---
 

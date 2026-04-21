@@ -94,6 +94,16 @@ export async function updatePricebookItemAction(id: string, data: z.infer<typeof
     isActive:    validated.isActive,
   })
 
+  // Keep company profile hourly rate in sync with the default Labour item
+  if (validated.name === "Labour" && validated.itemType === "labour") {
+    await db
+      .update(users)
+      .set({ hourlyRate: validated.unitPrice, updatedAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
+    revalidatePath("/profile")
+    revalidatePath("/overview")
+  }
+
   revalidatePath("/pricebook")
 }
 
