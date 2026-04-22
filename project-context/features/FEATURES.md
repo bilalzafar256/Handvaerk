@@ -24,11 +24,12 @@
 | 11 | AI Intelligence Layer | 10 | 3 | 0 | 7 |
 | 12 | Dashboard & Tier Gates | 8 | 3 | 4 | 1 |
 | 13 | Compliance Pre-GoLive | 11 | 1 | 0 | 10 |
-| 14 | Growth, Retention & Compliance | 10 | 0 | 0 | 10 |
+| 14 | Growth, Retention & Compliance | 10 | 1 | 0 | 9 |
 | 15 | Time Tracking | 9 | 0 | 0 | 9 |
 | 16 | E-conomic Integration | 8 | 0 | 0 | 8 |
+| 17 | Calendar | 5 | 5 | 0 | 0 |
 
-**Overall:** ~102 complete / ~156 total · Phases 0–8, 10 shipped · Phases 9, 14, 15, 16 not started · Phase 13 partially started
+**Overall:** ~108 complete / ~161 total · Phases 0–8, 10, 17 shipped · Phases 9, 15, 16 not started · Phases 13, 14 partially started
 
 ---
 
@@ -315,7 +316,7 @@
 | F-1403 | Customer self-service portal | `[ ]` | `[ ]` | `/portal/[customerId]` → quotes, invoices, accept/reject; no login |
 | F-1404 | Real-time job profitability tracking | `[ ]` | `[ ]` | Material cost vs billed per job; margin % display |
 | F-1405 | Service agreements & recurring invoices | `[ ]` | `[ ]` | Inngest auto-generates job + invoice on schedule |
-| F-1406 | Flat-rate pricebook | `[ ]` | `[ ]` | Pre-priced service catalog; one-click add to quote |
+| F-1406 | Flat-rate pricebook | `[x]` | `[x]` | Full catalog: CRUD, 9-field schema (unit, costPrice, sku, category, supplierName, defaultMarkupPercent, defaultQuantity, notes, isFavourite), filters (status/type/favourites), star-pin. Quote picker integration pending. |
 | F-1407 | KLS compliance module | `[ ]` | `[ ]` | Quality log PDF for authorized VVS/electrical work |
 | F-1408 | E-boks invoice delivery | `[ ]` | `[ ]` | e-Boks Business API for public sector customers |
 | F-1409 | APV workplace safety documentation | `[ ]` | `[ ]` | Per-job APV checklist PDF; required by Arbejdstilsynet |
@@ -386,6 +387,22 @@
 | F-3205 | Connection status in profile settings | `[ ]` | `[ ]` | Connected / disconnected indicator + disconnect button |
 | F-3206 | Sync status badges on list pages | `[ ]` | `[ ]` | "synced" / "error" badge on invoice + customer rows |
 | F-3207 | Sync error handling + retry | `[ ]` | `N/A` | Inngest: 3 retries, exponential backoff; error stored on record |
+
+---
+
+## PHASE 17 — Calendar
+
+→ Components: `components/calendar/` (`calendar-shell.tsx`, `calendar-filters.tsx`, `timeline-view.tsx`, `event-chip.tsx`, `event-popover.tsx`, `unscheduled-panel.tsx`, `types.ts`, `rbc.css`)
+→ Server action: `lib/actions/calendar.ts`
+→ DB queries: `lib/db/queries/calendar.ts`
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1700 | Calendar data server action | `[x]` | `N/A` | `getCalendarDataAction(from, to)` — parallel fetch of jobs, invoice due dates, expiring quotes, unscheduled jobs |
+| F-1701 | Month / Week / Day / Agenda views | `[x]` | `[x]` | react-big-calendar 1.19.4; custom event chips with status colours; click-to-open detail modal |
+| F-1702 | Timeline (Gantt) view | `[x]` | `[x]` | Horizontal bar chart; sticky job column; month+day header; today line; weekend shading; auto-scroll to today |
+| F-1703 | Sidebar filters + mini-calendar | `N/A` | `[x]` | 196px collapsible sidebar; entity toggles (Jobs/Invoices/Quotes); job status chips; mini date navigator |
+| F-1704 | Unscheduled jobs panel | `[x]` | `[x]` | Collapsible right panel listing jobs without a `scheduledDate`; links to job detail |
 
 ---
 

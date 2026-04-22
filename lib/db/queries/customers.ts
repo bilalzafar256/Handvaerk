@@ -61,3 +61,16 @@ export async function softDeleteCustomer(id: string, userId: string) {
     .set({ deletedAt: new Date() })
     .where(and(eq(customers.id, id), eq(customers.userId, userId)))
 }
+
+export async function toggleCustomerFavorite(id: string, userId: string) {
+  const customer = await db.query.customers.findFirst({
+    where: and(eq(customers.id, id), eq(customers.userId, userId), isNull(customers.deletedAt)),
+    columns: { isFavorite: true },
+  })
+  if (!customer) return
+
+  await db
+    .update(customers)
+    .set({ isFavorite: !customer.isFavorite, updatedAt: new Date() })
+    .where(and(eq(customers.id, id), eq(customers.userId, userId)))
+}

@@ -11,6 +11,7 @@ import {
   createCustomer,
   updateCustomer,
   softDeleteCustomer,
+  toggleCustomerFavorite,
 } from "@/lib/db/queries/customers"
 
 const customerSchema = z.object({
@@ -119,6 +120,21 @@ export async function updateCustomerAction(id: string, data: CustomerFormData) {
 
   revalidatePath("/customers")
   revalidatePath(`/customers/${id}`)
+}
+
+export async function toggleCustomerFavoriteAction(customerId: string) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const userId = await getDbUserId(clerkId)
+  if (!userId) throw new Error("User not found")
+
+  await toggleCustomerFavorite(customerId, userId)
+
+  revalidatePath("/customers")
+  revalidatePath(`/customers/${customerId}`)
 }
 
 export async function deleteCustomerAction(id: string) {

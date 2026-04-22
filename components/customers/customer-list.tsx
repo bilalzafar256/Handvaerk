@@ -9,7 +9,7 @@ import {
   Search, Plus, Users, LayoutList, LayoutGrid,
   Pencil, Trash2, Loader2, AlertCircle, ChevronRight, MapPin, Star, Briefcase,
 } from "lucide-react"
-import { deleteCustomerAction } from "@/lib/actions/customers"
+import { deleteCustomerAction, toggleCustomerFavoriteAction } from "@/lib/actions/customers"
 import { toast } from "sonner"
 import { useTranslations } from "next-intl"
 import { formatDKK } from "@/lib/utils/currency"
@@ -39,13 +39,20 @@ export function CustomerList({ customers }: { customers: CustomerWithOwed[] }) {
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
 
-  const filtered = customers.filter(c => {
-    const q = query.toLowerCase().trim()
-    return !q || c.name.toLowerCase().includes(q) ||
-      c.phone?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q)
-  })
+  const filtered = customers
+    .filter(c => {
+      if (favoritesOnly && !c.isFavorite) return false
+      const q = query.toLowerCase().trim()
+      return !q || c.name.toLowerCase().includes(q) ||
+        c.phone?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q)
+    })
+    .sort((a, b) => {
+      if (a.isFavorite === b.isFavorite) return 0
+      return a.isFavorite ? -1 : 1
+    })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const safePage = Math.min(page, totalPages)
@@ -73,8 +80,23 @@ export function CustomerList({ customers }: { customers: CustomerWithOwed[] }) {
           />
         </div>
 
+        {/* Favorites filter */}
+        <button
+          onClick={() => { setFavoritesOnly(f => !f); setPage(1) }}
+          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors flex-shrink-0 cursor-pointer"
+          style={{
+            borderColor: favoritesOnly ? "oklch(0.75 0.19 65)" : "var(--border)",
+            backgroundColor: favoritesOnly ? "oklch(0.97 0.05 65)" : "var(--background)",
+            color: favoritesOnly ? "oklch(0.50 0.19 65)" : "var(--muted-foreground)",
+            fontFamily: "var(--font-body)",
+          }}
+        >
+          <Star className="w-3 h-3" style={{ fill: favoritesOnly ? "currentColor" : "none" }} />
+          Favorites
+        </button>
+
         {/* View toggle */}
-        <div className="flex items-center gap-0.5 rounded-lg border p-0.5 ml-auto flex-shrink-0" style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}>
+        <div className="flex items-center gap-0.5 rounded-lg border p-0.5 flex-shrink-0" style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}>
           <button
             onClick={() => setViewMode("list")}
             className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
@@ -201,6 +223,7 @@ function CustomerRow({ customer, index }: { customer: CustomerWithOwed; index: n
             <MapPin className="w-3.5 h-3.5" />
           </a>
         )}
+        <StarToggleButton customerId={customer.id} isFavorite={customer.isFavorite ?? false} />
         <Link
           href={`/customers/${customer.id}/edit`}
           onClick={e => e.stopPropagation()}
@@ -321,6 +344,7 @@ function CustomerCard({ customer, index }: { customer: CustomerWithOwed; index: 
               Maps
             </a>
           )}
+          <StarToggleButton customerId={customer.id} isFavorite={customer.isFavorite ?? false} size="sm" />
           <Link
             href={`/customers/${customer.id}/edit`}
             onClick={e => e.stopPropagation()}
@@ -534,6 +558,54 @@ function formatInvoiceDate(dateStr: string): string {
   const parts = dateStr.split("-")
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
   return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]}`
+}
+
+function StarToggleButton({ customerId, isFavorite: initial, size = "md" }: {
+  customerId: string
+  isFavorite: boolean
+  size?: "md" | "sm"
+}) {
+  const [favorite, setFavorite] = useState(initial)
+  const [loading, setLoading] = useState(false)
+
+  async function handleToggle(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (loading) return
+    setFavorite(f => !f)
+    setLoading(true)
+    try {
+      await toggleCustomerFavoriteAction(customerId)
+    } catch {
+      setFavorite(f => !f)
+      toast.error("Failed to update favorite")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const iconSize = size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5"
+  const btnSize = size === "sm"
+    ? "flex items-center gap-1.5 h-7 px-2.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer"
+    : "w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer"
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={loading}
+      className={`${btnSize} disabled:opacity-50`}
+      style={{
+        borderColor: favorite ? "oklch(0.75 0.19 65)" : "var(--border)",
+        backgroundColor: favorite ? "oklch(0.97 0.05 65)" : "var(--background)",
+        color: favorite ? "oklch(0.50 0.19 65)" : "var(--muted-foreground)",
+        fontFamily: "var(--font-body)",
+      }}
+      title={favorite ? "Remove from favorites" : "Add to favorites"}
+    >
+      <Star className={iconSize} style={{ fill: favorite ? "currentColor" : "none" }} />
+      {size === "sm" && <span>{favorite ? "Favorited" : "Favorite"}</span>}
+    </button>
+  )
 }
 
 function EmptyState({ searching }: { searching: boolean }) {

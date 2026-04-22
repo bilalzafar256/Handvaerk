@@ -71,6 +71,7 @@ Note: `applyRateLimit` and `getDbUser` are duplicated in each action file. [INFE
 | `lib/actions/customers.ts` | `createCustomerAction`, `updateCustomerAction`, `deleteCustomerAction` [INFERRED from schema] |
 | `lib/actions/profile.ts` | `updateProfile`, `saveLogoUrl`, `updateGoogleReviewUrlAction`, `updateMobilepayAction`, `updateInvoiceRemindersAction` |
 | `lib/actions/bank-accounts.ts` | `createBankAccountAction`, `updateBankAccountAction`, `deleteBankAccountAction`, `setDefaultBankAccountAction` [INFERRED] |
+| `lib/actions/pricebook.ts` | `getPricebookAction`, `createPricebookItemAction`, `updatePricebookItemAction`, `togglePricebookItemActiveAction`, `togglePricebookItemFavouriteAction`, `deletePricebookItemAction` |
 | `lib/actions/notifications.ts` | `getNotificationsAction`, `markNotificationReadAction`, `markAllNotificationsReadAction`, `clearAllNotificationsAction` |
 | `lib/actions/ai-job-recording.ts` | `createAiRecordingAction`, `getAiRecordingAction` [INFERRED] |
 
@@ -104,6 +105,7 @@ lib/db/queries/
 ├── bank-accounts.ts getDefaultBankAccount, and CRUD
 ├── ai-recordings.ts [ai recording queries]
 ├── notifications.ts createNotification, getNotifications, markRead, markAllRead, clearAll
+├── pricebook.ts     getPricebookItemsByUser, countPricebookItems, createPricebookItem, updatePricebookItem, softDeletePricebookItem
 └── overview.ts      Dashboard aggregate queries
 ```
 

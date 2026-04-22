@@ -42,6 +42,7 @@ app/
 │   │   │   ├── new/page.tsx
 │   │   │   ├── [id]/page.tsx
 │   │   │   └── [id]/edit/page.tsx
+│   │   ├── calendar/page.tsx           Calendar — jobs/invoices/quotes on one view
 │   │   └── profile/page.tsx
 │   └── q/[token]/page.tsx              Public shareable quote view (no auth)
 ├── api/                                API routes (see BACKEND.md)
@@ -100,7 +101,7 @@ Loaded in `app/[locale]/layout.tsx` via `next/font/google`:
 - Bottom navigation: `components/shared/bottom-nav.tsx` — Overview, Jobs, Invoices, Profile
 
 ### Nav Items
-**Sidebar:** Overview, Jobs, Customers, Quotes, Invoices | Profile (settings section)  
+**Sidebar:** Overview, Jobs, Customers, Quotes, Invoices, Calendar | Profile (settings section)  
 **Bottom nav:** Overview, Jobs, Invoices, Profile
 
 ---
@@ -136,7 +137,8 @@ components/
 ├── ai/           AI recording flow (job-recording-flow, voice-recorder, audio-file-upload, record-tabs, recording-status-view)
 ├── pdf/          PDF templates for @react-pdf/renderer (invoice-pdf, quote-pdf)
 ├── notifications/ Notification bell + sheet
-└── profile/      Profile sections (bank-accounts-section, google-review-section)
+├── profile/      Profile sections (bank-accounts-section, google-review-section)
+└── calendar/     Calendar feature (calendar-shell, calendar-filters, timeline-view, event-chip, event-popover, unscheduled-panel, types, rbc.css)
 ```
 
 ---

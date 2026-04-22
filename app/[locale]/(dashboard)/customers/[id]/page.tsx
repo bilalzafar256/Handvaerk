@@ -9,7 +9,7 @@ import { getJobsByCustomer } from "@/lib/db/queries/jobs"
 import { getInvoicesByCustomer } from "@/lib/db/queries/invoices"
 import { getQuotesByCustomer } from "@/lib/db/queries/quotes"
 import { Topbar } from "@/components/shared/topbar"
-import { DeleteCustomerButton } from "@/components/customers/customer-detail-actions"
+import { DeleteCustomerButton, FavoriteCustomerButton } from "@/components/customers/customer-detail-actions"
 import { Link } from "@/i18n/navigation"
 import { formatDKK } from "@/lib/utils/currency"
 import {
@@ -63,6 +63,7 @@ export default async function CustomerDetailPage({ params }: Props) {
         title={customer.name}
         action={
           <div className="flex items-center gap-2">
+            <FavoriteCustomerButton customerId={id} isFavorite={customer.isFavorite ?? false} />
             <Link
               href={`/customers/${id}/edit`}
               className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border bg-[var(--background)] hover:bg-[var(--accent)] transition-colors"

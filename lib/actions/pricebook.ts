@@ -16,12 +16,24 @@ import {
 
 const FREE_TIER_PRICEBOOK_LIMIT = 20
 
+const priceRegex = /^\d+(\.\d{1,2})?$/
+const optionalPrice = z.string().regex(priceRegex, "Invalid price").optional().or(z.literal(""))
+
 const itemSchema = z.object({
-  name:        z.string().min(1).max(120),
-  description: z.string().max(300).optional(),
-  unitPrice:   z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price"),
-  itemType:    z.enum(["labour", "material", "fixed", "travel"]),
-  isActive:    z.boolean().default(true),
+  name:                 z.string().min(1).max(120),
+  description:          z.string().max(300).optional(),
+  unitPrice:            z.string().regex(priceRegex, "Invalid price"),
+  costPrice:            optionalPrice,
+  unit:                 z.string().max(20).optional(),
+  sku:                  z.string().max(80).optional(),
+  category:             z.string().max(80).optional(),
+  supplierName:         z.string().max(120).optional(),
+  defaultMarkupPercent: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid markup").optional().or(z.literal("")),
+  defaultQuantity:      z.string().regex(/^\d+(\.\d{1,3})?$/, "Invalid quantity").optional().or(z.literal("")),
+  notes:                z.string().max(500).optional(),
+  isFavourite:          z.boolean().default(false),
+  itemType:             z.enum(["labour", "material", "fixed", "travel"]),
+  isActive:             z.boolean().default(true),
 })
 
 async function getUser(clerkId: string) {
@@ -63,12 +75,21 @@ export async function createPricebookItemAction(data: z.infer<typeof itemSchema>
   }
 
   const item = await createPricebookItem({
-    userId:      user.id,
-    name:        validated.name,
-    description: validated.description ?? null,
-    unitPrice:   validated.unitPrice,
-    itemType:    validated.itemType,
-    isActive:    validated.isActive,
+    userId:               user.id,
+    name:                 validated.name,
+    description:          validated.description ?? null,
+    unitPrice:            validated.unitPrice,
+    costPrice:            validated.costPrice || null,
+    unit:                 validated.unit ?? null,
+    sku:                  validated.sku ?? null,
+    category:             validated.category ?? null,
+    supplierName:         validated.supplierName ?? null,
+    defaultMarkupPercent: validated.defaultMarkupPercent || null,
+    defaultQuantity:      validated.defaultQuantity || null,
+    notes:                validated.notes ?? null,
+    isFavourite:          validated.isFavourite,
+    itemType:             validated.itemType,
+    isActive:             validated.isActive,
   })
 
   revalidatePath("/pricebook")
@@ -87,11 +108,20 @@ export async function updatePricebookItemAction(id: string, data: z.infer<typeof
   const validated = itemSchema.parse(data)
 
   await updatePricebookItem(id, user.id, {
-    name:        validated.name,
-    description: validated.description ?? null,
-    unitPrice:   validated.unitPrice,
-    itemType:    validated.itemType,
-    isActive:    validated.isActive,
+    name:                 validated.name,
+    description:          validated.description ?? null,
+    unitPrice:            validated.unitPrice,
+    costPrice:            validated.costPrice || null,
+    unit:                 validated.unit ?? null,
+    sku:                  validated.sku ?? null,
+    category:             validated.category ?? null,
+    supplierName:         validated.supplierName ?? null,
+    defaultMarkupPercent: validated.defaultMarkupPercent || null,
+    defaultQuantity:      validated.defaultQuantity || null,
+    notes:                validated.notes ?? null,
+    isFavourite:          validated.isFavourite,
+    itemType:             validated.itemType,
+    isActive:             validated.isActive,
   })
 
   // Keep company profile hourly rate in sync with the default Labour item
@@ -104,6 +134,32 @@ export async function updatePricebookItemAction(id: string, data: z.infer<typeof
     revalidatePath("/overview")
   }
 
+  revalidatePath("/pricebook")
+}
+
+export async function togglePricebookItemActiveAction(id: string, isActive: boolean) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const user = await getUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  await updatePricebookItem(id, user.id, { isActive })
+  revalidatePath("/pricebook")
+}
+
+export async function togglePricebookItemFavouriteAction(id: string, isFavourite: boolean) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  await applyRateLimit(clerkId)
+
+  const user = await getUser(clerkId)
+  if (!user) throw new Error("User not found")
+
+  await updatePricebookItem(id, user.id, { isFavourite })
   revalidatePath("/pricebook")
 }
 

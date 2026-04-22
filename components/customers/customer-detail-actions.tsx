@@ -4,8 +4,45 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { useRouter } from "@/i18n/navigation"
 import { toast } from "sonner"
-import { Trash2 } from "lucide-react"
-import { deleteCustomerAction } from "@/lib/actions/customers"
+import { Trash2, Star } from "lucide-react"
+import { deleteCustomerAction, toggleCustomerFavoriteAction } from "@/lib/actions/customers"
+
+export function FavoriteCustomerButton({ customerId, isFavorite: initial }: { customerId: string; isFavorite: boolean }) {
+  const [favorite, setFavorite] = useState(initial)
+  const [loading, setLoading] = useState(false)
+
+  async function handleToggle() {
+    if (loading) return
+    setFavorite(f => !f)
+    setLoading(true)
+    try {
+      await toggleCustomerFavoriteAction(customerId)
+    } catch {
+      setFavorite(f => !f)
+      toast.error("Failed to update favorite")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={loading}
+      className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border transition-colors cursor-pointer disabled:opacity-50"
+      style={{
+        borderColor: favorite ? "oklch(0.75 0.19 65)" : "var(--border)",
+        backgroundColor: favorite ? "oklch(0.97 0.05 65)" : "var(--background)",
+        color: favorite ? "oklch(0.50 0.19 65)" : "var(--muted-foreground)",
+        fontFamily: "var(--font-body)",
+      }}
+      title={favorite ? "Remove from favorites" : "Add to favorites"}
+    >
+      <Star className="w-4 h-4" style={{ fill: favorite ? "currentColor" : "none" }} />
+      {favorite ? "Favorited" : "Favorite"}
+    </button>
+  )
+}
 
 export function DeleteCustomerButton({ customerId }: { customerId: string }) {
   const t = useTranslations("CustomerDetail")

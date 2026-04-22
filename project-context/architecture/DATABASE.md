@@ -276,8 +276,17 @@
 | `id` | uuid PK | |
 | `user_id` | uuid FK → users | Owner isolation |
 | `name` | text NOT NULL | Display name, max 120 chars (validated in action) |
-| `description` | text | Optional detail |
-| `unit_price` | numeric(10,2) NOT NULL | Ex. VAT, DKK |
+| `description` | text | Optional customer-facing detail |
+| `unit_price` | numeric(10,2) NOT NULL | Sell price, ex. VAT, DKK |
+| `cost_price` | numeric(10,2) | Purchase/supplier price — drives margin calculation |
+| `unit` | text | Billing unit: `hr`, `pcs`, `m²`, `m`, `kg`, `day`, or custom |
+| `sku` | text | Supplier product / item code |
+| `category` | text | Free-text grouping e.g. "Pipe Fittings", "Electrical" |
+| `supplier_name` | text | Name of the supplier this item is sourced from |
+| `default_markup_percent` | numeric(5,2) | Pre-fills `markup_percent` on quote line items at pick time |
+| `default_quantity` | numeric(10,3) | Pre-fills quantity on quote line items at pick time |
+| `notes` | text | Internal notes — not shown to customers |
+| `is_favourite` | boolean DEFAULT false | Pinned items sort to top of list |
 | `item_type` | text DEFAULT 'material' | `labour` \| `material` \| `fixed` \| `travel` |
 | `is_active` | boolean DEFAULT true | Soft-disable without deleting |
 | `created_at` | timestamp | |
@@ -287,6 +296,7 @@
 - Free tier gate: 20 items max, checked via `countPricebookItems(userId)` in `createPricebookItemAction`
 - GDPR: included in `exportUserDataAction` and deleted in `hardDeleteUser` step
 - **Two-way sync with `users.hourlyRate`:** item with `name="Labour"` + `itemType="labour"` is the anchor. Profile save upserts it (`syncDefaultLabourRate` in `lib/actions/profile.ts`); updating that item from the pricebook writes back to `users.hourlyRate` (`updatePricebookItemAction` in `lib/actions/pricebook.ts`). Sync breaks silently if the user renames the item.
+- Margin is not stored — computed live in the form as `((unitPrice - costPrice) / unitPrice) * 100`
 
 ---
 
@@ -323,11 +333,14 @@ Status transitions tracked via dedicated timestamp columns (e.g., `sentAt`, `pai
 - Runner: `drizzle-kit` (`npx drizzle-kit generate` then `npx drizzle-kit migrate`)
 - Files: `drizzle/migrations/` — `.sql` + `meta/XXXX_snapshot.json` pairs
 - **NEVER create `.sql` files manually or edit `_journal.json`** — missing snapshots corrupt future schema diffs
-- 16 migrations applied as of current state (0000 → 0015)
+- 19 migrations applied as of current state (0000 → 0018)
 - Migration 0012 adds the `time_entries` table (Phase 31)
 - Migration 0013 adds `follow_up_draft` to `quotes` (Phase 15)
 - Migration 0014 adds `pricebook_items` table (Phase 20)
 - Migration 0015 adds `invoice_reminder_1_days` and `invoice_reminder_2_days` to `users`
+- Migration 0016 adds `dashboard_widgets` to `users`
+- Migration 0017 adds `cost_price`, `unit`, `sku` to `pricebook_items`
+- Migration 0018 adds `category`, `supplier_name`, `default_markup_percent`, `default_quantity`, `notes`, `is_favourite` to `pricebook_items`
 - Note: snapshots 0005–0010 are missing from `drizzle/migrations/meta/` — only 0000–0004 and 0011+ are present. This is a known gap. [INFERRED: migrations were manually created or snapshots were deleted]
 
 ## Indexes (planned — not yet applied)
