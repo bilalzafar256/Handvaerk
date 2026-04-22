@@ -6,6 +6,7 @@ export interface CvrResult {
   address: string
   zip: string
   city: string
+  companyType: string
 }
 
 export function useCvrSearch(query: string) {

@@ -36,7 +36,7 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
   const defaultJobId      = sp?.jobId
   const defaultCustomerId = sp?.customerId
 
-  const [customers, allQuotes, defaultBankAccount, pricebookItems] = await Promise.all([
+  const [customerList, allQuotes, defaultBankAccount, pricebookItems] = await Promise.all([
     getCustomersByUser(user.id),
     getQuotesByUser(user.id),
     getDefaultBankAccount(user.id),
@@ -53,6 +53,13 @@ export default async function NewInvoicePage({ params, searchParams }: Props) {
     acc[q.customerId].push(q)
     return acc
   }, {})
+
+  const customers = customerList.map(c => ({
+    id:               c.id,
+    name:             c.name,
+    paymentTermsDays: c.paymentTermsDays,
+    vatExempt:        c.vatExempt,
+  }))
 
   return (
     <>

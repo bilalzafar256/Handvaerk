@@ -25,10 +25,16 @@ export default async function EditInvoicePage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [invoice, customers] = await Promise.all([
+  const [invoice, allCustomers] = await Promise.all([
     getInvoiceById(id, user.id),
     getCustomersByUser(user.id),
   ])
+  const customers = allCustomers.map(c => ({
+    id:               c.id,
+    name:             c.name,
+    paymentTermsDays: c.paymentTermsDays,
+    vatExempt:        c.vatExempt,
+  }))
 
   if (!invoice) notFound()
 

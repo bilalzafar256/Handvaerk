@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useTransition } from "react"
-import { Bell, User, Briefcase, FileText, Mail } from "lucide-react"
+import { Bell, User, Briefcase, FileText, Mail, ChevronRight } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -15,12 +15,28 @@ import {
   clearAllNotificationsAction,
 } from "@/lib/actions/notifications"
 import type { Notification } from "@/lib/db/schema/notifications"
+import { useRouter } from "@/i18n/navigation"
 
 const TYPE_CONFIG: Record<string, { Icon: React.ElementType; bg: string; color: string }> = {
   ai_customer_found:    { Icon: User,      bg: "oklch(0.91 0.05 250)", color: "oklch(0.35 0.14 250)" },
   ai_job_found:         { Icon: Briefcase, bg: "oklch(0.91 0.07 145)", color: "oklch(0.30 0.14 145)" },
   ai_quote_found:       { Icon: FileText,  bg: "oklch(0.93 0.06 55)",  color: "oklch(0.38 0.12 55)"  },
   quote_followup_draft: { Icon: Mail,      bg: "oklch(0.93 0.06 220)", color: "oklch(0.35 0.12 220)" },
+}
+
+function getNotificationUrl(type: string, metadata: unknown): string | null {
+  const m = metadata as Record<string, string> | null
+  if (!m) return null
+  switch (type) {
+    case "ai_customer_found":
+    case "ai_job_found":
+    case "ai_quote_found":
+      return m.recordingId ? `/jobs/record/${m.recordingId}` : null
+    case "quote_followup_draft":
+      return m.quoteId ? `/quotes/${m.quoteId}` : null
+    default:
+      return null
+  }
 }
 
 function timeAgo(date: Date | string): string {
@@ -34,6 +50,7 @@ function timeAgo(date: Date | string): string {
 }
 
 export function NotificationBell() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [items, setItems] = useState<Notification[]>([])
@@ -212,13 +229,14 @@ export function NotificationBell() {
               </div>
             ) : (
               <ul>
-                {items.map((n, i) => {
+                {items.map((n) => {
                   const cfg = TYPE_CONFIG[n.type] ?? {
                     Icon: Bell,
                     bg: "var(--muted)",
                     color: "var(--muted-foreground)",
                   }
                   const Icon = cfg.Icon
+                  const url = getNotificationUrl(n.type, n.metadata)
                   return (
                     <li
                       key={n.id}
@@ -226,14 +244,20 @@ export function NotificationBell() {
                       style={{ borderColor: "var(--border)" }}
                     >
                       <button
-                        onClick={() => handleMarkRead(n.id)}
+                        onClick={() => {
+                          handleMarkRead(n.id)
+                          if (url) {
+                            handleOpenChange(false)
+                            router.push(url)
+                          }
+                        }}
                         className="w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors"
                         style={{
                           backgroundColor: n.read ? "transparent" : "oklch(0.985 0.005 250 / 0.5)",
-                          cursor: n.read ? "default" : "pointer",
+                          cursor: url ? "pointer" : (n.read ? "default" : "pointer"),
                         }}
                         onMouseEnter={e => {
-                          if (!n.read) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--accent)"
+                          (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--accent)"
                         }}
                         onMouseLeave={e => {
                           (e.currentTarget as HTMLButtonElement).style.backgroundColor = n.read ? "transparent" : "oklch(0.985 0.005 250 / 0.5)"
@@ -275,13 +299,15 @@ export function NotificationBell() {
                           </p>
                         </div>
 
-                        {/* Unread dot */}
-                        {!n.read && (
+                        {/* Right side: chevron if navigable, else unread dot */}
+                        {url ? (
+                          <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 mt-1" style={{ color: "var(--muted-foreground)" }} />
+                        ) : !n.read ? (
                           <div
                             className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2"
                             style={{ backgroundColor: "var(--primary)" }}
                           />
-                        )}
+                        ) : null}
                       </button>
                     </li>
                   )

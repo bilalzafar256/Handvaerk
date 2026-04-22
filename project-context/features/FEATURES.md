@@ -12,7 +12,7 @@
 |---|---|---|---|---|---|
 | 0 | Foundation | 20 | 17 | 0 | 3 |
 | 1 | Auth & User Profile | 10 | 6 | 0 | 4 |
-| 2 | Customer Management | 10 | 9 | 1 | 0 |
+| 2 | Customer Management | 13 | 13 | 0 | 0 |
 | 3 | Job Management | 11 | 11 | 0 | 0 |
 | 4 | Quote Builder | 15 | 15 | 0 | 0 |
 | 5 | Invoice Engine | 14 | 14 | 0 | 0 |
@@ -21,14 +21,14 @@
 | 8 | Merge Documents | 3 | 3 | 0 | 0 |
 | 9 | Reporting | 8 | 0 | 0 | 8 |
 | 10 | Email Notifications | 4 | 4 | 0 | 0 |
-| 11 | AI Intelligence Layer | 9 | 2 | 0 | 7 |
+| 11 | AI Intelligence Layer | 10 | 3 | 0 | 7 |
 | 12 | Dashboard & Tier Gates | 8 | 3 | 4 | 1 |
-| 13 | Compliance Pre-GoLive | 11 | 0 | 0 | 11 |
+| 13 | Compliance Pre-GoLive | 11 | 1 | 0 | 10 |
 | 14 | Growth, Retention & Compliance | 10 | 0 | 0 | 10 |
 | 15 | Time Tracking | 9 | 0 | 0 | 9 |
 | 16 | E-conomic Integration | 8 | 0 | 0 | 8 |
 
-**Overall:** ~97 complete / ~153 total · Phases 0–8, 10 shipped · Phases 9, 13, 14, 15, 16 not started
+**Overall:** ~102 complete / ~156 total · Phases 0–8, 10 shipped · Phases 9, 14, 15, 16 not started · Phase 13 partially started
 
 ---
 
@@ -95,9 +95,12 @@
 | F-204 | Edit customer form | `[x]` | `[x]` | |
 | F-205 | Delete customer (soft) | `[x]` | `[x]` | `deletedAt` timestamp |
 | F-206 | Quick-dial from app | `N/A` | `[x]` | `tel:` link on phone number |
-| F-207 | "Owes money" badge | `[x]` | `[~]` | BE done; FE still stubbed at 0 — needs wiring to real invoice totals |
+| F-207 | Customer badges: Overdue, Owes, Active, B2B, EAN | `[x]` | `[x]` | Split Overdue (red) + Owes (orange) + Active (cobalt) + B2B (violet) + EAN (emerald) + isFavorite star; computed via `getCustomerInvoiceStatuses` + `getActiveJobsByCustomer` |
 | F-208 | CVR number field | `[x]` | `[x]` | |
 | F-209 | Notes field per customer | `[x]` | `[x]` | Internal notes |
+| F-210 | Google Maps links on customer pages | `N/A` | `[x]` | Maps button on list rows/cards, customer detail address card, and job detail customer panel |
+| F-211 | CVR banner entity detection + EAN prompt | `[x]` | `[x]` | Detects public sector vs business via name keywords + `companyType`; EAN field highlights and auto-focuses for public entities; edit-page lazy init |
+| F-212 | Extended customer fields | `[x]` | `[x]` | `contactPerson`, `secondPhone`, `country`, `paymentTermsDays` (auto-fills invoice due date), `preferredLanguage`, `vatExempt` (zeroes VAT on quote→invoice) |
 
 ---
 
@@ -261,6 +264,7 @@
 | F-1106 | CVR smart lookup | `[x]` | `[x]` | Debounced proxy to `cvrapi.dk`; auto-fills name/CVR/address in CustomerForm + ProfileForm |
 | F-1107 | AI response drafts | `[ ]` | `[ ]` | Quote unseen 7+ days → AI drafts follow-up matching user's tone |
 | F-1108 | Job clustering & insights | `[ ]` | `[ ]` | Auto-tag jobs; "Bathroom renos: avg 3.1 days, 24.200 kr" insight card |
+| F-1109 | Business card scan → customer auto-fill | `[x]` | `[x]` | New customer entry screen; upload card image → Groq `meta-llama/llama-4-scout-17b-16e-instruct` (vision) → pre-filled CustomerForm |
 
 ---
 
@@ -287,7 +291,7 @@
 |---|---|---|---|---|
 | F-1300 | SKAT moms summary page | `[ ]` | `[ ]` | Quarterly export (not SKAT API) |
 | F-1301 | Moms period calculation | `[ ]` | `[ ]` | Q1/Q2/Q3/Q4 totals |
-| F-1302 | EAN number on customer form | `[ ]` | `[ ]` | `customers.eanNumber` exists in DB; UI field not exposed yet |
+| F-1302 | EAN number on customer form | `[x]` | `[x]` | `eanNumber` wired to form + Server Actions; public sector auto-detected and prompted |
 | F-1303 | OIOUBL invoice export | `[ ]` | `[ ]` | XML format for public sector |
 | F-1304 | GDPR: user data export | `[ ]` | `[ ]` | JSON download of all user data |
 | F-1305 | GDPR: account deletion | `[ ]` | `[ ]` | Soft delete → hard delete 30 days |

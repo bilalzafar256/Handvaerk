@@ -1,6 +1,6 @@
 import { setRequestLocale, getTranslations } from "next-intl/server"
 import { Topbar } from "@/components/shared/topbar"
-import { CustomerForm } from "@/components/forms/customer-form"
+import { NewCustomerEntry } from "@/components/customers/new-customer-entry"
 import { Link } from "@/i18n/navigation"
 import { ChevronLeft } from "lucide-react"
 
@@ -33,7 +33,7 @@ export default async function NewCustomerPage({ params }: Props) {
         }
       />
       <div className="pt-2">
-        <CustomerForm />
+        <NewCustomerEntry />
       </div>
     </>
   )

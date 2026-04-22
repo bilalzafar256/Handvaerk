@@ -6,13 +6,15 @@ import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getCustomerById } from "@/lib/db/queries/customers"
 import { getJobsByCustomer } from "@/lib/db/queries/jobs"
+import { getInvoicesByCustomer } from "@/lib/db/queries/invoices"
+import { getQuotesByCustomer } from "@/lib/db/queries/quotes"
 import { Topbar } from "@/components/shared/topbar"
 import { DeleteCustomerButton } from "@/components/customers/customer-detail-actions"
 import { Link } from "@/i18n/navigation"
 import { formatDKK } from "@/lib/utils/currency"
 import {
   ChevronLeft, Pencil, Phone, Mail, MapPin, Building2,
-  FileText, Receipt, Briefcase, Plus, ChevronRight,
+  FileText, Receipt, Briefcase, Plus, ChevronRight, ExternalLink, Globe, CreditCard, User,
 } from "lucide-react"
 import { StatusBadge } from "@/components/jobs/status-changer"
 
@@ -44,9 +46,11 @@ export default async function CustomerDetailPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [customer, customerJobs] = await Promise.all([
+  const [customer, customerJobs, customerInvoices, customerQuotes] = await Promise.all([
     getCustomerById(id, user.id),
     getJobsByCustomer(id, user.id),
+    getInvoicesByCustomer(id, user.id),
+    getQuotesByCustomer(id, user.id),
   ])
   if (!customer) notFound()
 
@@ -113,9 +117,12 @@ export default async function CustomerDetailPage({ params }: Props) {
             <div className="space-y-4 min-w-0">
 
               {/* Contact info */}
-              {(customer.phone || customer.email) && (
+              {(customer.contactPerson || customer.phone || customer.secondPhone || customer.email) && (
                 <Card title={t("contactInfo")} accent="blue">
                   <div className="space-y-3">
+                    {customer.contactPerson && (
+                      <ContactRow icon={User} label={customer.contactPerson} sublabel={t("contactPersonLabel")} />
+                    )}
                     {customer.phone && (
                       <ContactRow
                         icon={Phone}
@@ -123,6 +130,23 @@ export default async function CustomerDetailPage({ params }: Props) {
                         action={
                           <a
                             href={`tel:${customer.phone.replace(/\s/g, "")}`}
+                            className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
+                            style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
+                          >
+                            <Phone className="w-3 h-3" />
+                            {t("callButton")}
+                          </a>
+                        }
+                      />
+                    )}
+                    {customer.secondPhone && (
+                      <ContactRow
+                        icon={Phone}
+                        label={customer.secondPhone}
+                        sublabel={t("secondPhoneLabel")}
+                        action={
+                          <a
+                            href={`tel:${customer.secondPhone.replace(/\s/g, "")}`}
                             className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
                             style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
                           >
@@ -153,16 +177,65 @@ export default async function CustomerDetailPage({ params }: Props) {
               )}
 
               {/* Address */}
-              {addressLine && (
+              {(addressLine || (customer.country && customer.country !== "DK")) && (
                 <Card title={t("addressSection")} accent="green">
-                  <ContactRow icon={MapPin} label={addressLine} />
+                  <div className="space-y-3">
+                    {addressLine && (
+                      <ContactRow
+                        icon={MapPin}
+                        label={addressLine}
+                        action={
+                          <a
+                            href={`https://maps.google.com/?q=${encodeURIComponent(addressLine)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
+                            style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Maps
+                          </a>
+                        }
+                      />
+                    )}
+                    {customer.country && customer.country !== "DK" && (
+                      <ContactRow icon={Globe} label={customer.country} sublabel={t("countryLabel")} />
+                    )}
+                  </div>
                 </Card>
               )}
 
-              {/* Business */}
-              {customer.cvrNumber && (
+              {/* Business / Billing */}
+              {(customer.cvrNumber || customer.eanNumber || customer.vatExempt || customer.paymentTermsDays !== 14 || customer.preferredLanguage !== "da") && (
                 <Card title={t("businessSection")} accent="purple">
-                  <ContactRow icon={Building2} label={customer.cvrNumber} mono sublabel={t("cvrLabel")} />
+                  <div className="space-y-3">
+                    {customer.cvrNumber && (
+                      <ContactRow icon={Building2} label={customer.cvrNumber} mono sublabel={t("cvrLabel")} />
+                    )}
+                    {customer.eanNumber && (
+                      <ContactRow icon={Building2} label={customer.eanNumber} mono sublabel={t("eanLabel")} />
+                    )}
+                    {customer.vatExempt && (
+                      <div className="flex items-center gap-2 rounded-md px-3 py-1.5"
+                        style={{ backgroundColor: "oklch(0.96 0.03 155)", border: "1px solid oklch(0.80 0.09 155)" }}>
+                        <span className="text-xs font-medium" style={{ color: "oklch(0.36 0.14 155)", fontFamily: "var(--font-body)" }}>
+                          VAT-exempt customer
+                        </span>
+                      </div>
+                    )}
+                    <ContactRow
+                      icon={CreditCard}
+                      label={`Net ${customer.paymentTermsDays ?? 14}`}
+                      sublabel={t("paymentTermsLabel")}
+                    />
+                    {customer.preferredLanguage && customer.preferredLanguage !== "da" && (
+                      <ContactRow
+                        icon={Globe}
+                        label={customer.preferredLanguage === "en" ? "English" : customer.preferredLanguage}
+                        sublabel={t("preferredLanguageLabel")}
+                      />
+                    )}
+                  </div>
                 </Card>
               )}
 
@@ -264,6 +337,97 @@ export default async function CustomerDetailPage({ params }: Props) {
                   )}
                 </div>
               </div>
+
+              {/* Invoices list */}
+              <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+                <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                    Invoices{customerInvoices.length > 0 ? ` (${customerInvoices.length})` : ""}
+                  </p>
+                  <Link
+                    href={`/invoices/new?customerId=${id}`}
+                    className="flex items-center gap-1 text-[11px] font-medium px-2 h-6 rounded-md bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
+                    style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
+                  >
+                    <Plus className="w-3 h-3" />
+                    New
+                  </Link>
+                </div>
+                <div className="divide-y" style={{ ["--tw-divide-color" as string]: "var(--border)" }}>
+                  {customerInvoices.length === 0 ? (
+                    <p className="px-3 py-3 text-sm" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+                      No invoices yet
+                    </p>
+                  ) : (
+                    customerInvoices.map(inv => (
+                      <Link
+                        key={inv.id}
+                        href={`/invoices/${inv.id}/edit`}
+                        className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--accent)] transition-colors"
+                      >
+                        <Receipt className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                            #{inv.invoiceNumber}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <InvoiceStatusBadge status={inv.status ?? "draft"} />
+                            {inv.totalInclVat && (
+                              <p className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+                                {formatDKK(inv.totalInclVat)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Quotes list */}
+              <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+                <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                    Quotes{customerQuotes.length > 0 ? ` (${customerQuotes.length})` : ""}
+                  </p>
+                  <Link
+                    href={`/quotes/new?customerId=${id}`}
+                    className="flex items-center gap-1 text-[11px] font-medium px-2 h-6 rounded-md bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
+                    style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
+                  >
+                    <Plus className="w-3 h-3" />
+                    New
+                  </Link>
+                </div>
+                <div className="divide-y" style={{ ["--tw-divide-color" as string]: "var(--border)" }}>
+                  {customerQuotes.length === 0 ? (
+                    <p className="px-3 py-3 text-sm" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+                      No quotes yet
+                    </p>
+                  ) : (
+                    customerQuotes.map(quote => (
+                      <Link
+                        key={quote.id}
+                        href={`/quotes/${quote.id}/edit`}
+                        className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--accent)] transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                            #{quote.quoteNumber}
+                          </p>
+                          <div className="mt-0.5">
+                            <QuoteStatusBadge status={quote.status ?? "draft"} />
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -285,6 +449,38 @@ function Card({ title, children, accent = "blue" }: { title: string; children: R
       </div>
       <div className="px-4 py-3" style={{ backgroundColor: "var(--card)" }}>{children}</div>
     </div>
+  )
+}
+
+function InvoiceStatusBadge({ status }: { status: string }) {
+  const s = {
+    paid:    { bg: "oklch(0.93 0.06 145)", color: "oklch(0.36 0.14 145)" },
+    overdue: { bg: "oklch(0.95 0.06 25)",  color: "oklch(0.44 0.22 25)"  },
+    sent:    { bg: "oklch(0.93 0.06 240)", color: "oklch(0.37 0.14 240)" },
+    viewed:  { bg: "oklch(0.93 0.06 240)", color: "oklch(0.37 0.14 240)" },
+    draft:   { bg: "var(--accent)",        color: "var(--muted-foreground)" },
+  }[status] ?? { bg: "var(--accent)", color: "var(--muted-foreground)" }
+  return (
+    <span className="inline-flex items-center px-1.5 h-4 rounded-full text-[10px] font-medium capitalize"
+      style={{ backgroundColor: s.bg, color: s.color, fontFamily: "var(--font-body)" }}>
+      {status}
+    </span>
+  )
+}
+
+function QuoteStatusBadge({ status }: { status: string }) {
+  const s = {
+    accepted: { bg: "oklch(0.93 0.06 145)", color: "oklch(0.36 0.14 145)" },
+    rejected: { bg: "oklch(0.95 0.06 25)",  color: "oklch(0.44 0.22 25)"  },
+    sent:     { bg: "oklch(0.93 0.06 240)", color: "oklch(0.37 0.14 240)" },
+    expired:  { bg: "oklch(0.95 0.07 45)",  color: "oklch(0.46 0.18 45)"  },
+    draft:    { bg: "var(--accent)",         color: "var(--muted-foreground)" },
+  }[status] ?? { bg: "var(--accent)", color: "var(--muted-foreground)" }
+  return (
+    <span className="inline-flex items-center px-1.5 h-4 rounded-full text-[10px] font-medium capitalize"
+      style={{ backgroundColor: s.bg, color: s.color, fontFamily: "var(--font-body)" }}>
+      {status}
+    </span>
   )
 }
 

@@ -76,6 +76,16 @@ Sequential per user, NOT per customer. Counter uses `countAllJobsEver(userId)` w
 
 ---
 
+## Job Detail Page — Customer Panel
+
+The right-column customer card on the job detail page (`app/[locale]/(dashboard)/jobs/[id]/page.tsx`) shows:
+- Customer name + phone → links to `/customers/[id]`
+- Google Maps link (conditional) — built from `addressLine1 + addressZip + addressCity`, opens `maps.google.com/?q=<address>` in a new tab. Only shown if the customer has at least one address field.
+
+`getJobById` fetches `with: { customer: true }` so all customer address fields are available on the job page.
+
+---
+
 ## Edge Cases / Gotchas
 
 1. **Soft delete + active count:** `countActiveJobs` must exclude soft-deleted jobs AND jobs with terminal statuses.

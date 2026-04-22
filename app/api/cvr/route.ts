@@ -27,10 +27,11 @@ export async function GET(request: Request) {
   if (!data || data.error) return NextResponse.json(null)
 
   return NextResponse.json({
-    name: data.name ?? "",
-    cvr: String(data.vat ?? ""),
-    address: data.address ?? "",
-    zip: data.zipcode ?? "",
-    city: data.city ?? "",
+    name:        data.name ?? "",
+    cvr:         String(data.vat ?? ""),
+    address:     data.address ?? "",
+    zip:         data.zipcode ?? "",
+    city:        data.city ?? "",
+    companyType: data.type ?? "",
   })
 }

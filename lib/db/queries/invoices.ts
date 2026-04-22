@@ -25,6 +25,13 @@ export async function getInvoicesByJob(jobId: string, userId: string) {
   })
 }
 
+export async function getInvoicesByCustomer(customerId: string, userId: string) {
+  return db.query.invoices.findMany({
+    where: and(eq(invoices.customerId, customerId), eq(invoices.userId, userId), isNull(invoices.deletedAt)),
+    orderBy: [desc(invoices.createdAt)],
+  })
+}
+
 export async function getInvoiceById(id: string, userId: string) {
   return db.query.invoices.findFirst({
     where: and(eq(invoices.id, id), eq(invoices.userId, userId), isNull(invoices.deletedAt)),

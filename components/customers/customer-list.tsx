@@ -1,20 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Link } from "@/i18n/navigation"
 import { useRouter } from "@/i18n/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import {
   Search, Plus, Users, LayoutList, LayoutGrid,
-  Pencil, Trash2, Loader2, AlertCircle, ChevronRight,
+  Pencil, Trash2, Loader2, AlertCircle, ChevronRight, MapPin, Star, Briefcase,
 } from "lucide-react"
 import { deleteCustomerAction } from "@/lib/actions/customers"
 import { toast } from "sonner"
 import { useTranslations } from "next-intl"
+import { formatDKK } from "@/lib/utils/currency"
 import type { Customer } from "@/lib/db/schema/customers"
+import type { UnpaidInvoiceSummary } from "@/lib/db/queries/overview"
 
 interface CustomerWithOwed extends Customer {
   unpaidCount: number
+  overdueCount: number
+  activeJobCount: number
+  unpaidInvoices: UnpaidInvoiceSummary[]
 }
 
 const CUSTOMER_PALETTE = [
@@ -163,19 +169,14 @@ function CustomerRow({ customer, index }: { customer: CustomerWithOwed; index: n
           {customer.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {customer.isFavorite && (
+              <Star className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--amber-500)", fill: "var(--amber-500)" }} />
+            )}
+            <p className="text-sm font-medium truncate flex-1" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
               {customer.name}
             </p>
-            {customer.unpaidCount > 0 && (
-              <span
-                className="inline-flex items-center gap-1 px-2 h-5 rounded-full text-[11px] font-medium border flex-shrink-0"
-                style={{ backgroundColor: "var(--status-overdue-bg)", color: "var(--status-overdue-text)", borderColor: "var(--status-overdue-border)" }}
-              >
-                <AlertCircle className="w-3 h-3" />
-                Owes
-              </span>
-            )}
+            <CustomerBadges customer={customer} />
           </div>
           {(customer.phone || customer.email) && (
             <p className="text-xs truncate mt-0.5" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
@@ -188,6 +189,18 @@ function CustomerRow({ customer, index }: { customer: CustomerWithOwed; index: n
 
       {/* Inline actions — always visible, outside Link */}
       <div className="flex items-center gap-1.5 pr-3 self-center flex-shrink-0">
+        {[customer.addressLine1, customer.addressZip, customer.addressCity].filter(Boolean).length > 0 && (
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent([customer.addressLine1, customer.addressZip, customer.addressCity].filter(Boolean).join(", "))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-[var(--background)] hover:bg-[var(--accent-light)] transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--primary)" }}
+          >
+            <MapPin className="w-3.5 h-3.5" />
+          </a>
+        )}
         <Link
           href={`/customers/${customer.id}/edit`}
           onClick={e => e.stopPropagation()}
@@ -273,9 +286,14 @@ function CustomerCard({ customer, index }: { customer: CustomerWithOwed; index: 
               {customer.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
-                {customer.name}
-              </p>
+              <div className="flex items-center gap-1.5">
+                {customer.isFavorite && (
+                  <Star className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--amber-500)", fill: "var(--amber-500)" }} />
+                )}
+                <p className="text-sm font-semibold truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                  {customer.name}
+                </p>
+              </div>
               {(customer.phone || customer.email) && (
                 <p className="text-xs truncate mt-0.5" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
                   {customer.phone || customer.email}
@@ -283,19 +301,26 @@ function CustomerCard({ customer, index }: { customer: CustomerWithOwed; index: 
               )}
             </div>
           </div>
-          {customer.unpaidCount > 0 && (
-            <span
-              className="self-start inline-flex items-center gap-1 px-2 h-5 rounded-full text-[11px] font-medium border"
-              style={{ backgroundColor: "var(--status-overdue-bg)", color: "var(--status-overdue-text)", borderColor: "var(--status-overdue-border)" }}
-            >
-              <AlertCircle className="w-3 h-3" />
-              Owes money
-            </span>
-          )}
+          <div className="flex flex-wrap gap-1 mt-1">
+            <CustomerBadges customer={customer} />
+          </div>
         </Link>
 
         {/* Always-visible action bar */}
         <div className="flex items-center gap-1.5 px-3 pb-3 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+          {[customer.addressLine1, customer.addressZip, customer.addressCity].filter(Boolean).length > 0 && (
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent([customer.addressLine1, customer.addressZip, customer.addressCity].filter(Boolean).join(", "))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg border text-xs font-medium bg-[var(--background)] hover:bg-[var(--accent-light)] transition-colors"
+              style={{ borderColor: "var(--border)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
+            >
+              <MapPin className="w-3 h-3" />
+              Maps
+            </a>
+          )}
           <Link
             href={`/customers/${customer.id}/edit`}
             onClick={e => e.stopPropagation()}
@@ -359,6 +384,156 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       </button>
     </div>
   )
+}
+
+function CustomerBadges({ customer }: { customer: CustomerWithOwed }) {
+  return (
+    <>
+      {(customer.overdueCount > 0 || customer.unpaidCount > 0) && (
+        <UnpaidBadges customer={customer} />
+      )}
+      {customer.activeJobCount > 0 && (
+        <span className="inline-flex items-center gap-1 px-1.5 h-5 rounded-full text-[11px] font-medium border flex-shrink-0"
+          style={{ backgroundColor: "oklch(0.93 0.06 240)", color: "oklch(0.37 0.14 240)", borderColor: "oklch(0.82 0.09 240)" }}>
+          <Briefcase className="w-3 h-3" />
+          Active
+        </span>
+      )}
+      {customer.cvrNumber && (
+        <span className="inline-flex items-center px-1.5 h-5 rounded-full text-[11px] font-medium border flex-shrink-0"
+          style={{ backgroundColor: "oklch(0.93 0.05 290)", color: "oklch(0.40 0.14 290)", borderColor: "oklch(0.82 0.08 290)" }}>
+          B2B
+        </span>
+      )}
+      {customer.eanNumber && (
+        <span className="inline-flex items-center px-1.5 h-5 rounded-full text-[11px] font-medium border flex-shrink-0"
+          style={{ backgroundColor: "oklch(0.92 0.07 155)", color: "oklch(0.36 0.14 155)", borderColor: "oklch(0.80 0.09 155)" }}>
+          EAN
+        </span>
+      )}
+    </>
+  )
+}
+
+function UnpaidBadges({ customer }: { customer: CustomerWithOwed }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      if (!triggerRef.current?.contains(e.target as Node) && !popoverRef.current?.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false) }
+    document.addEventListener("mousedown", onDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDown)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
+  function handleToggle(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPos({
+        top: rect.bottom + window.scrollY + 4,
+        left: Math.min(rect.left + window.scrollX, window.innerWidth - 284),
+      })
+    }
+    setOpen(o => !o)
+  }
+
+  return (
+    <div ref={triggerRef} className="inline-flex gap-1">
+      {customer.overdueCount > 0 && (
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="inline-flex items-center gap-1 px-1.5 h-5 rounded-full text-[11px] font-medium border flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          style={{ backgroundColor: "oklch(0.95 0.06 25)", color: "oklch(0.44 0.22 25)", borderColor: "oklch(0.85 0.10 25)" }}
+        >
+          <AlertCircle className="w-3 h-3" />
+          Overdue
+        </button>
+      )}
+      {customer.unpaidCount > 0 && (
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="inline-flex items-center gap-1 px-1.5 h-5 rounded-full text-[11px] font-medium border flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          style={{ backgroundColor: "oklch(0.95 0.07 45)", color: "oklch(0.46 0.18 45)", borderColor: "oklch(0.87 0.11 45)" }}
+        >
+          <AlertCircle className="w-3 h-3" />
+          Owes
+        </button>
+      )}
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={popoverRef}
+          className="rounded-xl border shadow-xl overflow-hidden"
+          style={{
+            position: "absolute",
+            top: pos.top,
+            left: pos.left,
+            zIndex: 9999,
+            width: 272,
+            backgroundColor: "var(--card)",
+            borderColor: "var(--border)",
+          }}
+        >
+          <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+              Outstanding Invoices
+            </p>
+            <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "oklch(0.95 0.07 45)", color: "oklch(0.46 0.18 45)", fontFamily: "var(--font-body)" }}>
+              {customer.unpaidInvoices.length}
+            </span>
+          </div>
+          <div className="divide-y max-h-52 overflow-y-auto" style={{ ["--tw-divide-color" as string]: "var(--border)" }}>
+            {customer.unpaidInvoices.map(inv => (
+              <Link
+                key={inv.id}
+                href={`/invoices/${inv.id}/edit`}
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-between px-3 py-2.5 hover:bg-[var(--accent)] transition-colors gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-medium" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                    #{inv.invoiceNumber}
+                  </p>
+                  <p className="text-[11px]" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                    Due {formatInvoiceDate(inv.dueDate)}
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-xs font-semibold" style={{ fontFamily: "var(--font-mono)", color: inv.status === "overdue" ? "var(--error)" : "var(--foreground)" }}>
+                    {formatDKK(inv.totalInclVat)}
+                  </p>
+                  <p className="text-[11px] capitalize" style={{ fontFamily: "var(--font-body)", color: inv.status === "overdue" ? "var(--error)" : "var(--muted-foreground)" }}>
+                    {inv.status}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
+
+function formatInvoiceDate(dateStr: string): string {
+  const parts = dateStr.split("-")
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]}`
 }
 
 function EmptyState({ searching }: { searching: boolean }) {

@@ -20,7 +20,7 @@ import { InlineNotes } from "@/components/jobs/inline-notes"
 import { Link } from "@/i18n/navigation"
 import {
   ChevronLeft, Pencil, User, Calendar, CalendarCheck,
-  FileText, Receipt, Plus, ChevronRight, Phone, Mail,
+  FileText, Receipt, Plus, ChevronRight, Phone, Mail, MapPin, ExternalLink,
 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -60,6 +60,9 @@ export default async function JobDetailPage({ params }: Props) {
     getJobProfitability(id, user.id),
   ])
   if (!job) notFound()
+
+  const customerAddress = [job.customer.addressLine1, job.customer.addressZip, job.customer.addressCity]
+    .filter(Boolean).join(", ")
 
   return (
     <>
@@ -212,27 +215,42 @@ export default async function JobDetailPage({ params }: Props) {
               </div>
 
               {/* Customer card */}
-              <Link
-                href={`/customers/${job.customer.id}`}
-                className="flex items-center gap-3 rounded-xl border p-3 bg-[var(--card)] hover:bg-[var(--accent)] transition-colors group"
-                style={{ borderColor: "var(--border)" }}
-              >
-                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[15px] font-bold"
-                  style={{ backgroundColor: "var(--amber-500)", color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-display)" }}>
-                  {job.customer.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
-                    {job.customer.name}
-                  </p>
-                  {job.customer.phone && (
-                    <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
-                      {job.customer.phone}
+              <div>
+                <Link
+                  href={`/customers/${job.customer.id}`}
+                  className="flex items-center gap-3 rounded-xl border p-3 bg-[var(--card)] hover:bg-[var(--accent)] transition-colors group"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[15px] font-bold"
+                    style={{ backgroundColor: "var(--amber-500)", color: "oklch(0.10 0.005 52)", fontFamily: "var(--font-display)" }}>
+                    {job.customer.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                      {job.customer.name}
                     </p>
-                  )}
-                </div>
-                <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
-              </Link>
+                    {job.customer.phone && (
+                      <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                        {job.customer.phone}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                </Link>
+                {customerAddress && (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(customerAddress)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium hover:bg-[var(--accent)] transition-colors mt-1"
+                    style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
+                  >
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
+                    <span className="truncate flex-1">{customerAddress}</span>
+                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                  </a>
+                )}
+              </div>
 
               {/* Quotes */}
               <RelatedDocs

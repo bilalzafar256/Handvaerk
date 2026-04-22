@@ -19,6 +19,7 @@ import {
 } from "@/lib/db/queries/invoices"
 import { getJobById } from "@/lib/db/queries/jobs"
 import { getQuoteById } from "@/lib/db/queries/quotes"
+import { getCustomerById } from "@/lib/db/queries/customers"
 import { getDefaultBankAccount } from "@/lib/db/queries/bank-accounts"
 
 const lineItemSchema = z.object({
@@ -187,13 +188,15 @@ export async function createInvoiceFromJobAction(jobId: string) {
   const job = await getJobById(jobId, user.id)
   if (!job) throw new Error("Job not found")
 
-  const [total, defaultBankAccount] = await Promise.all([
+  const [total, defaultBankAccount, customer] = await Promise.all([
     countAllInvoicesEver(user.id),
     getDefaultBankAccount(user.id),
+    getCustomerById(job.customerId, user.id),
   ])
+  const paymentTermsDays = customer?.paymentTermsDays ?? 14
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(14)
+  const dueDate = makeDueDate(paymentTermsDays)
   const bankAccountStr = defaultBankAccount
     ? `Reg. ${defaultBankAccount.regNumber} | Konto ${defaultBankAccount.accountNumber}`
     : null
@@ -207,14 +210,14 @@ export async function createInvoiceFromJobAction(jobId: string) {
     status:           "draft",
     issueDate,
     dueDate,
-    paymentTermsDays: 14,
+    paymentTermsDays,
     subtotalExVat:    "0.00",
     vatAmount:        "0.00",
     totalInclVat:     "0.00",
     bankAccount:      bankAccountStr,
     mobilepayNumber:  user.mobilepayNumber ?? null,
     notes:            job.description ?? null,
-    eanNumber:        null,
+    eanNumber:        customer?.eanNumber ?? null,
   })
 
   // Mark job as invoiced
@@ -252,9 +255,10 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
     countAllInvoicesEver(user.id),
     getDefaultBankAccount(user.id),
   ])
+  const paymentTermsDays = quote.customer.paymentTermsDays ?? 14
   const invoiceNumber = makeInvoiceNumber(total)
   const issueDate = new Date().toISOString().split("T")[0]
-  const dueDate = makeDueDate(14)
+  const dueDate = makeDueDate(paymentTermsDays)
   const bankAccountStr = defaultBankAccount
     ? `Reg. ${defaultBankAccount.regNumber} | Konto ${defaultBankAccount.accountNumber}`
     : null
@@ -290,7 +294,7 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
     status:           "draft",
     issueDate,
     dueDate,
-    paymentTermsDays: 14,
+    paymentTermsDays,
     subtotalExVat:    subtotalExVat.toFixed(2),
     vatAmount:        vatAmount.toFixed(2),
     totalInclVat:     totalInclVat.toFixed(2),
@@ -301,7 +305,9 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
     eanNumber:        quote.customer.eanNumber ?? null,
   })
 
-  // Map quote items to invoice items (carry per-line discounts)
+  const vatExempt = quote.customer.vatExempt ?? false
+
+  // Map quote items to invoice items (carry per-line discounts; honour vatExempt)
   await replaceInvoiceItems(invoice.id, quote.items.map((item, i) => {
     const qty = parseFloat(item.quantity ?? "1")
     const price = parseFloat(item.unitPrice ?? "0")
@@ -315,7 +321,7 @@ export async function createInvoiceFromQuoteAction(quoteId: string, force = fals
       unitPrice:     item.unitPrice ?? null,
       discountType:  item.discountType ?? null,
       discountValue: item.discountValue ?? null,
-      vatRate:       item.vatRate ?? "25.00",
+      vatRate:       vatExempt ? "0.00" : (item.vatRate ?? "25.00"),
       lineTotal,
       sortOrder:     i,
     }

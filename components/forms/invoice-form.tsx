@@ -104,7 +104,7 @@ function PricebookPicker({
 
 interface InvoiceFormProps {
   invoice?: Invoice & { items: InvoiceItem[] }
-  customers: Pick<Customer, "id" | "name">[]
+  customers: Pick<Customer, "id" | "name" | "paymentTermsDays" | "vatExempt">[]
   /** All quotes keyed by customerId — used for the "load from quotes" picker */
   quotesByCustomer?: Record<string, QuoteForImport[]>
   pricebookItems?: PricebookItem[]
@@ -178,7 +178,9 @@ export function InvoiceForm({
   // Track the first selected quoteId (stored as FK)
   const [linkedQuoteId, setLinkedQuoteId] = useState<string | undefined>(defaultQuoteId)
 
+  const selectedCustomer = customers.find(c => c.id === (invoice?.customerId ?? defaultCustomerId ?? ""))
   const [customerId, setCustomerId]           = useState(invoice?.customerId ?? defaultCustomerId ?? "")
+  const [isVatExempt, setIsVatExempt]         = useState(selectedCustomer?.vatExempt ?? false)
   const [dueDate, setDueDate]                 = useState(invoice?.dueDate ?? defaultDueDate(15))
   const [paymentTermsDays, setPaymentTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
   const [bankAccount, setBankAccount]         = useState(invoice?.bankAccount ?? defaultBankAccount ?? "")
@@ -272,9 +274,17 @@ export function InvoiceForm({
         <select
           value={customerId}
           onChange={(e) => {
-            setCustomerId(e.target.value)
+            const cId = e.target.value
+            setCustomerId(cId)
             setShowQuotePicker(false)
             setSelectedQuoteIds([])
+            const c = customers.find(x => x.id === cId)
+            if (c) {
+              const terms = c.paymentTermsDays ?? 14
+              setPaymentTermsDays(terms)
+              setDueDate(defaultDueDate(terms))
+              setIsVatExempt(c.vatExempt ?? false)
+            }
           }}
           className={inputCls}
           style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
@@ -284,6 +294,14 @@ export function InvoiceForm({
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+        {isVatExempt && (
+          <div className="mt-2 flex items-center gap-2 rounded-lg border px-3 py-2"
+            style={{ backgroundColor: "oklch(0.96 0.03 155)", borderColor: "oklch(0.80 0.09 155)" }}>
+            <span className="text-xs font-medium" style={{ color: "oklch(0.36 0.14 155)", fontFamily: "var(--font-body)" }}>
+              VAT-exempt customer — invoice will be issued at 0% VAT
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Load from quotes — only on new invoices when customer has quotes */}

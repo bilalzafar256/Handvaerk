@@ -464,6 +464,11 @@ function QuoteRow({
             <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
               {quote.customer.name}
             </p>
+            {quote.sentAt && (
+              <p className="text-[11px] tabular-nums" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+                Sent {new Date(quote.sentAt).toLocaleDateString("da-DK")}
+              </p>
+            )}
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <QuoteStatusBadge status={status} />
@@ -543,6 +548,11 @@ function QuoteCard({
           <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
             {formatDKK(subtotal)}
           </p>
+          {quote.sentAt && (
+            <p className="text-[11px] tabular-nums" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+              Sent {new Date(quote.sentAt).toLocaleDateString("da-DK")}
+            </p>
+          )}
           {quote.validUntil && (
             <p className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
               Valid until {new Date(quote.validUntil).toLocaleDateString("da-DK")}

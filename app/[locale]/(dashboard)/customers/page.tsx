@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { getCustomersByUser } from "@/lib/db/queries/customers"
-import { getOutstandingByCustomer } from "@/lib/db/queries/overview"
+import { getCustomerInvoiceStatuses, getActiveJobsByCustomer, getUnpaidInvoicesByCustomer } from "@/lib/db/queries/overview"
 import { Topbar } from "@/components/shared/topbar"
 import { CustomerList } from "@/components/customers/customer-list"
 import { Link } from "@/i18n/navigation"
@@ -33,12 +33,20 @@ export default async function CustomersPage({ params }: Props) {
   const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
   if (!user) redirect("/sign-in")
 
-  const [customerRows, outstandingMap] = await Promise.all([
+  const [customerRows, invoiceStatuses, activeJobMap, unpaidInvoicesMap] = await Promise.all([
     getCustomersByUser(user.id),
-    getOutstandingByCustomer(user.id),
+    getCustomerInvoiceStatuses(user.id),
+    getActiveJobsByCustomer(user.id),
+    getUnpaidInvoicesByCustomer(user.id),
   ])
 
-  const customers = customerRows.map((c) => ({ ...c, unpaidCount: outstandingMap[c.id] ?? 0 }))
+  const customers = customerRows.map((c) => ({
+    ...c,
+    unpaidCount:    invoiceStatuses[c.id]?.unpaid  ?? 0,
+    overdueCount:   invoiceStatuses[c.id]?.overdue ?? 0,
+    activeJobCount: activeJobMap[c.id]             ?? 0,
+    unpaidInvoices: unpaidInvoicesMap[c.id]        ?? [],
+  }))
 
   return (
     <>

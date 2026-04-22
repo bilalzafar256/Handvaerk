@@ -19,6 +19,7 @@ Web App, Mobile-first SaaS for Danish tradespeople. Next.js 15 / Neon / Drizzle 
 | Invoices + email + reminders | `project-context/features/INVOICES.md` |
 | Customers + CVR lookup | `project-context/features/CUSTOMERS.md` |
 | AI audio recording pipeline | `project-context/features/AI_RECORDING.md` |
+| Notifications + click routing | `project-context/features/NOTIFICATIONS.md` |
 | Auth, profile, tiers | `project-context/features/AUTH_PROFILE.md` |
 | Naming, patterns, anti-patterns | `project-context/conventions/CODING_STANDARDS.md` |
 | Why every tech choice was made | `project-context/context/DECISIONS.md` |

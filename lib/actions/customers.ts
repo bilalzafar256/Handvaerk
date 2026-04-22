@@ -14,14 +14,21 @@ import {
 } from "@/lib/db/queries/customers"
 
 const customerSchema = z.object({
-  name:         z.string().min(1, "Name is required"),
-  phone:        z.string().optional(),
-  email:        z.string().email("Invalid email").optional().or(z.literal("")),
-  addressLine1: z.string().optional(),
-  addressCity:  z.string().optional(),
-  addressZip:   z.string().optional(),
-  cvrNumber:    z.string().optional(),
-  notes:        z.string().optional(),
+  name:             z.string().min(1, "Name is required"),
+  contactPerson:    z.string().optional(),
+  phone:            z.string().optional(),
+  secondPhone:      z.string().optional(),
+  email:            z.string().email("Invalid email").optional().or(z.literal("")),
+  addressLine1:     z.string().optional(),
+  addressCity:      z.string().optional(),
+  addressZip:       z.string().optional(),
+  country:          z.string().optional(),
+  cvrNumber:        z.string().optional(),
+  eanNumber:        z.string().optional(),
+  notes:            z.string().optional(),
+  paymentTermsDays: z.number().int().min(1).optional(),
+  preferredLanguage: z.enum(["da", "en"]).optional(),
+  vatExempt:        z.boolean().optional(),
 })
 
 export type CustomerFormData = z.infer<typeof customerSchema>
@@ -61,14 +68,21 @@ export async function createCustomerAction(data: CustomerFormData) {
 
   const customer = await createCustomer({
     userId,
-    name:         validated.name,
-    phone:        validated.phone || null,
-    email:        validated.email || null,
-    addressLine1: validated.addressLine1 || null,
-    addressCity:  validated.addressCity || null,
-    addressZip:   validated.addressZip || null,
-    cvrNumber:    validated.cvrNumber || null,
-    notes:        validated.notes || null,
+    name:             validated.name,
+    contactPerson:    validated.contactPerson || null,
+    phone:            validated.phone || null,
+    secondPhone:      validated.secondPhone || null,
+    email:            validated.email || null,
+    addressLine1:     validated.addressLine1 || null,
+    addressCity:      validated.addressCity || null,
+    addressZip:       validated.addressZip || null,
+    country:          validated.country || "DK",
+    cvrNumber:        validated.cvrNumber || null,
+    eanNumber:        validated.eanNumber || null,
+    notes:            validated.notes || null,
+    paymentTermsDays: validated.paymentTermsDays ?? 14,
+    preferredLanguage: validated.preferredLanguage ?? "da",
+    vatExempt:        validated.vatExempt ?? false,
   })
 
   revalidatePath("/customers")
@@ -86,14 +100,21 @@ export async function updateCustomerAction(id: string, data: CustomerFormData) {
   if (!userId) throw new Error("User not found")
 
   await updateCustomer(id, userId, {
-    name:         validated.name,
-    phone:        validated.phone || null,
-    email:        validated.email || null,
-    addressLine1: validated.addressLine1 || null,
-    addressCity:  validated.addressCity || null,
-    addressZip:   validated.addressZip || null,
-    cvrNumber:    validated.cvrNumber || null,
-    notes:        validated.notes || null,
+    name:             validated.name,
+    contactPerson:    validated.contactPerson || null,
+    phone:            validated.phone || null,
+    secondPhone:      validated.secondPhone || null,
+    email:            validated.email || null,
+    addressLine1:     validated.addressLine1 || null,
+    addressCity:      validated.addressCity || null,
+    addressZip:       validated.addressZip || null,
+    country:          validated.country || "DK",
+    cvrNumber:        validated.cvrNumber || null,
+    eanNumber:        validated.eanNumber || null,
+    notes:            validated.notes || null,
+    paymentTermsDays: validated.paymentTermsDays ?? 14,
+    preferredLanguage: validated.preferredLanguage ?? "da",
+    vatExempt:        validated.vatExempt ?? false,
   })
 
   revalidatePath("/customers")

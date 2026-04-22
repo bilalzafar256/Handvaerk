@@ -16,12 +16,13 @@ Browser / Mobile PWA
        │         └── API routes
        │                   ├── /api/webhooks/clerk  → users table sync
        │                   ├── /api/inngest          → Inngest function receiver
-       │                   ├── /api/cvr              → cvrapi.dk proxy (CVR lookup)
+       │                   ├── /api/cvr              → cvrapi.dk proxy (CVR lookup; returns name, cvr, address, zip, city, companyType)
        │                   ├── /api/upload           → Vercel Blob token issuer (logos)
        │                   ├── /api/upload/jobs      → Vercel Blob token issuer (photos)
        │                   ├── /api/invoices/[id]/pdf → PDF stream
        │                   ├── /api/quotes/[id]/pdf  → PDF stream
-       │                   └── /api/materials/search → materials catalog search
+       │                   ├── /api/materials/search → materials catalog search
+                  └── /api/business-card   → Groq vision: extract fields from business card image
        │
        ├── Vercel Blob (file storage)
        │      ├── Company logos (permanent)
@@ -35,7 +36,7 @@ Browser / Mobile PWA
               │      ├── invoice-reminder (8d + 7d after sent)
               │      └── process-job-recording (5-step audio pipeline)
               ├── Resend (transactional email — 7 templates)
-              ├── Groq API (Whisper transcription + LLaMA extraction)
+              ├── Groq API (Whisper transcription + LLaMA extraction + llama-4-scout vision for business card scan)
               ├── Google Gemini Flash (AI fallback — currently unused in pipeline)
               ├── PostHog (analytics)
               ├── Sentry (error tracking)

@@ -268,6 +268,94 @@ export async function getOutstandingByCustomer(userId: string): Promise<Record<s
   return Object.fromEntries(rows.map(r => [r.customerId, Number(r.cnt)]))
 }
 
+// Split invoice statuses per customer: unpaid (sent/viewed) vs overdue
+export async function getCustomerInvoiceStatuses(
+  userId: string
+): Promise<Record<string, { unpaid: number; overdue: number }>> {
+  const rows = await db
+    .select({ customerId: invoices.customerId, status: invoices.status, cnt: count() })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.userId, userId),
+        isNull(invoices.deletedAt),
+        inArray(invoices.status, ["sent", "viewed", "overdue"])
+      )
+    )
+    .groupBy(invoices.customerId, invoices.status)
+
+  const result: Record<string, { unpaid: number; overdue: number }> = {}
+  for (const row of rows) {
+    const id = row.customerId!
+    if (!result[id]) result[id] = { unpaid: 0, overdue: 0 }
+    if (row.status === "overdue") result[id].overdue += Number(row.cnt)
+    else result[id].unpaid += Number(row.cnt)
+  }
+  return result
+}
+
+// Unpaid invoice summaries per customer (for badge popover)
+export type UnpaidInvoiceSummary = {
+  id: string
+  invoiceNumber: string
+  totalInclVat: string | null
+  dueDate: string
+  status: string
+}
+
+export async function getUnpaidInvoicesByCustomer(
+  userId: string
+): Promise<Record<string, UnpaidInvoiceSummary[]>> {
+  const rows = await db
+    .select({
+      customerId: invoices.customerId,
+      id: invoices.id,
+      invoiceNumber: invoices.invoiceNumber,
+      totalInclVat: invoices.totalInclVat,
+      dueDate: invoices.dueDate,
+      status: invoices.status,
+    })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.userId, userId),
+        isNull(invoices.deletedAt),
+        inArray(invoices.status, ["sent", "viewed", "overdue"])
+      )
+    )
+    .orderBy(asc(invoices.dueDate))
+
+  const result: Record<string, UnpaidInvoiceSummary[]> = {}
+  for (const row of rows) {
+    const id = row.customerId!
+    if (!result[id]) result[id] = []
+    result[id].push({
+      id: row.id,
+      invoiceNumber: row.invoiceNumber,
+      totalInclVat: row.totalInclVat,
+      dueDate: row.dueDate,
+      status: row.status ?? "sent",
+    })
+  }
+  return result
+}
+
+// Active job count per customer (new / scheduled / in_progress)
+export async function getActiveJobsByCustomer(userId: string): Promise<Record<string, number>> {
+  const rows = await db
+    .select({ customerId: jobs.customerId, cnt: count() })
+    .from(jobs)
+    .where(
+      and(
+        eq(jobs.userId, userId),
+        isNull(jobs.deletedAt),
+        inArray(jobs.status, ["new", "scheduled", "in_progress"])
+      )
+    )
+    .groupBy(jobs.customerId)
+  return Object.fromEntries(rows.map(r => [r.customerId!, Number(r.cnt)]))
+}
+
 // ── Today's jobs ──────────────────────────────────────────────────────────────
 
 export async function getTodayJobs(userId: string) {

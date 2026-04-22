@@ -294,13 +294,25 @@ export function QuoteDetail({
         </Card>
 
         {/* Dates card */}
-        {quote.validUntil && (
-          <Card title="Valid until" accent="amber">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
-              <p className="text-sm font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
-                {new Date(quote.validUntil).toLocaleDateString("da-DK")}
-              </p>
+        {(quote.sentAt || quote.validUntil) && (
+          <Card title="Dates" accent="amber">
+            <div className="space-y-2">
+              {quote.sentAt && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>Sent</span>
+                  <p className="text-sm font-medium tabular-nums" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
+                    {new Date(quote.sentAt).toLocaleDateString("da-DK")}
+                  </p>
+                </div>
+              )}
+              {quote.validUntil && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>Valid until</span>
+                  <p className="text-sm font-medium tabular-nums" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
+                    {new Date(quote.validUntil).toLocaleDateString("da-DK")}
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
         )}
