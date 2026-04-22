@@ -37,7 +37,7 @@
 ## Fixed
 
 ### ~~KI-013: Time tracking calendar week selection off-by-one (timezone)~~ (RESOLVED)
-**Location:** `components/time-tracking/month-calendar.tsx`, `weekly-timesheet.tsx`, `timer-zone.tsx`  
+**Location:** `components/time-tracking/month-calendar.tsx` (at time of fix; `timer-zone.tsx` has since been replaced by `timer-hero.tsx`)  
 **Root cause:** `toISO` used `toISOString().split("T")[0]` which returns UTC date. In UTC+2 timezone, local midnight is 22:00 UTC the previous day, so dates were shifted back by one. Clicking "week 3 in calendar" navigated to week 2.  
 **Fix:** Changed `toISO` in all three files to use local date parts (`getFullYear() / getMonth() / getDate()`). Also updated MonthCalendar `navigateToDay` to include `&day=` param.
 

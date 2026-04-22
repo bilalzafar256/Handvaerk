@@ -369,7 +369,7 @@
 | F-3110 | QuickTimerCard on dashboard | `[x]` | `[x]` | `components/dashboard/quick-timer-card.tsx` |
 | F-3111 | Already-billed safety indicator | `[x]` | `[x]` | `billedToQuoteId`/`billedToInvoiceId` + warning badge in modal |
 | F-3112 | Status-based access control | `[x]` | `[x]` | Clock-in/manual entry blocked for done/invoiced/paid jobs; add-to-document blocked for rejected/expired quotes and paid invoices |
-| F-3113 | Enhanced `/time-tracking` page | `[x]` | `[x]` | Timer zone, `DayStrip` (week nav + day selector), `DayView` (visual hour timeline + entry cards), month calendar, inline entry edit, unbilled nudge. Day-centric navigation: `?week=` + `?day=` params. Timezone bug fixed (local ISO dates instead of UTC). |
+| F-3113 | Enhanced `/time-tracking` page | `[x]` | `[x]` | **Rebuilt as 3-zone shell** (mirrors calendar layout): `StatsSidebar` (desktop left, 200px — total/billable/earnings/delta vs prev week/per-job breakdown bars), `TimeTrackingShell` (layout server component), `TimerHero` (idle shows big 00:00 + quick-start chips; active shows 48px elapsed clock + Live badge + shadow-accent clock-out CTA; stale-timer recovery unchanged), `WeekBars` (7-column vertical bar chart — billable amber at base, non-billable gray above, selected day highlighted), `DayView` (visual hour timeline + entry cards, unchanged), `MonthCalendar` (heat-map dots, unchanged), `UnbilledPanel` (desktop right, 220px — lists unbilled billable entries from past 30 days with est. kr per entry + total). New DB query: `getUnbilledEntries`. Deleted orphaned components: `timer-zone.tsx`, `day-strip.tsx`, `weekly-summary-bar.tsx`. |
 
 ---
 

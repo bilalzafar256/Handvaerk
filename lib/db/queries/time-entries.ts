@@ -157,6 +157,25 @@ export async function markEntriesAsBilledToInvoice(jobId: string, userId: string
     )
 }
 
+export async function getUnbilledEntries(userId: string) {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  return db.query.timeEntries.findMany({
+    where: and(
+      eq(timeEntries.userId, userId),
+      isNull(timeEntries.deletedAt),
+      isNotNull(timeEntries.endedAt),
+      eq(timeEntries.isBillable, true),
+      isNull(timeEntries.billedToQuoteId),
+      isNull(timeEntries.billedToInvoiceId),
+      gte(timeEntries.startedAt, thirtyDaysAgo),
+    ),
+    orderBy: [desc(timeEntries.startedAt)],
+    with: { job: { with: { customer: true } } },
+  })
+}
+
 export async function getMonthlyEntries(userId: string, monthStart: Date, monthEnd: Date) {
   return db
     .select({

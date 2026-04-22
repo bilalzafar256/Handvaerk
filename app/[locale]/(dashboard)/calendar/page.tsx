@@ -29,7 +29,7 @@ export default async function CalendarPage({
   const data = await getCalendarDataAction(from, to)
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col min-h-0" style={{ height: "calc(100dvh - 3.5rem)" }}>
       <Topbar title="Calendar" />
       <div className="flex-1 min-h-0 overflow-hidden">
         <CalendarShell initialData={data} initialFrom={from} initialTo={to} />

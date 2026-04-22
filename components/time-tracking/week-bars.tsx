@@ -21,46 +21,56 @@ function startOfWeek(d: Date): Date {
   return r
 }
 
-function fmtDur(minutes: number): string {
+function fmtCompact(minutes: number): string {
   if (!minutes) return ""
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   if (!h) return `${m}m`
   if (!m) return `${h}h`
+  return `${h}h`
+}
+
+function fmtFull(minutes: number): string {
+  if (!minutes) return "0h"
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (!m) return `${h}h`
   return `${h}h ${m}m`
 }
 
-export interface DayStripEntry {
+export interface WeekBarsEntry {
   startedAt: Date | string
   durationMinutes: number | null
   isBillable: boolean | null
 }
 
-interface DayStripProps {
-  entries: DayStripEntry[]
+interface WeekBarsProps {
+  entries: WeekBarsEntry[]
   weekStart: Date
   selectedDay: string
 }
 
-const DAYS = ["M", "T", "W", "T", "F", "S", "S"]
+const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"]
+const BAR_MAX_H = 64
 
-export function DayStrip({ entries, weekStart, selectedDay }: DayStripProps) {
+export function WeekBars({ entries, weekStart, selectedDay }: WeekBarsProps) {
   const router = useRouter()
   const today = toISO(new Date())
   const isCurrentWeek = toISO(weekStart) === toISO(startOfWeek(new Date()))
 
-  const dayMap: Record<string, { mins: number; billable: number }> = {}
+  const dayMap: Record<string, { total: number; billable: number }> = {}
   for (const e of entries) {
     if (!e.durationMinutes) continue
     const k = toISO(new Date(e.startedAt))
-    if (!dayMap[k]) dayMap[k] = { mins: 0, billable: 0 }
-    dayMap[k].mins += e.durationMinutes
+    if (!dayMap[k]) dayMap[k] = { total: 0, billable: 0 }
+    dayMap[k].total += e.durationMinutes
     if (e.isBillable) dayMap[k].billable += e.durationMinutes
   }
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-  const maxMins = Math.max(...days.map(d => dayMap[toISO(d)]?.mins ?? 0), 1)
-  const weekTotal = days.reduce((s, d) => s + (dayMap[toISO(d)]?.mins ?? 0), 0)
+  const maxMins = Math.max(...days.map(d => dayMap[toISO(d)]?.total ?? 0), 1)
+  const weekTotal = days.reduce((s, d) => s + (dayMap[toISO(d)]?.total ?? 0), 0)
+  const weekBillable = days.reduce((s, d) => s + (dayMap[toISO(d)]?.billable ?? 0), 0)
 
   function goToDay(day: Date) {
     router.push(`/time-tracking?week=${toISO(weekStart)}&day=${toISO(day)}`)
@@ -68,14 +78,20 @@ export function DayStrip({ entries, weekStart, selectedDay }: DayStripProps) {
 
   function navWeek(dir: -1 | 1) {
     const newWeek = addDays(weekStart, dir * 7)
-    // When going back, land on the last day; going forward, land on Monday
     const landDay = dir === -1 ? addDays(newWeek, 6) : newWeek
     router.push(`/time-tracking?week=${toISO(newWeek)}&day=${toISO(landDay)}`)
   }
 
+  const weekLabel = isCurrentWeek
+    ? "This week"
+    : `${weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(weekStart, 6).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-      {/* Week nav header */}
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+    >
+      {/* Header */}
       <div
         className="flex items-center justify-between px-4 h-11 border-b"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
@@ -84,57 +100,63 @@ export function DayStrip({ entries, weekStart, selectedDay }: DayStripProps) {
           <NavBtn onClick={() => navWeek(-1)}><ChevronLeft className="w-3.5 h-3.5" /></NavBtn>
           <span
             className="text-sm font-semibold text-center"
-            style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)", minWidth: 124 }}
+            style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)", minWidth: 120, display: "inline-block" }}
           >
-            {isCurrentWeek
-              ? "This week"
-              : `${weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(weekStart, 6).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+            {weekLabel}
           </span>
           <NavBtn onClick={() => navWeek(1)} disabled={isCurrentWeek}><ChevronRight className="w-3.5 h-3.5" /></NavBtn>
         </div>
+
         {weekTotal > 0 && (
-          <span className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-            {fmtDur(weekTotal)} this week
-          </span>
+          <div className="flex items-center gap-1.5 text-xs" style={{ fontFamily: "var(--font-mono)" }}>
+            <span style={{ color: "var(--primary)", fontWeight: 600 }}>{fmtFull(weekBillable)}</span>
+            <span style={{ color: "var(--text-tertiary)" }}>/</span>
+            <span style={{ color: "var(--text-secondary)" }}>{fmtFull(weekTotal)}</span>
+          </div>
         )}
       </div>
 
-      {/* Day cells */}
-      <div className="grid grid-cols-7">
+      {/* Bar chart grid */}
+      <div className="grid grid-cols-7 px-2 pt-3 pb-3 gap-x-1">
         {days.map((day, i) => {
           const iso = toISO(day)
           const data = dayMap[iso]
           const isSelected = iso === selectedDay
           const isToday = iso === today
-          const pct = data ? Math.min((data.mins / maxMins) * 100, 100) : 0
+
+          const totalH = data ? Math.round((data.total / maxMins) * BAR_MAX_H) : 0
+          const billableH = data && data.total > 0 ? Math.round((data.billable / data.total) * totalH) : 0
+          const nonBillableH = totalH - billableH
 
           return (
             <button
               key={iso}
               onClick={() => goToDay(day)}
-              className="flex flex-col items-center py-2.5 gap-1 transition-colors border-r last:border-r-0"
-              style={{
-                backgroundColor: isSelected ? "oklch(0.97 0.04 58)" : undefined,
-                borderColor: "var(--border)",
-              }}
+              className="flex flex-col items-center gap-1.5 py-1.5 rounded-lg transition-colors"
+              style={{ backgroundColor: isSelected ? "oklch(0.97 0.04 58)" : undefined }}
               onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = "var(--background-subtle)" }}
               onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = "" }}
             >
+              {/* Day letter */}
               <span
-                className="text-[9px] font-semibold uppercase tracking-wider"
-                style={{ fontFamily: "var(--font-body)", color: isSelected || isToday ? "var(--primary)" : "var(--text-tertiary)" }}
+                className="text-[10px] font-semibold uppercase tracking-wide"
+                style={{
+                  fontFamily: "var(--font-body)",
+                  color: isSelected || isToday ? "var(--primary)" : "var(--text-tertiary)",
+                }}
               >
-                {DAYS[i]}
+                {DAY_LETTERS[i]}
               </span>
 
+              {/* Day number */}
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                className="w-7 h-7 flex items-center justify-center rounded-full flex-shrink-0"
                 style={{ backgroundColor: isToday ? "var(--primary)" : "transparent" }}
               >
                 <span
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: isToday || isSelected ? 700 : 400,
                     color: isToday
                       ? "var(--primary-foreground)"
@@ -147,26 +169,32 @@ export function DayStrip({ entries, weekStart, selectedDay }: DayStripProps) {
                 </span>
               </div>
 
-              {/* Mini progress bar */}
-              <div className="w-6 h-1 rounded-full overflow-hidden" style={{ backgroundColor: "var(--border)" }}>
-                {pct > 0 && (
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: isSelected
-                        ? "var(--primary)"
-                        : data?.billable
-                        ? "oklch(0.76 0.17 58)"
-                        : "var(--text-tertiary)",
-                    }}
-                  />
+              {/* Vertical bar */}
+              <div
+                className="w-5 rounded-md overflow-hidden flex flex-col justify-end"
+                style={{ height: BAR_MAX_H, backgroundColor: "var(--background-subtle)" }}
+              >
+                {totalH > 0 && (
+                  <div style={{ height: totalH, width: "100%", display: "flex", flexDirection: "column" }}>
+                    {nonBillableH > 0 && (
+                      <div style={{ height: nonBillableH, width: "100%", backgroundColor: "var(--border-strong)" }} />
+                    )}
+                    {billableH > 0 && (
+                      <div
+                        style={{
+                          height: billableH,
+                          width: "100%",
+                          backgroundColor: isSelected ? "var(--primary)" : "oklch(0.76 0.17 58)",
+                        }}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
 
               {/* Duration label */}
               <span
-                className="text-[10px]"
+                className="text-[10px] leading-tight"
                 style={{
                   fontFamily: "var(--font-mono)",
                   color: isSelected ? "var(--primary)" : "var(--text-tertiary)",
@@ -174,7 +202,7 @@ export function DayStrip({ entries, weekStart, selectedDay }: DayStripProps) {
                   minHeight: "1em",
                 }}
               >
-                {fmtDur(data?.mins ?? 0)}
+                {fmtCompact(data?.total ?? 0)}
               </span>
             </button>
           )

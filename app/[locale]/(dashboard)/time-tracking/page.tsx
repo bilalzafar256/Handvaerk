@@ -9,14 +9,10 @@ import {
   getActiveEntry,
   getActiveJobsForUser,
   getMonthlyEntries,
+  getUnbilledEntries,
 } from "@/lib/db/queries/time-entries"
 import { Topbar } from "@/components/shared/topbar"
-import { TimerZone } from "@/components/time-tracking/timer-zone"
-import { DayStrip } from "@/components/time-tracking/day-strip"
-import { DayView } from "@/components/time-tracking/day-view"
-import { MonthCalendar } from "@/components/time-tracking/month-calendar"
-import { AlertTriangle } from "lucide-react"
-import Link from "next/link"
+import { TimeTrackingShell } from "@/components/time-tracking/time-tracking-shell"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Time tracking | Håndværk Pro" }
@@ -51,15 +47,6 @@ function addDays(d: Date, n: number): Date {
   return r
 }
 
-function formatDuration(minutes: number) {
-  if (minutes === 0) return "0m"
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h === 0) return `${m}m`
-  if (m === 0) return `${h}h`
-  return `${h}h ${m}m`
-}
-
 export default async function TimeTrackingPage({ params, searchParams }: Props) {
   const { locale } = await params
   const { week, day } = await searchParams
@@ -79,30 +66,33 @@ export default async function TimeTrackingPage({ params, searchParams }: Props) 
   weekEnd.setDate(weekEnd.getDate() + 6)
   weekEnd.setHours(23, 59, 59, 999)
 
-  // Determine selected day
   const today = startOfDay(new Date())
   let selectedDay: Date
   if (day) {
     selectedDay = startOfDay(new Date(day + "T00:00:00"))
   } else {
-    const todayTime = today.getTime()
-    const inThisWeek = todayTime >= weekStart.getTime() && todayTime <= weekEnd.getTime()
+    const inThisWeek = today >= weekStart && today <= weekEnd
     selectedDay = inThisWeek ? today : weekStart
   }
 
+  const prevWeekStart = addDays(weekStart, -7)
+  const prevWeekEnd  = addDays(weekEnd,   -7)
+
   const monthStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1)
-  const monthEnd = new Date(weekStart.getFullYear(), weekStart.getMonth() + 1, 0, 23, 59, 59, 999)
+  const monthEnd   = new Date(weekStart.getFullYear(), weekStart.getMonth() + 1, 0, 23, 59, 59, 999)
 
-  const [entries, activeEntry, activeJobs, monthEntries] = await Promise.all([
-    getWeeklyEntries(user.id, weekStart, weekEnd),
-    getActiveEntry(user.id),
-    getActiveJobsForUser(user.id),
-    getMonthlyEntries(user.id, monthStart, monthEnd),
-  ])
+  const [entries, activeEntry, activeJobs, monthEntries, prevWeekEntries, unbilledEntries] =
+    await Promise.all([
+      getWeeklyEntries(user.id, weekStart, weekEnd),
+      getActiveEntry(user.id),
+      getActiveJobsForUser(user.id),
+      getMonthlyEntries(user.id, monthStart, monthEnd),
+      getWeeklyEntries(user.id, prevWeekStart, prevWeekEnd),
+      getUnbilledEntries(user.id),
+    ])
 
-  // Weekly unbilled nudge
-  const unbilledMinutes = entries
-    .filter(e => e.endedAt && e.isBillable && !e.billedToQuoteId && !e.billedToInvoiceId)
+  const prevWeekMinutes = prevWeekEntries
+    .filter(e => e.durationMinutes)
     .reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
 
   const jobOptions = activeJobs.map(j => ({
@@ -111,70 +101,24 @@ export default async function TimeTrackingPage({ params, searchParams }: Props) 
     customer: { name: j.customer.name },
   }))
 
-  const selectedDayISO = toISO(selectedDay)
-
   return (
-    <>
+    <div className="flex flex-col h-full min-h-0">
       <Topbar title="Time tracking" />
-      <main className="pt-4 pb-24 md:pb-10 px-4 lg:px-6 space-y-4">
-        <div className="pt-4">
-          <h1
-            className="text-[22px] font-bold"
-            style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-          >
-            Time tracking
-          </h1>
-        </div>
-
-        {/* 1. Active timer */}
-        <TimerZone
-          activeEntry={activeEntry as Parameters<typeof TimerZone>[0]["activeEntry"]}
-          jobs={jobOptions}
-        />
-
-        {/* 2. Week strip with day selector */}
-        <DayStrip
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <TimeTrackingShell
           entries={entries}
-          weekStart={weekStart}
-          selectedDay={selectedDayISO}
-        />
-
-        {/* 3. Unbilled nudge */}
-        {unbilledMinutes > 0 && (
-          <div
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border"
-            style={{ backgroundColor: "oklch(0.97 0.04 58)", borderColor: "oklch(0.85 0.12 58)" }}
-          >
-            <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "var(--primary)" }} />
-            <p className="text-sm flex-1" style={{ fontFamily: "var(--font-body)", color: "var(--text-primary)" }}>
-              <span className="font-semibold">{formatDuration(unbilledMinutes)}</span> unbilled this week
-            </p>
-            <Link
-              href="/jobs"
-              className="text-sm font-medium shrink-0 transition-opacity hover:opacity-70"
-              style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
-            >
-              View jobs →
-            </Link>
-          </div>
-        )}
-
-        {/* 4. Day view — timeline + entry list */}
-        <DayView
-          entries={entries as Parameters<typeof DayView>[0]["entries"]}
-          selectedDay={selectedDay}
+          prevWeekMinutes={prevWeekMinutes}
+          unbilledEntries={unbilledEntries}
+          activeEntry={activeEntry as Parameters<typeof TimeTrackingShell>[0]["activeEntry"]}
           activeJobs={jobOptions}
-          hourlyRate={user.hourlyRate ?? null}
-        />
-
-        {/* 5. Month calendar */}
-        <MonthCalendar
-          entries={monthEntries}
+          monthEntries={monthEntries}
           weekStart={weekStart}
           monthStart={monthStart}
-          selectedDay={selectedDayISO}
+          selectedDay={selectedDay}
+          selectedDayISO={toISO(selectedDay)}
+          hourlyRate={user.hourlyRate ?? null}
         />
-      </main>
-    </>
+      </div>
+    </div>
   )
 }

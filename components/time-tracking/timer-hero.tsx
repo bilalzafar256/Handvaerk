@@ -12,8 +12,8 @@ function formatElapsed(ms: number) {
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
   const sec = s % 60
-  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}m ${sec.toString().padStart(2, "0")}s`
-  return `${m.toString().padStart(2, "0")}m ${sec.toString().padStart(2, "0")}s`
+  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`
+  return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`
 }
 
 function toISO(d: Date): string {
@@ -37,12 +37,12 @@ export interface JobOption {
   customer: { name: string }
 }
 
-interface TimerZoneProps {
+interface TimerHeroProps {
   activeEntry: (TimeEntry & { job: JobOption }) | null
   jobs: JobOption[]
 }
 
-export function TimerZone({ activeEntry, jobs }: TimerZoneProps) {
+export function TimerHero({ activeEntry, jobs }: TimerHeroProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [elapsed, setElapsed] = useState(0)
@@ -98,9 +98,7 @@ export function TimerZone({ activeEntry, jobs }: TimerZoneProps) {
     const startedDate = new Date(activeEntry.startedAt)
     const startLabel = startedDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
     const startTime  = startedDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-
     const defaultEnd = new Date(Math.min(startedDate.getTime() + 8 * 3_600_000, Date.now()))
-    const defaultEndValue = defaultEnd.toISOString().slice(0, 16)
 
     return (
       <div
@@ -125,7 +123,7 @@ export function TimerZone({ activeEntry, jobs }: TimerZoneProps) {
             </label>
             <input
               type="datetime-local"
-              defaultValue={defaultEndValue}
+              defaultValue={defaultEnd.toISOString().slice(0, 16)}
               max={new Date().toISOString().slice(0, 16)}
               onChange={e => setCustomEndTime(e.target.value)}
               className={inputCls}
@@ -151,31 +149,57 @@ export function TimerZone({ activeEntry, jobs }: TimerZoneProps) {
     return (
       <div
         className="rounded-xl border overflow-hidden"
-        style={{ backgroundColor: "oklch(0.97 0.03 58)", borderColor: "oklch(0.85 0.10 58)" }}
+        style={{ backgroundColor: "oklch(0.97 0.03 58)", borderColor: "oklch(0.82 0.12 58)" }}
       >
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <div className="w-2.5 h-2.5 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: "var(--primary)" }} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate" style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}>
-              {activeEntry.job.title}
-            </p>
-            <p className="text-xs" style={{ color: "var(--primary)", fontFamily: "var(--font-mono)" }}>
-              {formatElapsed(elapsed)}
-            </p>
+        <div className="px-5 py-5">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "var(--primary)" }} />
+              <span
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ fontFamily: "var(--font-body)", color: "var(--primary)" }}
+              >
+                Live
+              </span>
+            </div>
+            <button
+              onClick={handleClockOut}
+              disabled={isPending}
+              className="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium shrink-0 disabled:opacity-60 transition-opacity hover:opacity-80"
+              style={{
+                backgroundColor: "var(--primary)",
+                color: "var(--primary-foreground)",
+                fontFamily: "var(--font-body)",
+                boxShadow: "var(--shadow-accent)",
+              }}
+            >
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
+              Clock out
+            </button>
           </div>
-          <button
-            onClick={handleClockOut}
-            disabled={isPending}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium shrink-0 disabled:opacity-60"
-            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+
+          <div className="mb-3">
+            <span
+              className="font-semibold leading-none select-none tabular-nums"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 48, color: "var(--text-primary)", letterSpacing: "-0.03em" }}
+            >
+              {formatElapsed(elapsed)}
+            </span>
+          </div>
+
+          <p
+            className="text-base font-semibold leading-tight"
+            style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
           >
-            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
-            Clock out
-          </button>
+            {activeEntry.job.title}
+          </p>
+          <p className="text-sm" style={{ fontFamily: "var(--font-body)", color: "var(--text-secondary)" }}>
+            {activeEntry.job.customer.name}
+          </p>
         </div>
 
         {showDesc && (
-          <div className="px-4 pb-4 pt-1 border-t space-y-2" style={{ borderColor: "oklch(0.85 0.10 58)" }}>
+          <div className="px-5 pb-5 pt-0 border-t space-y-2" style={{ borderColor: "oklch(0.85 0.10 58)" }}>
             <input
               autoFocus
               type="text"
@@ -209,25 +233,37 @@ export function TimerZone({ activeEntry, jobs }: TimerZoneProps) {
     )
   }
 
-  // ── No active timer: job picker ───────────────────────────────────────────
-  const recentJobs = jobs.slice(0, 3)
+  // ── Idle — job picker ─────────────────────────────────────────────────────
+  const recentJobs = jobs.slice(0, 4)
 
   return (
     <div
       className="rounded-xl border overflow-hidden"
       style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
-      <div className="px-4 pt-4 pb-4 space-y-3">
+      <div className="px-5 pt-5 pb-5 space-y-4">
+        <div>
+          <span
+            className="font-semibold leading-none select-none tabular-nums"
+            style={{ fontFamily: "var(--font-mono)", fontSize: 48, color: "var(--text-tertiary)", letterSpacing: "-0.03em" }}
+          >
+            00:00
+          </span>
+          <p className="text-sm mt-1" style={{ fontFamily: "var(--font-body)", color: "var(--text-tertiary)" }}>
+            No timer running
+          </p>
+        </div>
+
         {recentJobs.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {recentJobs.map(job => (
               <button
                 key={job.id}
                 onClick={() => setSelectedJobId(job.id)}
-                className="h-8 px-3 rounded-lg border text-sm transition-colors"
+                className="h-8 px-3 rounded-lg border text-sm transition-all"
                 style={{
                   borderColor: selectedJobId === job.id ? "var(--primary)" : "var(--border)",
-                  backgroundColor: selectedJobId === job.id ? "oklch(0.97 0.03 58)" : "var(--background-subtle)",
+                  backgroundColor: selectedJobId === job.id ? "oklch(0.97 0.04 58)" : "var(--background-subtle)",
                   color: selectedJobId === job.id ? "var(--primary)" : "var(--text-secondary)",
                   fontFamily: "var(--font-body)",
                 }}
@@ -243,24 +279,32 @@ export function TimerZone({ activeEntry, jobs }: TimerZoneProps) {
             value={selectedJobId}
             onChange={e => setSelectedJobId(e.target.value)}
             className="flex-1 h-10 px-3 text-sm rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--primary)] appearance-none"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)", color: selectedJobId ? "var(--text-primary)" : "var(--text-tertiary)", fontFamily: "var(--font-body)" }}
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--surface)",
+              color: selectedJobId ? "var(--text-primary)" : "var(--text-tertiary)",
+              fontFamily: "var(--font-body)",
+            }}
           >
             <option value="">Select a job…</option>
             {jobs.map(job => (
-              <option key={job.id} value={job.id}>
-                {job.title} · {job.customer.name}
-              </option>
+              <option key={job.id} value={job.id}>{job.title} · {job.customer.name}</option>
             ))}
           </select>
 
           <button
             onClick={handleClockIn}
             disabled={isPending || !selectedJobId}
-            className="flex items-center gap-1.5 h-10 px-4 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50"
-            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-body)" }}
+            className="flex items-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold shrink-0 disabled:opacity-50 transition-opacity hover:opacity-80"
+            style={{
+              backgroundColor: "var(--primary)",
+              color: "var(--primary-foreground)",
+              fontFamily: "var(--font-body)",
+              boxShadow: selectedJobId ? "var(--shadow-accent)" : "none",
+            }}
           >
-            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-            Start timer
+            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            Start
           </button>
         </div>
       </div>

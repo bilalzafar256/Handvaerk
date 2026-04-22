@@ -7,7 +7,7 @@ import { enUS } from "date-fns/locale"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "./rbc.css"
 
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2, SlidersHorizontal } from "lucide-react"
 import { getCalendarDataAction, type CalendarData } from "@/lib/actions/calendar"
 import { UnscheduledPanel } from "./unscheduled-panel"
 import { EventChip } from "./event-chip"
@@ -150,6 +150,7 @@ export function CalendarShell({ initialData, initialFrom }: CalendarShellProps) 
   const [selectedEvent,  setSelectedEvent]  = useState<RBCEvent | null>(null)
   const [filters,        setFilters]        = useState<FilterState>(DEFAULT_FILTERS)
   const [filtersOpen,    setFiltersOpen]    = useState(true)
+  const [isFullscreen,   setIsFullscreen]   = useState(false)
 
   // Raw events
   const allEvents = useMemo(() => toRBCEvents(data), [data])
@@ -215,7 +216,15 @@ export function CalendarShell({ initialData, initialFrom }: CalendarShellProps) 
   }
 
   return (
-    <div className="flex h-full min-h-0" style={{ fontFamily: "var(--font-body)" }}>
+    <div
+      className="flex min-h-0"
+      style={{
+        fontFamily: "var(--font-body)",
+        ...(isFullscreen
+          ? { position: "fixed", inset: 0, zIndex: 50, backgroundColor: "var(--background)" }
+          : { height: "100%" }),
+      }}
+    >
 
       {/* ── Filter sidebar ─────────────────────────────────────────────────── */}
       {filtersOpen && (
@@ -324,6 +333,19 @@ export function CalendarShell({ initialData, initialFrom }: CalendarShellProps) 
               </button>
             ))}
           </div>
+
+          <div style={{ width: 1, height: 18, backgroundColor: "var(--border)" }} />
+
+          {/* Fullscreen toggle */}
+          <button
+            {...iconBtn}
+            onClick={() => setIsFullscreen(f => !f)}
+            title={isFullscreen ? "Exit full screen" : "Full screen"}
+          >
+            {isFullscreen
+              ? <Minimize2 className="w-4 h-4" />
+              : <Maximize2 className="w-4 h-4" />}
+          </button>
         </div>
 
         {/* Calendar body */}
