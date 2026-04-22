@@ -102,13 +102,16 @@ function PricebookPicker({
     return () => document.removeEventListener("mousedown", handler)
   }, [open])
 
-  const filtered = items.filter(i =>
-    i.isActive !== false && (
-      !query ||
-      i.name.toLowerCase().includes(query.toLowerCase()) ||
-      i.description?.toLowerCase().includes(query.toLowerCase())
+  const filtered = items
+    .filter(i =>
+      i.isActive !== false && (
+        !query ||
+        i.name.toLowerCase().includes(query.toLowerCase()) ||
+        i.description?.toLowerCase().includes(query.toLowerCase()) ||
+        i.category?.toLowerCase().includes(query.toLowerCase())
+      )
     )
-  )
+    .sort((a, b) => (b.isFavourite ? 1 : 0) - (a.isFavourite ? 1 : 0))
 
   return (
     <div ref={ref} className="relative">
@@ -152,14 +155,18 @@ function PricebookPicker({
                   onClick={() => { onAdd(item); setOpen(false); setQuery("") }}
                   className="w-full text-left px-3 py-2.5 hover:bg-[var(--accent)] transition-colors cursor-pointer flex items-start justify-between gap-2"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>{item.name}</p>
-                    {item.description && (
-                      <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>{item.description}</p>
-                    )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      {item.isFavourite && <span style={{ color: "oklch(0.65 0.15 55)", fontSize: "10px" }}>★</span>}
+                      <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>{item.name}</p>
+                    </div>
+                    <p className="text-xs truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                      {[item.category, item.description].filter(Boolean).join(" · ")}
+                    </p>
                   </div>
                   <p className="text-sm font-semibold flex-shrink-0" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
                     {parseFloat(item.unitPrice).toLocaleString("da-DK", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} kr
+                    {item.unit && <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>/{item.unit}</span>}
                   </p>
                 </button>
               </li>
@@ -394,12 +401,12 @@ export function QuoteForm({
               onAdd={item => setItems(prev => [
                 ...prev,
                 {
-                  id:           crypto.randomUUID(),
-                  itemType:     (item.itemType ?? "material") as LineItem["itemType"],
-                  description:  item.name,
-                  quantity:     "1",
-                  unitPrice:    item.unitPrice,
-                  markupPercent: "",
+                  id:            crypto.randomUUID(),
+                  itemType:      (item.itemType ?? "material") as LineItem["itemType"],
+                  description:   item.name,
+                  quantity:      item.defaultQuantity ?? "1",
+                  unitPrice:     item.unitPrice,
+                  markupPercent: item.defaultMarkupPercent ?? "",
                   discountType:  "",
                   discountValue: "",
                   vatRate:       "25.00",

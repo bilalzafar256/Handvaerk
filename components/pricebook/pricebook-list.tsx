@@ -308,7 +308,12 @@ export function PricebookList({ items: initialItems }: { items: PricebookItem[] 
       if (typeFilter !== "all" && i.itemType !== typeFilter) return false
       return true
     })
-    .sort((a, b) => (b.isFavourite ? 1 : 0) - (a.isFavourite ? 1 : 0))
+    .sort((a, b) => {
+      const aActive = a.isActive ? 1 : 0
+      const bActive = b.isActive ? 1 : 0
+      if (bActive !== aActive) return bActive - aActive
+      return (b.isFavourite ? 1 : 0) - (a.isFavourite ? 1 : 0)
+    })
 
   async function handleCreate(data: typeof BLANK) {
     setBusy(true)
