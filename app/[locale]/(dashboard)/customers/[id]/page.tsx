@@ -339,52 +339,93 @@ export default async function CustomerDetailPage({ params }: Props) {
               </div>
 
               {/* Invoices list */}
-              <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-                <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
-                    Invoices{customerInvoices.length > 0 ? ` (${customerInvoices.length})` : ""}
-                  </p>
-                  <Link
-                    href={`/invoices/new?customerId=${id}`}
-                    className="flex items-center gap-1 text-[11px] font-medium px-2 h-6 rounded-md bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
-                    style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
-                  >
-                    <Plus className="w-3 h-3" />
-                    New
-                  </Link>
-                </div>
-                <div className="divide-y" style={{ ["--tw-divide-color" as string]: "var(--border)" }}>
-                  {customerInvoices.length === 0 ? (
-                    <p className="px-3 py-3 text-sm" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
-                      No invoices yet
-                    </p>
-                  ) : (
-                    customerInvoices.map(inv => (
+              {(() => {
+                const unpaidStatuses = ["sent", "viewed", "overdue"]
+                const totalOutstanding = customerInvoices
+                  .filter(inv => unpaidStatuses.includes(inv.status ?? ""))
+                  .reduce((sum, inv) => sum + parseFloat(inv.totalInclVat ?? "0"), 0)
+                const totalOverdue = customerInvoices
+                  .filter(inv => inv.status === "overdue")
+                  .reduce((sum, inv) => sum + parseFloat(inv.totalInclVat ?? "0"), 0)
+
+                return (
+                  <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+                    <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                        Invoices{customerInvoices.length > 0 ? ` (${customerInvoices.length})` : ""}
+                      </p>
                       <Link
-                        key={inv.id}
-                        href={`/invoices/${inv.id}/edit`}
-                        className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--accent)] transition-colors"
+                        href={`/invoices/new?customerId=${id}`}
+                        className="flex items-center gap-1 text-[11px] font-medium px-2 h-6 rounded-md bg-[var(--accent-light)] hover:bg-[var(--amber-200)] transition-colors"
+                        style={{ color: "var(--primary)", fontFamily: "var(--font-body)" }}
                       >
-                        <Receipt className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
-                            #{inv.invoiceNumber}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <InvoiceStatusBadge status={inv.status ?? "draft"} />
-                            {inv.totalInclVat && (
-                              <p className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
-                                {formatDKK(inv.totalInclVat)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                        <Plus className="w-3 h-3" />
+                        New
                       </Link>
-                    ))
-                  )}
-                </div>
-              </div>
+                    </div>
+
+                    {/* Outstanding / overdue summary */}
+                    {totalOutstanding > 0 && (
+                      <div className="px-3 py-2.5 flex items-center justify-between gap-3 border-b" style={{ borderColor: "var(--border)", backgroundColor: totalOverdue > 0 ? "oklch(0.98 0.02 25)" : "var(--background)" }}>
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                            Outstanding
+                          </p>
+                          <p className="text-base font-bold mt-0.5" style={{ fontFamily: "var(--font-mono)", color: "var(--foreground)" }}>
+                            {formatDKK(totalOutstanding)}
+                          </p>
+                        </div>
+                        {totalOverdue > 0 && (
+                          <div className="text-right">
+                            <p className="text-[11px] font-medium uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "oklch(0.44 0.22 25)" }}>
+                              Overdue
+                            </p>
+                            <p className="text-base font-bold mt-0.5" style={{ fontFamily: "var(--font-mono)", color: "oklch(0.44 0.22 25)" }}>
+                              {formatDKK(totalOverdue)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="divide-y" style={{ ["--tw-divide-color" as string]: "var(--border)" }}>
+                      {customerInvoices.length === 0 ? (
+                        <p className="px-3 py-3 text-sm" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+                          No invoices yet
+                        </p>
+                      ) : (
+                        customerInvoices.map(inv => {
+                          const isOverdue = inv.status === "overdue"
+                          return (
+                            <Link
+                              key={inv.id}
+                              href={`/invoices/${inv.id}/edit`}
+                              className="flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--accent)] transition-colors"
+                              style={isOverdue ? { borderLeft: "3px solid oklch(0.60 0.22 25)", backgroundColor: "oklch(0.99 0.01 25)" } : {}}
+                            >
+                              <Receipt className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isOverdue ? "oklch(0.60 0.22 25)" : "var(--primary)" }} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+                                  #{inv.invoiceNumber}
+                                </p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <InvoiceStatusBadge status={inv.status ?? "draft"} />
+                                  {inv.totalInclVat && (
+                                    <p className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+                                      {formatDKK(inv.totalInclVat)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                            </Link>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Quotes list */}
               <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>

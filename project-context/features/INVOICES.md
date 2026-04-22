@@ -79,26 +79,26 @@ Timestamps tracked: `sentAt`, `viewedAt`, `paidAt`, `reminder1SentAt`, `reminder
 
 **Function:** `lib/inngest/invoice-reminder.ts`  
 **Trigger:** `"invoice/sent"`  
-**Cancellation:** `"invoice/paid"` event (sent by `markInvoicePaidAction`)
+**Timing:** Anchored to `due_date`, not sent date. Days are read from `users.invoice_reminder_1_days` and `users.invoice_reminder_2_days` (defaults: 3 and 7).
 
 Timeline:
 ```
 invoice/sent event
   ↓
-  waitForEvent("invoice/paid", timeout: "8d")
-  ↓ (if paid within 8d)
-    return — no reminders
-  ↓ (if not paid after 8d)
-    check invoice is still unpaid in DB
+  step.sleepUntil(dueDate + reminder1Days)
+  ↓
+    check invoice is still unpaid in DB — if paid, skip
     send PaymentReminderEmail (reminder #1)
     db.update reminder1SentAt
   ↓
-  step.sleep("7d")   — 15 days total after sent
+  step.sleepUntil(dueDate + reminder2Days)
   ↓
-    check invoice still unpaid in DB
+    check invoice still unpaid in DB — if paid, skip
     send PaymentReminderEmail (reminder #2)
     db.update reminder2SentAt
 ```
+
+Both sleeps use absolute dates (`step.sleepUntil`), so if the due date is already past when the invoice is sent, reminder #1 fires immediately. Each reminder checks the DB for `paidAt IS NULL` before sending — no separate cancellation event needed.
 
 ---
 
@@ -150,9 +150,19 @@ Stored on invoices but UI not yet fully implemented (Phase 14):
 
 ## Overdue Detection
 
-`markOverdueAction()` — manually triggered (no cron). Calls `markOverdueInvoices(userId)` which sets `status = "overdue"` for all sent/viewed invoices where `due_date < today`.
+Two paths:
 
-**[KNOWN ISSUE]:** No automated daily job to mark invoices overdue. Must be triggered manually or from a UI action.
+**Automated (cron):** `lib/inngest/overdue-invoices.ts` — `markOverdueInvoicesCron` runs daily at 06:00 UTC via Inngest cron (`"0 6 * * *"`). Calls `markAllOverdueInvoices()` which updates all `sent`/`viewed` invoices across all users where `due_date < today`.
+
+**Manual (per-user):** `markOverdueAction()` server action — calls `markOverdueInvoices(userId)` for the current user only. Same condition, scoped to one user.
+
+## Configurable Reminder Settings
+
+Users can configure reminder timing on the Profile page (`/profile`) — Invoice reminders section. Two inputs:
+- **First reminder** — days after due date (default 3)
+- **Second reminder** — days after due date (default 7, must be greater than first)
+
+Saved via `updateInvoiceRemindersAction` in `lib/actions/profile.ts` → stored in `users.invoice_reminder_1_days` / `users.invoice_reminder_2_days`. Applied to all future sent invoices (already-running Inngest jobs use the settings captured at send time).
 
 ---
 

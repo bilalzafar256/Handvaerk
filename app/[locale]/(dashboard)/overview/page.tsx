@@ -27,6 +27,7 @@ import { formatDKK } from "@/lib/utils/currency"
 import { StatusBadge } from "@/components/jobs/status-changer"
 import type { Job } from "@/lib/db/schema/jobs"
 import type { Customer } from "@/lib/db/schema/customers"
+import { resolveWidgets } from "@/lib/dashboard-widgets"
 
 export const dynamic = "force-dynamic"
 
@@ -96,13 +97,176 @@ export default async function OverviewPage({ params }: Props) {
   const revenueMax = Math.max(...monthlyRevenue.map(m => m.value), 1)
   const revenue6mTotal = monthlyRevenue.reduce((s, m) => s + m.value, 0)
 
+  const widgets = resolveWidgets(user.dashboardWidgets)
+
+  const widgetMap: Record<string, React.ReactNode> = {
+    quick_timer: (
+      <QuickTimerCard activeEntry={activeEntry ?? null} jobs={activeJobs} />
+    ),
+    recording: (
+      <div className={`grid gap-2.5 ${readyRecordings.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+        {readyRecordings.length > 0 && (
+          <Link
+            href={`/jobs/record/${readyRecordings[0].id}`}
+            className="flex flex-col justify-center gap-1.5 px-4 py-4 rounded-xl border transition-all duration-150 active:scale-[0.99]"
+            style={{ backgroundColor: "oklch(0.97 0.03 145)", borderColor: "oklch(0.82 0.12 145)" }}
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "oklch(0.90 0.08 145)" }}>
+              <Mic className="w-4 h-4" style={{ color: "oklch(0.32 0.14 145)" }} />
+            </div>
+            <p className="text-sm font-semibold leading-tight" style={{ fontFamily: "var(--font-body)", color: "oklch(0.28 0.14 145)" }}>
+              {readyRecordings.length === 1 ? "1 recording ready" : `${readyRecordings.length} recordings ready`}
+            </p>
+            <p className="text-xs leading-tight" style={{ fontFamily: "var(--font-body)", color: "oklch(0.40 0.10 145)" }}>
+              Tap to review
+            </p>
+          </Link>
+        )}
+        <Link
+          href="/jobs/record"
+          className="flex flex-col justify-center gap-1.5 px-4 py-4 rounded-xl transition-all duration-150 active:scale-[0.99]"
+          style={{ backgroundColor: "var(--primary)", boxShadow: "var(--shadow-accent)" }}
+        >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.18)" }}>
+            <Mic className="w-4 h-4" style={{ color: "var(--primary-foreground)" }} />
+          </div>
+          <p className="text-sm font-semibold leading-tight" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)" }}>
+            Record job
+          </p>
+          <p className="text-xs leading-tight" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)", opacity: 0.75 }}>
+            AI extracts details
+          </p>
+        </Link>
+      </div>
+    ),
+    stat_cards: (
+      <StatCards
+        data={statCardData}
+        openQuoteCount={stats.openQuoteCount}
+        customerCount={stats.customerCount}
+      />
+    ),
+    revenue: (
+      <section
+        className="rounded-xl border overflow-hidden"
+        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+      >
+        <div
+          className="px-5 py-3.5 border-b flex items-center justify-between"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+            Revenue — last 6 months
+          </p>
+          {revenue6mTotal > 0 && (
+            <p className="text-xs font-medium" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-mono)" }}>
+              {formatDKK(revenue6mTotal)} paid
+            </p>
+          )}
+        </div>
+        <div className="px-5 pt-5 pb-4">
+          <div className="flex items-end gap-1.5 h-[112px]">
+            {monthlyRevenue.map((m, i) => {
+              const pct = revenueMax > 0 ? (m.value / revenueMax) * 100 : 0
+              const isCurrent = i === monthlyRevenue.length - 1
+              const opacity = 0.2 + (i / 5) * 0.8
+              return (
+                <div key={m.label} className="flex-1 flex flex-col items-center gap-1 h-full">
+                  <div className="flex-1 w-full flex items-end">
+                    <div
+                      className="w-full rounded-t-sm"
+                      style={{ height: m.value > 0 ? `${Math.max(pct, 4)}%` : "3px", backgroundColor: "var(--primary)", opacity: isCurrent ? 1 : opacity }}
+                    />
+                  </div>
+                  <p className="text-[9px] leading-none font-medium" style={{ color: isCurrent ? "var(--primary)" : "var(--muted-foreground)", fontFamily: "var(--font-mono)" }}>
+                    {m.value >= 1000 ? `${Math.round(m.value / 1000)}k` : m.value > 0 ? String(m.value) : "·"}
+                  </p>
+                  <p className="text-[10px] leading-none" style={{ color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)", fontFamily: "var(--font-body)", fontWeight: isCurrent ? 600 : 400 }}>
+                    {m.label}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+          {revenue6mTotal === 0 && (
+            <p className="text-sm text-center pt-2" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+              No paid invoices yet — chart will fill in as you get paid.
+            </p>
+          )}
+        </div>
+      </section>
+    ),
+    job_pipeline: pipelineStages.length > 0 ? (
+      <section
+        className="rounded-xl border overflow-hidden"
+        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+      >
+        <div
+          className="px-5 py-3.5 border-b flex items-center justify-between"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+            Job pipeline
+          </p>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>
+            {totalJobCount} total
+          </p>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <div className="flex h-4 rounded-full overflow-hidden">
+            {pipelineStages.map((stage, idx) => (
+              <div
+                key={stage.key}
+                style={{ width: `${(stage.count / totalJobCount) * 100}%`, backgroundColor: STATUS_BAR_COLOR[stage.key], marginLeft: idx > 0 ? "2px" : 0 }}
+              />
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-0.5">
+            {pipelineStages.map(stage => (
+              <div key={stage.key} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: STATUS_BAR_COLOR[stage.key] }} />
+                <p className="text-xs" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}>{stage.label}</p>
+                <p className="text-xs font-bold" style={{ color: "var(--foreground)", fontFamily: "var(--font-mono)" }}>{stage.count}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ) : null,
+    todays_jobs: <TodayJobs jobs={todayJobsList} />,
+    recent_activity: <ActivityFeed items={activityItems} />,
+    recent_jobs: stats.recentJobs.length > 0 ? (
+      <section
+        className="rounded-xl border overflow-hidden"
+        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+      >
+        <div
+          className="px-4 py-3 border-b flex items-center justify-between"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+            {t("recentJobs")}
+          </p>
+          <Link href="/jobs" className="text-xs font-medium transition-opacity hover:opacity-70" style={{ fontFamily: "var(--font-body)", color: "var(--primary)" }}>
+            {t("viewAll")}
+          </Link>
+        </div>
+        <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
+          {stats.recentJobs.map((job) => (
+            <RecentJobRow key={job.id} job={job as Job & { customer: Customer }} />
+          ))}
+        </ul>
+      </section>
+    ) : null,
+  }
+
   return (
     <>
       <Topbar title={t("title")} />
 
       <main className="pt-4 pb-24 md:pb-10 px-4 lg:px-6 space-y-5">
 
-        {/* Greeting */}
+        {/* Greeting — always visible */}
         <div className="pt-4">
           <h1
             className="text-[22px] font-bold leading-tight"
@@ -118,236 +282,16 @@ export default async function OverviewPage({ params }: Props) {
           </p>
         </div>
 
-        {/* Quick timer */}
-        <QuickTimerCard activeEntry={activeEntry ?? null} jobs={activeJobs} />
-
-        {/* Quick actions — 2-col grid when both banners present, full width otherwise */}
-        <div className={`grid gap-2.5 ${readyRecordings.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
-          {readyRecordings.length > 0 && (
-            <Link
-              href={`/jobs/record/${readyRecordings[0].id}`}
-              className="flex flex-col justify-center gap-1.5 px-4 py-4 rounded-xl border transition-all duration-150 active:scale-[0.99]"
-              style={{ backgroundColor: "oklch(0.97 0.03 145)", borderColor: "oklch(0.82 0.12 145)" }}
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: "oklch(0.90 0.08 145)" }}
-              >
-                <Mic className="w-4 h-4" style={{ color: "oklch(0.32 0.14 145)" }} />
-              </div>
-              <p className="text-sm font-semibold leading-tight" style={{ fontFamily: "var(--font-body)", color: "oklch(0.28 0.14 145)" }}>
-                {readyRecordings.length === 1 ? "1 recording ready" : `${readyRecordings.length} recordings ready`}
-              </p>
-              <p className="text-xs leading-tight" style={{ fontFamily: "var(--font-body)", color: "oklch(0.40 0.10 145)" }}>
-                Tap to review
-              </p>
-            </Link>
-          )}
-
-          <Link
-            href="/jobs/record"
-            className="flex flex-col justify-center gap-1.5 px-4 py-4 rounded-xl transition-all duration-150 active:scale-[0.99]"
-            style={{ backgroundColor: "var(--primary)", boxShadow: "var(--shadow-accent)" }}
-          >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.18)" }}>
-              <Mic className="w-4 h-4" style={{ color: "var(--primary-foreground)" }} />
-            </div>
-            <p className="text-sm font-semibold leading-tight" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)" }}>
-              Record job
-            </p>
-            <p className="text-xs leading-tight" style={{ fontFamily: "var(--font-body)", color: "var(--primary-foreground)", opacity: 0.75 }}>
-              AI extracts details
-            </p>
-          </Link>
-        </div>
-
-        {/* Critical zone */}
+        {/* Critical zone — always visible */}
         <CriticalZone overdue={overdueInvoices} />
 
-        {/* Financial overview group */}
-        <div className="space-y-3">
-
-        {/* 6 stat cards */}
-        <StatCards
-          data={statCardData}
-          openQuoteCount={stats.openQuoteCount}
-          customerCount={stats.customerCount}
-        />
-
-        {/* Revenue trend — last 6 months */}
-        <section
-          className="rounded-xl border overflow-hidden"
-          style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-        >
-          <div
-            className="px-5 py-3.5 border-b flex items-center justify-between"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
-          >
-            <p
-              className="text-xs font-semibold uppercase tracking-wider"
-              style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
-            >
-              Revenue — last 6 months
-            </p>
-            {revenue6mTotal > 0 && (
-              <p
-                className="text-xs font-medium"
-                style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-mono)" }}
-              >
-                {formatDKK(revenue6mTotal)} paid
-              </p>
-            )}
-          </div>
-          <div className="px-5 pt-5 pb-4">
-            <div className="flex items-end gap-1.5 h-[112px]">
-              {monthlyRevenue.map((m, i) => {
-                const pct = revenueMax > 0 ? (m.value / revenueMax) * 100 : 0
-                const isCurrent = i === monthlyRevenue.length - 1
-                const opacity = 0.2 + (i / 5) * 0.8
-                return (
-                  <div key={m.label} className="flex-1 flex flex-col items-center gap-1 h-full">
-                    <div className="flex-1 w-full flex items-end">
-                      <div
-                        className="w-full rounded-t-sm"
-                        style={{
-                          height: m.value > 0 ? `${Math.max(pct, 4)}%` : "3px",
-                          backgroundColor: "var(--primary)",
-                          opacity: isCurrent ? 1 : opacity,
-                        }}
-                      />
-                    </div>
-                    <p
-                      className="text-[9px] leading-none font-medium"
-                      style={{
-                        color: isCurrent ? "var(--primary)" : "var(--muted-foreground)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      {m.value >= 1000 ? `${Math.round(m.value / 1000)}k` : m.value > 0 ? String(m.value) : "·"}
-                    </p>
-                    <p
-                      className="text-[10px] leading-none"
-                      style={{
-                        color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)",
-                        fontFamily: "var(--font-body)",
-                        fontWeight: isCurrent ? 600 : 400,
-                      }}
-                    >
-                      {m.label}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
-            {revenue6mTotal === 0 && (
-              <p
-                className="text-sm text-center pt-2"
-                style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
-              >
-                No paid invoices yet — chart will fill in as you get paid.
-              </p>
-            )}
-          </div>
-        </section>
-
-        </div>{/* end financial overview group */}
-
-        {/* Job pipeline */}
-        {pipelineStages.length > 0 && (
-          <section
-            className="rounded-xl border overflow-hidden"
-            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-          >
-            <div
-              className="px-5 py-3.5 border-b flex items-center justify-between"
-              style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
-            >
-              <p
-                className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
-              >
-                Job pipeline
-              </p>
-              <p
-                className="text-xs"
-                style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
-              >
-                {totalJobCount} total
-              </p>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div className="flex h-4 rounded-full overflow-hidden">
-                {pipelineStages.map((stage, idx) => (
-                  <div
-                    key={stage.key}
-                    style={{
-                      width: `${(stage.count / totalJobCount) * 100}%`,
-                      backgroundColor: STATUS_BAR_COLOR[stage.key],
-                      marginLeft: idx > 0 ? "2px" : 0,
-                    }}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-0.5">
-                {pipelineStages.map(stage => (
-                  <div key={stage.key} className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: STATUS_BAR_COLOR[stage.key] }} />
-                    <p
-                      className="text-xs"
-                      style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
-                    >
-                      {stage.label}
-                    </p>
-                    <p
-                      className="text-xs font-bold"
-                      style={{ color: "var(--foreground)", fontFamily: "var(--font-mono)" }}
-                    >
-                      {stage.count}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Today + Activity grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <TodayJobs jobs={todayJobsList} />
-          <ActivityFeed items={activityItems} />
-        </div>
-
-        {/* Recent jobs */}
-        {stats.recentJobs.length > 0 && (
-          <section
-            className="rounded-xl border overflow-hidden"
-            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-          >
-            <div
-              className="px-4 py-3 border-b flex items-center justify-between"
-              style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
-            >
-              <p
-                className="text-xs font-semibold uppercase tracking-wider"
-                style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}
-              >
-                {t("recentJobs")}
-              </p>
-              <Link
-                href="/jobs"
-                className="text-xs font-medium transition-opacity hover:opacity-70"
-                style={{ fontFamily: "var(--font-body)", color: "var(--primary)" }}
-              >
-                {t("viewAll")}
-              </Link>
-            </div>
-            <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
-              {stats.recentJobs.map((job) => (
-                <RecentJobRow key={job.id} job={job as Job & { customer: Customer }} />
-              ))}
-            </ul>
-          </section>
-        )}
+        {/* User-ordered widgets */}
+        {widgets.map(({ id, enabled: isEnabled }) => {
+          if (!isEnabled) return null
+          const node = widgetMap[id]
+          if (!node) return null
+          return <div key={id}>{node}</div>
+        })}
 
         {/* Empty state */}
         {stats.customerCount === 0 && stats.activeJobCount === 0 && (

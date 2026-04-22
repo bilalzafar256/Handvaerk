@@ -49,7 +49,7 @@ Config: `drizzle.config.ts` (root)
 | Function ID | Trigger | Retry | Steps |
 |---|---|---|---|
 | `process-job-recording` | `recording/submitted` | 2 | 5: mark-processing → ai-extract → save-result → create-notifications → cleanup-blob |
-| `invoice-reminder` | `invoice/sent` | default | 3: wait-for-payment-8d → send-first-reminder → wait-7d → send-second-reminder |
+| `invoice-reminder` | `invoice/sent` | default | 2: sleepUntil(dueDate+reminder1Days) → send-first-reminder → sleepUntil(dueDate+reminder2Days) → send-second-reminder |
 | `mark-overdue-invoices` | `cron: 0 6 * * *` (daily 6am UTC) | default | 1: mark-overdue |
 | `hard-delete-user` | `user/deleted` | default | 3: wait-30d → delete-blobs → hard-delete-data |
 | `hello-world` | `test/hello.world` | default | 1: test only |

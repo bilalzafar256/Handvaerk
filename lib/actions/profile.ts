@@ -149,3 +149,39 @@ export async function updateMobilepayAction(mobilepayNumber: string) {
 
   revalidatePath("/profile")
 }
+
+export async function updateInvoiceRemindersAction(reminder1Days: number, reminder2Days: number) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { rateLimiter } = await import("@/lib/upstash")
+    const { success } = await rateLimiter.limit(clerkId)
+    if (!success) throw new Error("Rate limit exceeded. Try again in a moment.")
+  }
+
+  await db
+    .update(users)
+    .set({ invoiceReminder1Days: reminder1Days, invoiceReminder2Days: reminder2Days, updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkId))
+
+  revalidatePath("/profile")
+}
+
+export async function updateDashboardWidgetsAction(widgets: { id: string; enabled: boolean }[]) {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error("Unauthorized")
+
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { rateLimiter } = await import("@/lib/upstash")
+    const { success } = await rateLimiter.limit(clerkId)
+    if (!success) throw new Error("Rate limit exceeded. Try again in a moment.")
+  }
+
+  await db
+    .update(users)
+    .set({ dashboardWidgets: widgets, updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkId))
+
+  revalidatePath("/overview")
+}

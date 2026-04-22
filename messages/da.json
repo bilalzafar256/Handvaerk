@@ -267,7 +267,8 @@
     "pricebook": "",
     "profile": "Profil",
     "settingsSection": "Indstillinger",
-    "signOut": "Log ud"
+    "signOut": "Log ud",
+    "calendar": ""
   },
   "Profile": {
     "title": "Virksomhedsprofil",

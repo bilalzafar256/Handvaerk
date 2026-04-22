@@ -5,9 +5,12 @@ import { LogoUpload } from "@/components/forms/logo-upload"
 import { Topbar } from "@/components/shared/topbar"
 import { BankAccountsSection } from "@/components/profile/bank-accounts-section"
 import { GoogleReviewSection } from "@/components/profile/google-review-section"
+import { InvoiceRemindersSection } from "@/components/profile/invoice-reminders-section"
 import { getBankAccountsByUser } from "@/lib/db/queries/bank-accounts"
 import { Building2, MapPin, Wrench } from "lucide-react"
 import { AccountDangerZone } from "@/components/profile/account-danger-zone"
+import { DashboardWidgetsSection } from "@/components/profile/dashboard-widgets-section"
+import { resolveWidgets } from "@/lib/dashboard-widgets"
 
 type Props = { params: Promise<{ locale: string }> }
 
@@ -133,8 +136,17 @@ export default async function ProfilePage({ params }: Props) {
           mobilepayNumber={user?.mobilepayNumber}
         />
 
+        {/* Invoice reminders */}
+        <InvoiceRemindersSection
+          reminder1Days={user?.invoiceReminder1Days ?? 3}
+          reminder2Days={user?.invoiceReminder2Days ?? 7}
+        />
+
         {/* Customer reviews */}
         <GoogleReviewSection googleReviewUrl={user?.googleReviewUrl} />
+
+        {/* Dashboard widget order + visibility */}
+        <DashboardWidgetsSection initialWidgets={resolveWidgets(user?.dashboardWidgets)} />
 
         {/* Data export + account deletion */}
         <AccountDangerZone />

@@ -276,7 +276,7 @@
 |---|---|---|---|---|
 | F-1200 | Dashboard: outstanding amount | `[x]` | `[~]` | Query in `overview.ts`; StatCards still shows stub data |
 | F-1201 | Dashboard: active jobs count | `[x]` | `[~]` | Query in `overview.ts`; StatCards still shows stub data |
-| F-1202 | Dashboard: overdue invoices | `[x]` | `[~]` | Query in `overview.ts`; CriticalZone still shows stub data |
+| F-1202 | Dashboard: overdue invoices | `[x]` | `[x]` | CriticalZone wired to real data; dismissible per-item via localStorage |
 | F-1203 | Dashboard: this month billed | `[x]` | `[~]` | Query in `overview.ts`; StatCards still shows stub data |
 | F-1204 | Free tier: 10 active jobs gate | `[x]` | `[x]` | Delivered in Phase 3 as F-307 |
 | F-1205 | Upgrade prompt UI | `N/A` | `[ ]` | "Coming soon — MobilePay" |

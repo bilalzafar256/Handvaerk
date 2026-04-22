@@ -69,7 +69,7 @@ Note: `applyRateLimit` and `getDbUser` are duplicated in each action file. [INFE
 | `lib/actions/quotes.ts` | `createQuoteAction`, `updateQuoteAction`, `updateQuoteStatusAction`, `deleteQuoteAction`, `acceptQuoteByTokenAction`, `rejectQuoteByTokenAction`, `sendQuoteEmailAction`, `saveQuoteAsTemplateAction`, `deleteTemplateAction`, `mergeQuotesAction`, `upsertMaterialAction` |
 | `lib/actions/invoices.ts` | `createInvoiceAction`, `createInvoiceFromJobAction`, `createInvoiceFromQuoteAction`, `updateInvoiceAction`, `deleteInvoiceAction`, `sendInvoiceAction`, `markInvoicePaidAction`, `createCreditNoteAction`, `markOverdueAction`, `mergeInvoicesAction` |
 | `lib/actions/customers.ts` | `createCustomerAction`, `updateCustomerAction`, `deleteCustomerAction` [INFERRED from schema] |
-| `lib/actions/profile.ts` | Profile/company update actions |
+| `lib/actions/profile.ts` | `updateProfile`, `saveLogoUrl`, `updateGoogleReviewUrlAction`, `updateMobilepayAction`, `updateInvoiceRemindersAction` |
 | `lib/actions/bank-accounts.ts` | `createBankAccountAction`, `updateBankAccountAction`, `deleteBankAccountAction`, `setDefaultBankAccountAction` [INFERRED] |
 | `lib/actions/notifications.ts` | `getNotificationsAction`, `markNotificationReadAction`, `markAllNotificationsReadAction`, `clearAllNotificationsAction` |
 | `lib/actions/ai-job-recording.ts` | `createAiRecordingAction`, `getAiRecordingAction` [INFERRED] |
@@ -99,7 +99,7 @@ Note: `applyRateLimit` and `getDbUser` are duplicated in each action file. [INFE
 lib/db/queries/
 ├── jobs.ts          createJob, updateJob, softDeleteJob, getJobById, countActiveJobs, countAllJobsEver, addJobPhoto, deleteJobPhoto
 ├── quotes.ts        createQuote, updateQuote, softDeleteQuote, getQuoteById, getQuoteByToken, countAllQuotesEver, replaceQuoteItems, createTemplate, deleteTemplate, upsertMaterial
-├── invoices.ts      createInvoice, updateInvoice, softDeleteInvoice, getInvoiceById, getInvoiceByQuote, countAllInvoicesEver, replaceInvoiceItems, markOverdueInvoices
+├── invoices.ts      createInvoice, updateInvoice, softDeleteInvoice, getInvoiceById, getInvoiceByQuote, countAllInvoicesEver, replaceInvoiceItems, markOverdueInvoices, markAllOverdueInvoices, getOutstandingAmount, getOverdueInvoices, getThisMonthBilled
 ├── customers.ts     [customer queries]
 ├── bank-accounts.ts getDefaultBankAccount, and CRUD
 ├── ai-recordings.ts [ai recording queries]

@@ -27,10 +27,12 @@ import {
   Settings,
   Timer,
   BookOpen,
+  CalendarDays,
 } from "lucide-react"
 
 const navItems = [
   { icon: LayoutDashboard, labelKey: "overview",      href: "/overview" },
+  { icon: CalendarDays,    labelKey: "calendar",      href: "/calendar" },
   { icon: Briefcase,       labelKey: "jobs",          href: "/jobs" },
   { icon: Users,           labelKey: "customers",     href: "/customers" },
   { icon: FileText,        labelKey: "quotes",        href: "/quotes" },

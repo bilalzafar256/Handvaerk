@@ -33,7 +33,7 @@ Browser / Mobile PWA
               ├── Clerk (auth) ←→ svix webhook → /api/webhooks/clerk
               ├── Upstash Redis (rate limiting — 3 limiters)
               ├── Inngest (background job orchestration)
-              │      ├── invoice-reminder (8d + 7d after sent)
+              │      ├── invoice-reminder (configurable days after due date)
               │      └── process-job-recording (5-step audio pipeline)
               ├── Resend (transactional email — 7 templates)
               ├── Groq API (Whisper transcription + LLaMA extraction + llama-4-scout vision for business card scan)
@@ -87,16 +87,17 @@ User records voice or uploads file on /jobs/record
 ### Flow 3: Invoice Payment Reminder (Inngest)
 ```
 sendInvoiceAction marks status "sent"
-  → inngest.send({ name: "invoice/sent", data: { invoiceId, customerEmail, dueDate, amount } })
+  → inngest.send({ name: "invoice/sent", data: { invoiceId, userId, customerEmail, dueDate, amount } })
   → [Inngest: invoice-reminder function]
-     step.waitForEvent("invoice/paid", timeout: "8d")
-     → if paid: return (no reminders)
-     → if timeout: send first reminder email (Resend)
-                   db.update reminder1SentAt
-     step.sleep("7d")
+     fetch users.invoiceReminder1Days + invoiceReminder2Days (defaults: 3, 7)
+     step.sleepUntil(dueDate + reminder1Days)
+     → check invoice still unpaid in DB; if paid, skip
+     → send first reminder email (Resend)
+     → db.update reminder1SentAt
+     step.sleepUntil(dueDate + reminder2Days)
+     → check invoice still unpaid in DB; if paid, skip
      → send second reminder email (Resend)
-                   db.update reminder2SentAt
-markInvoicePaidAction → inngest.send({ name: "invoice/paid" }) → cancels pending steps
+     → db.update reminder2SentAt
 ```
 
 ---

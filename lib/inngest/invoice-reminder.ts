@@ -1,31 +1,34 @@
 import { inngest } from "./client"
 import { db } from "@/lib/db"
-import { invoices } from "@/lib/db/schema"
+import { invoices, users } from "@/lib/db/schema"
 import { eq, and, isNull } from "drizzle-orm"
 import { formatDKK } from "@/lib/utils/currency"
 
+type Step = {
+  sleepUntil: (id: string, datetime: Date | string) => Promise<void>
+  run: <T>(id: string, fn: () => Promise<T>) => Promise<T>
+}
+
 export const invoiceReminder = inngest.createFunction(
-  {
-    id: "invoice-reminder",
-    triggers: [{ event: "invoice/sent" }],
-  },
-  async ({ event, step }: { event: { data: { invoiceId: string; userId: string; customerEmail: string; dueDate: string; amount: string } }; step: { waitForEvent: (id: string, opts: { event: string; timeout: string; match: string }) => Promise<unknown>; sleep: (id: string, duration: string) => Promise<void>; run: <T>(id: string, fn: () => Promise<T>) => Promise<T> } }) => {
-    const { invoiceId, customerEmail, dueDate, amount } = event.data
+  { id: "invoice-reminder", triggers: [{ event: "invoice/sent" }] },
+  async ({ event, step }: { event: { data: { invoiceId: string; userId: string; customerEmail: string; dueDate: string; amount: string } }; step: Step }) => {
+    const { invoiceId, userId, customerEmail, dueDate, amount } = event.data
 
-    // Wait up to 8 days for payment event; if timeout → send first reminder
-    const paid = await step.waitForEvent("wait-for-payment-first", {
-      event:   "invoice/paid",
-      timeout: "8d",
-      match:   "data.invoiceId",
-    })
+    // Fetch user's reminder day settings
+    const user = await db.query.users.findFirst({ where: eq(users.id, userId) })
+    const reminder1Days = user?.invoiceReminder1Days ?? 3
+    const reminder2Days = user?.invoiceReminder2Days ?? 7
 
-    if (paid) return // Invoice was paid — stop
+    const due = new Date(dueDate)
+    const reminder1At = new Date(due.getTime() + reminder1Days * 86_400_000)
+    const reminder2At = new Date(due.getTime() + reminder2Days * 86_400_000)
 
-    // Send first reminder
+    await step.sleepUntil("wait-reminder1", reminder1At)
+
     await step.run("send-first-reminder", async () => {
       const invoice = await db.query.invoices.findFirst({
         where: and(eq(invoices.id, invoiceId), isNull(invoices.paidAt)),
-        with:  { customer: true },
+        with: { customer: true },
       })
       if (!invoice) return
 
@@ -35,7 +38,7 @@ export const invoiceReminder = inngest.createFunction(
       await resend.emails.send({
         from:    EMAIL_FROM,
         to:      [customerEmail],
-        subject: "Betalingspåmindelse",
+        subject: "Payment reminder",
         react:   PaymentReminderEmail({
           customerName:   invoice.customer.name,
           invoiceNumber:  invoice.invoiceNumber,
@@ -51,13 +54,12 @@ export const invoiceReminder = inngest.createFunction(
         .where(eq(invoices.id, invoiceId))
     })
 
-    // Wait 7 more days for second reminder
-    await step.sleep("wait-second-reminder", "7d")
+    await step.sleepUntil("wait-reminder2", reminder2At)
 
     await step.run("send-second-reminder", async () => {
       const invoice = await db.query.invoices.findFirst({
         where: and(eq(invoices.id, invoiceId), isNull(invoices.paidAt)),
-        with:  { customer: true },
+        with: { customer: true },
       })
       if (!invoice) return
 
@@ -67,7 +69,7 @@ export const invoiceReminder = inngest.createFunction(
       await resend.emails.send({
         from:    EMAIL_FROM,
         to:      [customerEmail],
-        subject: "Anden betalingspåmindelse",
+        subject: "Second payment reminder",
         react:   PaymentReminderEmail({
           customerName:   invoice.customer.name,
           invoiceNumber:  invoice.invoiceNumber,

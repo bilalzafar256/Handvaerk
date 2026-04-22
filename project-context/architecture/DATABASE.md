@@ -28,6 +28,8 @@
 | `tier` | text DEFAULT 'free' | `'free'` \| `'solo'` \| `'hold'` — gates features |
 | `mobilepay_number` | text | Pre-fills invoice payment info |
 | `google_review_url` | text | Sent in post-payment thank-you email |
+| `invoice_reminder_1_days` | integer DEFAULT 3 | Days after due date to send first payment reminder |
+| `invoice_reminder_2_days` | integer DEFAULT 7 | Days after due date to send second payment reminder |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
@@ -321,10 +323,11 @@ Status transitions tracked via dedicated timestamp columns (e.g., `sentAt`, `pai
 - Runner: `drizzle-kit` (`npx drizzle-kit generate` then `npx drizzle-kit migrate`)
 - Files: `drizzle/migrations/` — `.sql` + `meta/XXXX_snapshot.json` pairs
 - **NEVER create `.sql` files manually or edit `_journal.json`** — missing snapshots corrupt future schema diffs
-- 15 migrations applied as of current state (0000 → 0014)
+- 16 migrations applied as of current state (0000 → 0015)
 - Migration 0012 adds the `time_entries` table (Phase 31)
 - Migration 0013 adds `follow_up_draft` to `quotes` (Phase 15)
 - Migration 0014 adds `pricebook_items` table (Phase 20)
+- Migration 0015 adds `invoice_reminder_1_days` and `invoice_reminder_2_days` to `users`
 - Note: snapshots 0005–0010 are missing from `drizzle/migrations/meta/` — only 0000–0004 and 0011+ are present. This is a known gap. [INFERRED: migrations were manually created or snapshots were deleted]
 
 ## Indexes (planned — not yet applied)

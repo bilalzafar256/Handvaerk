@@ -18,6 +18,7 @@ User authentication via Clerk (email OTP + phone OTP). Company profile setup gat
 | `components/forms/logo-upload.tsx` | Logo upload component |
 | `components/profile/bank-accounts-section.tsx` | Bank account management |
 | `components/profile/google-review-section.tsx` | Google Review URL |
+| `components/profile/invoice-reminders-section.tsx` | Invoice reminder day settings |
 | `app/api/upload/route.ts` | Logo upload token endpoint |
 
 ---

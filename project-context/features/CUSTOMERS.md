@@ -119,6 +119,19 @@ Displayed in both list and grid views. All computed server-side via two extra qu
 
 ---
 
+## Customer Detail — Invoice Figures
+
+The invoice panel on the customer detail page (`app/[locale]/(dashboard)/customers/[id]/page.tsx`) shows financial figures computed from `customerInvoices` (already fetched):
+
+| Figure | Condition | Display |
+|---|---|---|
+| **Outstanding** | Sum of `totalInclVat` for `sent` + `viewed` + `overdue` invoices | Large monospace number above the invoice list |
+| **Overdue** | Sum of `totalInclVat` for `overdue` invoices only | Shown alongside Outstanding in red when non-zero |
+
+When overdue invoices exist, the summary area has a faint red background. Each overdue invoice row in the list gets a red left border (`3px solid`) and a light red row background — computed purely client-side from the already-fetched invoice data, no extra DB query.
+
+---
+
 ## Google Maps Integration
 
 Three locations in the customer flow link to `https://maps.google.com/?q=${encodeURIComponent(addressLine)}`:

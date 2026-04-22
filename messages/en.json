@@ -267,7 +267,8 @@
     "pricebook": "Pricebook",
     "profile": "Profile",
     "settingsSection": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "calendar": "Calendar"
   },
   "Profile": {
     "title": "Company profile",
