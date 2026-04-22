@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm"
 import { users } from "./users"
 import { customers } from "./customers"
 import { jobs, jobPhotos } from "./jobs"
+import { jobTasks } from "./job-tasks"
 import { quotes, quoteItems, quoteTemplates, materialsCatalog } from "./quotes"
 import { invoices, invoiceItems } from "./invoices"
 import { bankAccounts } from "./bank-accounts"
@@ -19,6 +20,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   bankAccounts: many(bankAccounts),
   notifications: many(notifications),
   pricebookItems: many(pricebookItems),
+  jobTasks: many(jobTasks),
 }))
 
 export const pricebookItemsRelations = relations(pricebookItems, ({ one }) => ({
@@ -39,9 +41,15 @@ export const jobsRelations = relations(jobs, ({ one, many }) => ({
   user: one(users, { fields: [jobs.userId], references: [users.id] }),
   customer: one(customers, { fields: [jobs.customerId], references: [customers.id] }),
   photos: many(jobPhotos),
+  tasks: many(jobTasks),
   quotes: many(quotes),
   invoices: many(invoices),
   timeEntries: many(timeEntries),
+}))
+
+export const jobTasksRelations = relations(jobTasks, ({ one }) => ({
+  job: one(jobs, { fields: [jobTasks.jobId], references: [jobs.id] }),
+  user: one(users, { fields: [jobTasks.userId], references: [users.id] }),
 }))
 
 export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({

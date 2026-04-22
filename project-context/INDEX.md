@@ -43,7 +43,7 @@
 | New page / route | `codebase/FRONTEND.md` + `project-context/skills/NEXTJS_SKILL.md` |
 | New Server Action | `codebase/BACKEND.md` + `conventions/CODING_STANDARDS.md` |
 | UI component build | `design/UI_DESIGN_SYSTEM.md` + `codebase/FRONTEND.md` |
-| Email / notification | `features/INVOICES.md` + `project-context/skills/RESEND_SKILL.md` |
+| Email / notification | `features/INVOICES.md` + `features/EMAIL_TEMPLATES.md` + `project-context/skills/RESEND_SKILL.md` |
 | AI pipeline | `features/AI_RECORDING.md` + `project-context/skills/INNGEST_SKILL.md` |
 | Auth / user data | `features/AUTH_PROFILE.md` + `project-context/skills/CLERK_SKILL.md` |
 | Rate limiting | `codebase/BACKEND.md` + `project-context/skills/UPSTASH_SKILL.md` |

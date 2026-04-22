@@ -1,26 +1,33 @@
 "use client"
 
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useTranslations } from "next-intl"
 import { useRouter } from "@/i18n/navigation"
 import { toast } from "sonner"
 import { useState, useRef } from "react"
-import { Mic, MicOff } from "lucide-react"
+import { Mic, MicOff, ChevronDown, ChevronUp, MapPin } from "lucide-react"
 import { createJobAction, updateJobAction } from "@/lib/actions/jobs"
+import { TagInput } from "@/components/jobs/tag-input"
 import type { Job } from "@/lib/db/schema/jobs"
 import type { Customer } from "@/lib/db/schema/customers"
 
 const schema = z.object({
-  customerId:    z.string().uuid("Select a customer"),
-  title:         z.string().min(1, "Title is required"),
-  description:   z.string().optional(),
-  jobType:       z.enum(["service", "project", "recurring"]),
-  status:        z.enum(["new", "scheduled", "in_progress", "done", "invoiced", "paid"]),
-  scheduledDate: z.string().optional(),
-  endDate:       z.string().optional(),
-  notes:         z.string().optional(),
+  customerId:      z.string().uuid("Select a customer"),
+  title:           z.string().min(1, "Title is required"),
+  description:     z.string().optional(),
+  jobType:         z.enum(["service", "project", "recurring"]),
+  status:          z.enum(["new", "scheduled", "in_progress", "done", "invoiced", "paid"]),
+  priority:        z.enum(["low", "normal", "high", "urgent"]),
+  scheduledDate:   z.string().optional(),
+  endDate:         z.string().optional(),
+  estimatedHours:  z.string().optional(),
+  locationAddress: z.string().optional(),
+  locationZip:     z.string().optional(),
+  locationCity:    z.string().optional(),
+  tags:            z.string().optional(),
+  notes:           z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -36,28 +43,42 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [listening, setListening] = useState(false)
+  const [showLocation, setShowLocation] = useState(
+    !!(job?.locationAddress || job?.locationZip || job?.locationCity)
+  )
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
+
+  const hasLocation = !!(job?.locationAddress || job?.locationZip || job?.locationCity)
 
   const {
     register,
     handleSubmit,
     setValue,
     getValues,
+    control,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      customerId:    job?.customerId ?? defaultCustomerId ?? "",
-      title:         job?.title ?? "",
-      description:   job?.description ?? "",
-      jobType:       (job?.jobType as FormData["jobType"]) ?? "service",
-      status:        (job?.status as FormData["status"]) ?? "new",
-      scheduledDate: job?.scheduledDate ?? "",
-      endDate:       job?.endDate ?? "",
-      notes:         job?.notes ?? "",
+      customerId:      job?.customerId ?? defaultCustomerId ?? "",
+      title:           job?.title ?? "",
+      description:     job?.description ?? "",
+      jobType:         (job?.jobType as FormData["jobType"]) ?? "service",
+      status:          (job?.status as FormData["status"]) ?? "new",
+      priority:        (job?.priority as FormData["priority"]) ?? "normal",
+      scheduledDate:   job?.scheduledDate ?? "",
+      endDate:         job?.endDate ?? "",
+      estimatedHours:  job?.estimatedHours ?? "",
+      locationAddress: job?.locationAddress ?? "",
+      locationZip:     job?.locationZip ?? "",
+      locationCity:    job?.locationCity ?? "",
+      tags:            job?.tags ?? "",
+      notes:           job?.notes ?? "",
     },
   })
+
+  const tagsValue = useWatch({ control, name: "tags" })
 
   async function onSubmit(data: FormData) {
     setSaving(true)
@@ -213,61 +234,121 @@ export function JobForm({ job, customers, defaultCustomerId }: JobFormProps) {
         />
       </div>
 
-      {/* Job type (F-310) */}
-      <div>
-        <label
-          className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
-        >
-          {t("jobTypeLabel")}
-        </label>
-        <select
-          {...register("jobType")}
-          className={inputClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
-        >
-          <option value="service">{t("typeService")}</option>
-          <option value="project">{t("typeProject")}</option>
-          <option value="recurring">{t("typeRecurring")}</option>
-        </select>
+      {/* Job type + Priority */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelClass} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+            {t("jobTypeLabel")}
+          </label>
+          <select
+            {...register("jobType")}
+            className={inputClass}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
+          >
+            <option value="service">{t("typeService")}</option>
+            <option value="project">{t("typeProject")}</option>
+            <option value="recurring">{t("typeRecurring")}</option>
+          </select>
+        </div>
+        <div>
+          <label className={labelClass} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+            {t("priorityLabel")}
+          </label>
+          <select
+            {...register("priority")}
+            className={inputClass}
+            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
+          >
+            <option value="low">{t("priorityLow")}</option>
+            <option value="normal">{t("priorityNormal")}</option>
+            <option value="high">{t("priorityHigh")}</option>
+            <option value="urgent">{t("priorityUrgent")}</option>
+          </select>
+        </div>
       </div>
 
       {/* Scheduled date + End date */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label
-            className={labelClass}
-            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
-          >
+          <label className={labelClass} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
             {t("scheduledDateLabel")}
           </label>
-          <input
-            {...register("scheduledDate")}
-            type="date"
-            className={inputClass}
-          />
+          <input {...register("scheduledDate")} type="date" className={inputClass} />
         </div>
         <div>
-          <label
-            className={labelClass}
-            style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
-          >
+          <label className={labelClass} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
             {t("endDateLabel")}
           </label>
-          <input
-            {...register("endDate")}
-            type="date"
-            className={inputClass}
-          />
+          <input {...register("endDate")} type="date" className={inputClass} />
         </div>
+      </div>
+
+      {/* Estimated hours */}
+      <div>
+        <label className={labelClass} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+          {t("estimatedHoursLabel")}
+        </label>
+        <input
+          {...register("estimatedHours")}
+          type="number"
+          min="0"
+          step="0.5"
+          placeholder="e.g. 8"
+          className={inputClass}
+          style={{ fontFamily: "var(--font-mono)" }}
+        />
+      </div>
+
+      {/* Site location (collapsible) */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowLocation(v => !v)}
+          className="flex items-center gap-1.5 text-sm font-medium mb-2 cursor-pointer hover:opacity-70 transition-opacity"
+          style={{ color: showLocation ? "var(--primary)" : "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
+        >
+          <MapPin className="w-3.5 h-3.5" />
+          {t("siteLocationToggle")}
+          {showLocation ? <ChevronUp className="w-3.5 h-3.5 ml-auto" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto" />}
+        </button>
+        {showLocation && (
+          <div className="space-y-2.5 pl-1">
+            <input
+              {...register("locationAddress")}
+              placeholder={t("locationAddressPlaceholder")}
+              className={inputClass}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                {...register("locationZip")}
+                placeholder={t("locationZipPlaceholder")}
+                className={inputClass}
+              />
+              <input
+                {...register("locationCity")}
+                placeholder={t("locationCityPlaceholder")}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tags */}
+      <div>
+        <label className={labelClass} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
+          {t("tagsLabel")}
+        </label>
+        <TagInput
+          value={tagsValue ?? ""}
+          onChange={v => setValue("tags", v)}
+          placeholder={t("tagsPlaceholder")}
+        />
       </div>
 
       {/* Notes (internal) */}
       <div>
-        <label
-          className={labelClass}
-          style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
-        >
+        <label className={labelClass} style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
           {t("notesLabel")}
         </label>
         <textarea

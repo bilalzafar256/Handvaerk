@@ -1,24 +1,33 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Link } from "@/i18n/navigation"
 import { useRouter } from "@/i18n/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import {
   Search, Plus, Briefcase, ChevronRight, ChevronDown, Check, X, LayoutList, LayoutGrid,
-  Pencil, Trash2, Loader2, Play, Square,
+  Pencil, Trash2, Loader2, Play, Square, MapPin, Tag, Map,
 } from "lucide-react"
 import { StatusBadge } from "@/components/jobs/status-changer"
+import { PriorityBadge } from "@/components/jobs/priority-badge"
 import { deleteJobAction } from "@/lib/actions/jobs"
 import { clockInAction, clockOutAction } from "@/lib/actions/time-tracking"
 import { toast } from "sonner"
 import { useTranslations } from "next-intl"
 import type { Job } from "@/lib/db/schema/jobs"
 import type { Customer } from "@/lib/db/schema/customers"
+import dynamic from "next/dynamic"
+
+const JobMapView = dynamic(
+  () => import("@/components/jobs/job-map-view").then(m => ({ default: m.JobMapView })),
+  { ssr: false, loading: () => <div className="flex items-center justify-center" style={{ height: "calc(100vh - 200px)", minHeight: 400 }}><Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--primary)" }} /></div> }
+)
 
 type JobWithCustomer = Job & { customer: Customer }
 type Status = "new" | "scheduled" | "in_progress" | "done" | "invoiced" | "paid"
+type Priority = "low" | "normal" | "high" | "urgent"
 const CLOSED_JOB_STATUSES: Status[] = ["done", "invoiced", "paid"]
+const ALL_PRIORITIES: Priority[] = ["urgent", "high", "normal", "low"]
 
 const STATUS_COLORS: Record<Status, string> = {
   new:         "var(--status-new-text)",
@@ -38,19 +47,36 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
   const tStatus = useTranslations("JobStatus")
   const [query, setQuery] = useState("")
   const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([])
+  const [selectedPriorities, setSelectedPriorities] = useState<Priority[]>([])
+  const [selectedTag, setSelectedTag] = useState<string>("")
   const [statusOpen, setStatusOpen] = useState(false)
+  const [priorityOpen, setPriorityOpen] = useState(false)
+  const [tagOpen, setTagOpen] = useState(false)
   const [page, setPage] = useState(1)
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
+  const [viewMode, setViewMode] = useState<"list" | "grid" | "map">("list")
+
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>()
+    jobs.forEach(j => {
+      if (j.tags) j.tags.split(",").map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t))
+    })
+    return Array.from(tagSet).sort()
+  }, [jobs])
 
   const filtered = jobs.filter((j) => {
     const q = query.toLowerCase().trim()
     const matchesQuery = !q ||
       j.title.toLowerCase().includes(q) ||
       j.customer.name.toLowerCase().includes(q) ||
-      j.jobNumber.includes(q)
+      j.jobNumber.includes(q) ||
+      (j.tags ?? "").toLowerCase().includes(q)
     const matchesStatus = selectedStatuses.length === 0 ||
       selectedStatuses.includes(j.status as Status)
-    return matchesQuery && matchesStatus
+    const matchesPriority = selectedPriorities.length === 0 ||
+      selectedPriorities.includes((j.priority ?? "normal") as Priority)
+    const matchesTag = !selectedTag ||
+      (j.tags ?? "").split(",").map(t => t.trim()).includes(selectedTag)
+    return matchesQuery && matchesStatus && matchesPriority && matchesTag
   })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
@@ -62,7 +88,12 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
     setPage(1)
   }
 
-  const activeFilters = selectedStatuses.length > 0
+  function togglePriority(p: Priority) {
+    setSelectedPriorities(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])
+    setPage(1)
+  }
+
+  const activeFilters = selectedStatuses.length > 0 || selectedPriorities.length > 0 || !!selectedTag
 
   return (
     <div>
@@ -90,17 +121,17 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
         {/* Status filter */}
         <div className="relative">
           <button
-            onClick={() => setStatusOpen(!statusOpen)}
+            onClick={() => { setStatusOpen(!statusOpen); setPriorityOpen(false); setTagOpen(false) }}
             className="h-8 px-2.5 rounded-lg border text-sm flex items-center gap-1.5 cursor-pointer transition-colors"
             style={{
               fontFamily: "var(--font-body)",
-              borderColor: activeFilters ? "var(--amber-400)" : "var(--border)",
-              backgroundColor: activeFilters ? "var(--amber-50)" : "var(--background)",
-              color: activeFilters ? "var(--amber-700)" : "var(--muted-foreground)",
+              borderColor: selectedStatuses.length > 0 ? "var(--amber-400)" : "var(--border)",
+              backgroundColor: selectedStatuses.length > 0 ? "var(--amber-50)" : "var(--background)",
+              color: selectedStatuses.length > 0 ? "var(--amber-700)" : "var(--muted-foreground)",
             }}
           >
             {t("statusFilter")}
-            {activeFilters && (
+            {selectedStatuses.length > 0 && (
               <span className="px-1.5 rounded text-[11px] font-semibold leading-5"
                 style={{ backgroundColor: "var(--amber-500)", color: "oklch(0.10 0.005 52)" }}>
                 {selectedStatuses.length}
@@ -114,7 +145,7 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
                 <motion.div
-                  className="absolute top-full right-0 mt-1 z-20 w-48 rounded-xl border overflow-hidden"
+                  className="absolute top-full left-0 mt-1 z-20 w-48 rounded-xl border overflow-hidden"
                   style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-lg)" }}
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -147,7 +178,7 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
                       </button>
                     ))}
                   </div>
-                  {activeFilters && (
+                  {selectedStatuses.length > 0 && (
                     <div className="border-t px-3 py-1.5" style={{ borderColor: "var(--border)" }}>
                       <button
                         onClick={() => { setSelectedStatuses([]); setStatusOpen(false) }}
@@ -164,22 +195,158 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
           </AnimatePresence>
         </div>
 
+        {/* Priority filter */}
+        <div className="relative">
+          <button
+            onClick={() => { setPriorityOpen(!priorityOpen); setStatusOpen(false); setTagOpen(false) }}
+            className="h-8 px-2.5 rounded-lg border text-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              fontFamily: "var(--font-body)",
+              borderColor: selectedPriorities.length > 0 ? "var(--amber-400)" : "var(--border)",
+              backgroundColor: selectedPriorities.length > 0 ? "var(--amber-50)" : "var(--background)",
+              color: selectedPriorities.length > 0 ? "var(--amber-700)" : "var(--muted-foreground)",
+            }}
+          >
+            {t("priorityFilter")}
+            {selectedPriorities.length > 0 && (
+              <span className="px-1.5 rounded text-[11px] font-semibold leading-5"
+                style={{ backgroundColor: "var(--amber-500)", color: "oklch(0.10 0.005 52)" }}>
+                {selectedPriorities.length}
+              </span>
+            )}
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          <AnimatePresence>
+            {priorityOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setPriorityOpen(false)} />
+                <motion.div
+                  className="absolute top-full left-0 mt-1 z-20 w-40 rounded-xl border overflow-hidden"
+                  style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-lg)" }}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.12 }}
+                >
+                  <div className="p-1">
+                    {ALL_PRIORITIES.map(p => (
+                      <button
+                        key={p}
+                        onClick={() => togglePriority(p)}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm cursor-pointer transition-colors text-left capitalize"
+                        style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}
+                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--accent)"}
+                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = ""}
+                      >
+                        <div
+                          className="w-4 h-4 rounded flex items-center justify-center border flex-shrink-0"
+                          style={{
+                            backgroundColor: selectedPriorities.includes(p) ? "var(--amber-500)" : "transparent",
+                            borderColor: selectedPriorities.includes(p) ? "var(--amber-500)" : "var(--border)",
+                          }}
+                        >
+                          {selectedPriorities.includes(p) && <Check className="w-2.5 h-2.5" style={{ color: "oklch(0.10 0.005 52)" }} />}
+                        </div>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedPriorities.length > 0 && (
+                    <div className="border-t px-3 py-1.5" style={{ borderColor: "var(--border)" }}>
+                      <button
+                        onClick={() => { setSelectedPriorities([]); setPriorityOpen(false) }}
+                        className="text-xs cursor-pointer hover:opacity-70 transition-opacity"
+                        style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
+                      >
+                        {t("clearFilter")}
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Tags filter */}
+        {allTags.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => { setTagOpen(!tagOpen); setStatusOpen(false); setPriorityOpen(false) }}
+              className="h-8 px-2.5 rounded-lg border text-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+              style={{
+                fontFamily: "var(--font-body)",
+                borderColor: selectedTag ? "var(--amber-400)" : "var(--border)",
+                backgroundColor: selectedTag ? "var(--amber-50)" : "var(--background)",
+                color: selectedTag ? "var(--amber-700)" : "var(--muted-foreground)",
+              }}
+            >
+              <Tag className="w-3.5 h-3.5" />
+              {selectedTag || t("tagFilter")}
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            <AnimatePresence>
+              {tagOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setTagOpen(false)} />
+                  <motion.div
+                    className="absolute top-full left-0 mt-1 z-20 w-44 rounded-xl border overflow-hidden"
+                    style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", boxShadow: "var(--shadow-lg)" }}
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    <div className="p-1">
+                      {allTags.map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => { setSelectedTag(selectedTag === tag ? "" : tag); setTagOpen(false); setPage(1) }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm cursor-pointer transition-colors text-left"
+                          style={{ fontFamily: "var(--font-body)", color: selectedTag === tag ? "var(--primary)" : "var(--foreground)", backgroundColor: selectedTag === tag ? "var(--accent-light)" : "transparent" }}
+                          onMouseEnter={e => { if (selectedTag !== tag) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--accent)" }}
+                          onMouseLeave={e => { if (selectedTag !== tag) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "" }}
+                        >
+                          <Tag className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedTag && (
+                      <div className="border-t px-3 py-1.5" style={{ borderColor: "var(--border)" }}>
+                        <button
+                          onClick={() => { setSelectedTag(""); setTagOpen(false) }}
+                          className="text-xs cursor-pointer hover:opacity-70 transition-opacity"
+                          style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
+                        >
+                          {t("clearFilter")}
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
         {/* View toggle */}
         <div className="flex items-center gap-0.5 rounded-lg border p-0.5 ml-auto flex-shrink-0" style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}>
-          <button
-            onClick={() => setViewMode("list")}
-            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
-            style={{ backgroundColor: viewMode === "list" ? "var(--accent)" : "transparent", color: viewMode === "list" ? "var(--foreground)" : "var(--muted-foreground)" }}
-          >
-            <LayoutList className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setViewMode("grid")}
-            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
-            style={{ backgroundColor: viewMode === "grid" ? "var(--accent)" : "transparent", color: viewMode === "grid" ? "var(--foreground)" : "var(--muted-foreground)" }}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-          </button>
+          {(["list", "grid", "map"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className="w-7 h-7 flex items-center justify-center rounded-md transition-colors cursor-pointer"
+              style={{ backgroundColor: viewMode === mode ? "var(--accent)" : "transparent", color: viewMode === mode ? "var(--foreground)" : "var(--muted-foreground)" }}
+              title={mode.charAt(0).toUpperCase() + mode.slice(1)}
+            >
+              {mode === "list" && <LayoutList className="w-3.5 h-3.5" />}
+              {mode === "grid" && <LayoutGrid className="w-3.5 h-3.5" />}
+              {mode === "map"  && <Map className="w-3.5 h-3.5" />}
+            </button>
+          ))}
         </div>
 
         {/* Active filter pills */}
@@ -194,6 +361,28 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
             <X className="w-3 h-3" />
           </button>
         ))}
+        {selectedPriorities.map(p => (
+          <button
+            key={p}
+            onClick={() => togglePriority(p)}
+            className="h-8 px-2.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity capitalize"
+            style={{ backgroundColor: "var(--amber-100)", color: "var(--amber-700)", fontFamily: "var(--font-body)" }}
+          >
+            {p}
+            <X className="w-3 h-3" />
+          </button>
+        ))}
+        {selectedTag && (
+          <button
+            onClick={() => setSelectedTag("")}
+            className="h-8 px-2.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: "var(--amber-100)", color: "var(--amber-700)", fontFamily: "var(--font-body)" }}
+          >
+            <Tag className="w-3 h-3" />
+            {selectedTag}
+            <X className="w-3 h-3" />
+          </button>
+        )}
       </div>
 
       {/* Result count */}
@@ -203,7 +392,9 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
         </p>
       )}
 
-      {filtered.length === 0 ? (
+      {viewMode === "map" ? (
+        <JobMapView jobs={filtered} />
+      ) : filtered.length === 0 ? (
         <EmptyState hasFilters={query.trim().length > 0 || activeFilters} viewMode={viewMode} />
       ) : (
         <>
@@ -227,6 +418,12 @@ export function JobList({ jobs, activeJobId, activeEntryId }: { jobs: JobWithCus
   )
 }
 
+function jobMapsAddress(job: JobWithCustomer): string {
+  const site = [job.locationAddress, job.locationZip, job.locationCity].filter(Boolean).join(", ")
+  if (site) return site
+  return [job.customer.addressLine1, job.customer.addressZip, job.customer.addressCity].filter(Boolean).join(", ")
+}
+
 function JobRow({ job, index, activeJobId, activeEntryId }: { job: JobWithCustomer; index: number; activeJobId?: string; activeEntryId?: string }) {
   const [hovered, setHovered] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -237,6 +434,7 @@ function JobRow({ job, index, activeJobId, activeEntryId }: { job: JobWithCustom
   const barColor = STATUS_COLORS[status] ?? "var(--muted-foreground)"
   const isThisActive = activeJobId === job.id
   const someOtherActive = !!activeJobId && !isThisActive
+  const mapsAddr = jobMapsAddress(job)
 
   async function handleTimer(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation()
@@ -304,7 +502,10 @@ function JobRow({ job, index, activeJobId, activeEntryId }: { job: JobWithCustom
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {job.priority && job.priority !== "normal" && (
+            <PriorityBadge priority={job.priority} />
+          )}
           {job.scheduledDate && (
             <p className="text-xs hidden sm:block" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
               {new Date(job.scheduledDate).toLocaleDateString("da-DK", { day: "numeric", month: "short" })}
@@ -329,6 +530,18 @@ function JobRow({ job, index, activeJobId, activeEntryId }: { job: JobWithCustom
           >
             {timerPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isThisActive ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
           </button>
+        )}
+        {mapsAddr && (
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(mapsAddr)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-[var(--background)] hover:bg-[var(--accent-light)] transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--primary)" }}
+          >
+            <MapPin className="w-3.5 h-3.5" />
+          </a>
         )}
         <Link
           href={`/jobs/${job.id}/edit`}
@@ -372,6 +585,7 @@ function JobCard({ job, index, activeJobId, activeEntryId }: { job: JobWithCusto
   const barColor = STATUS_COLORS[status] ?? "var(--muted-foreground)"
   const isThisActive = activeJobId === job.id
   const someOtherActive = !!activeJobId && !isThisActive
+  const mapsAddr = jobMapsAddress(job)
 
   async function handleTimer(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation()
@@ -432,13 +646,18 @@ function JobCard({ job, index, activeJobId, activeEntryId }: { job: JobWithCusto
             <p className="text-sm font-semibold leading-snug" style={{ fontFamily: "var(--font-body)", color: "var(--foreground)" }}>
               {job.title}
             </p>
-            <p className="text-xs mt-0.5 truncate" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
-              {job.customer.name}
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <p className="text-xs truncate flex-1" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                {job.customer.name}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <StatusBadge status={status} />
-            <p className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
+            {job.priority && job.priority !== "normal" && (
+              <PriorityBadge priority={job.priority} />
+            )}
+            <p className="text-[11px] ml-auto" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
               #{job.jobNumber}
             </p>
           </div>
@@ -466,6 +685,18 @@ function JobCard({ job, index, activeJobId, activeEntryId }: { job: JobWithCusto
               {timerPending ? <Loader2 className="w-3 h-3 animate-spin" /> : isThisActive ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
               {isThisActive ? "Stop" : "Start"}
             </button>
+          )}
+          {mapsAddr && (
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(mapsAddr)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="flex items-center justify-center h-7 w-7 rounded-lg border bg-[var(--background)] hover:bg-[var(--accent-light)] transition-colors"
+              style={{ borderColor: "var(--border)", color: "var(--primary)" }}
+            >
+              <MapPin className="w-3 h-3" />
+            </a>
           )}
           <Link
             href={`/jobs/${job.id}/edit`}

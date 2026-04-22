@@ -28,8 +28,11 @@
 | 15 | Time Tracking | 9 | 0 | 0 | 9 |
 | 16 | E-conomic Integration | 8 | 0 | 0 | 8 |
 | 17 | Calendar | 5 | 5 | 0 | 0 |
+| 18 | Jobs Revamp | 6 | 6 | 0 | 0 |
+| 19 | Email Template Manager | 7 | 0 | 0 | 7 |
+| 20 | Job Activity Timeline | 6 | 0 | 0 | 6 |
 
-**Overall:** ~108 complete / ~161 total · Phases 0–8, 10, 17 shipped · Phases 9, 15, 16 not started · Phases 13, 14 partially started
+**Overall:** ~114 complete / ~180 total · Phases 0–8, 10, 17, 18 shipped · Phases 9, 15, 16, 19, 20 not started · Phases 13, 14 partially started
 
 ---
 
@@ -406,6 +409,112 @@
 
 ---
 
-→ Feature details: `project-context/features/` (JOBS, QUOTES, INVOICES, CUSTOMERS, AI_RECORDING, AUTH_PROFILE)
+## PHASE 18 — Jobs Revamp
+
+> Competitor-informed upgrades to the Jobs feature. Research baseline: Jobber (property address, site forms), Ordrestyring (QA checklists), Minuba (budget monitoring), Apacta (photo documentation folders), Simpro (estimated vs actual).
+> Explicitly excluded: GPS employee tracking (churn trigger), embedded maps (API billing), customer signature capture (post-MVP).
+
+→ Schema: `lib/db/schema/jobs.ts` (Phases A–C, F), new `job_tasks` table (Phase D), `job_photos.tag` column (Phase E)
+→ Actions: `lib/actions/jobs.ts` (A–C, E, F), new `lib/actions/job-tasks.ts` (D)
+→ Components: `components/forms/job-form.tsx`, `components/jobs/`, `components/time-tracking/time-log-panel.tsx`
+
+### Phase A — Job Site Location
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1800 | Job site location fields | `[x]` | `[x]` | Add `locationAddress`, `locationZip`, `locationCity` (all nullable text) to `jobs` table. Form: collapsible "Different site address?" toggle, hidden by default. Detail: "Site location" card in right column — uses job address if set, falls back to customer address for the Maps link. Jobs list: `MapPin` icon on rows with a custom location. |
+
+### Phase B — Priority
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1801 | Job priority field | `[x]` | `[x]` | Add `priority text default 'normal'` (`low \| normal \| high \| urgent`) to `jobs` table. New `PriorityBadge` component (colour-coded pill, same style as `StatusBadge`: urgent=red, high=amber, normal=blue, low=muted). Badge on job list rows/cards and detail page header. Priority filter dropdown on jobs list alongside existing status filter. |
+
+### Phase C — Estimated Hours
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1802 | Estimated hours per job | `[x]` | `[x]` | Add `estimatedHours numeric(6,2)` (nullable) to `jobs` table. Number input (`step="0.5"`) on the form before Notes. In `TimeLogPanel`: progress bar showing "X hrs logged · Y hrs estimated"; bar turns red when logged > estimated. |
+
+> **Migration note:** Phases A, B, C all touch only `jobs.ts` — edit all three before running `npx drizzle-kit generate` to produce a single migration.
+
+### Phase D — Job Site Checklists
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1803 | Job site checklists | `[x]` | `[x]` | New `job_tasks` table: `id (uuid pk), jobId (fk), userId (fk), text, isCompleted (bool default false), sortOrder (int default 0), createdAt`. Hard delete (no soft delete). Relations in `relations.ts`. Three Server Actions in `lib/actions/job-tasks.ts`: `createJobTaskAction`, `updateJobTaskAction`, `deleteJobTaskAction`. New `components/jobs/job-checklist.tsx`: inline checklist on detail page between Notes and Photos — tap to check off, add/delete ad-hoc tasks, optimistic updates. `getJobById` updated to `with: { tasks: true }`. No templates in v1. |
+
+### Phase E — Photo Tagging
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1804 | Job photo tagging | `[x]` | `[x]` | Add `tag text` (nullable, `before \| during \| after \| document`) to `job_photos` table. Upload flow: after file selection, show 4 tag buttons + "Skip". Photo grid: filter chips (All / Before / During / After / Documents); each tile shows tag badge. Existing photos with `null` tag appear under "All" only. |
+
+### Phase F — Job Tags / Categories
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1805 | Job free-form tags | `[x]` | `[x]` | Add `tags text` (nullable, comma-separated) to `jobs` table. New `components/jobs/tag-input.tsx`: chip input, Enter or comma to add. Tags shown as pill chips on detail header and list rows. "Tags" filter dropdown on jobs list (options derived from all jobs' tags). Normalize empty string to `null` in the action. |
+
+---
+
+## PHASE 19 — Email Template Manager
+
+→ Detailed: `project-context/features/EMAIL_TEMPLATES.md`
+→ Schema: new `email_templates` table — see EMAIL_TEMPLATES.md for columns
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-1900 | `email_templates` DB schema + migration | `[ ]` | `N/A` | Drizzle schema, `npx drizzle-kit generate` |
+| F-1901 | Server Actions: upsert / delete / list | `[ ]` | `N/A` | `getEmailTemplatesAction`, `upsertEmailTemplateAction`, `deleteEmailTemplateAction` — all rate-limited + Zod |
+| F-1902 | Send-time template resolver | `[ ]` | `N/A` | `substituteVariables()` pure fn + `resolveTemplateVars()` per email type; wired into all 7 send paths |
+| F-1903 | Test email action | `[ ]` | `N/A` | `sendTestEmailAction(emailType)` — renders with sample data, sends to user's own email |
+| F-1904 | Template list page (`/profile/email-templates`) | `[ ]` | `[ ]` | 7 type cards, Customised / Using default badges, Edit button per type |
+| F-1905 | Template editor — Edit tab | `[ ]` | `[ ]` | Subject input, body contenteditable + toolbar, variable picker sidebar, header image upload (Vercel Blob), attachment toggle |
+| F-1906 | Template editor — Preview tab + tier gate | `[ ]` | `[ ]` | Live preview with sample values substituted; free tier: subject only, body editor behind upgrade prompt |
+
+---
+
+---
+
+## PHASE 20 — Job Activity Timeline
+
+→ Detailed: `project-context/features/JOBS.md` (Timeline section)
+→ Schema: new `job_events` table — see JOBS.md for columns
+→ Components: `components/jobs/job-timeline.tsx`
+→ Routes: `app/[locale]/(dashboard)/timeline/page.tsx`
+
+A per-job "work diary" grouped by day — answers "what did I do on this job on Tuesday?" by aggregating status changes, note edits, photo uploads, checklist activity, time entries, quotes, and invoices into a chronological feed.
+
+**Event types** fired from Server Actions:
+
+| Event type | Fired from | Metadata |
+|---|---|---|
+| `job_created` | `createJobAction` | `{ title, status }` |
+| `status_changed` | `updateJobStatusAction` | `{ from, to }` |
+| `note_updated` | `updateJobNotesAction` | `{ preview }` (first 80 chars) |
+| `photo_added` | `addJobPhotoAction` | `{ tag, caption, fileUrl }` |
+| `photo_deleted` | `deleteJobPhotoAction` | `{ caption }` |
+| `task_added` | `createJobTaskAction` | `{ text }` |
+| `task_completed` | `updateJobTaskAction` (isCompleted=true) | `{ text }` |
+| `task_uncompleted` | `updateJobTaskAction` (isCompleted=false) | `{ text }` |
+| `time_started` | `clockInAction` | `{}` |
+| `time_stopped` | `clockOutAction` | `{ durationMinutes }` |
+| `manual_time_added` | `createManualEntryAction` | `{ durationMinutes, note }` |
+
+**Synthetic fallback:** For existing records without a matching real event, derive events from `createdAt` on `job_photos`, `job_tasks`, `time_entries`, `quotes`, `invoices`. Real events always win over synthetic duplicates.
+
+| # | Feature | BE | FE | Notes |
+|---|---|---|---|---|
+| F-2000 | `job_events` DB schema + migration | `[ ]` | `N/A` | `lib/db/schema/job-events.ts`. Columns: `id (uuid pk)`, `jobId (fk)`, `userId (fk)`, `eventType text`, `metadata jsonb`, `createdAt`. Append-only — no soft delete. |
+| F-2001 | `insertJobEvent()` helper + Server Action wiring | `[ ]` | `N/A` | Shared helper in `lib/db/queries/job-events.ts`. Wire into: `createJobAction`, `updateJobStatusAction`, `updateJobNotesAction`, `addJobPhotoAction`, `deleteJobPhotoAction`, `createJobTaskAction`, `updateJobTaskAction`, `clockInAction`, `clockOutAction`, `createManualEntryAction` |
+| F-2002 | `getJobTimeline()` query | `[ ]` | `N/A` | Fetches real `job_events` + builds synthetic events from existing `createdAt` columns. Merges (real wins on duplicate), sorts `createdAt DESC`, groups by local date. Returns `Array<{ date: string; events: TimelineEvent[] }>`. |
+| F-2003 | `JobTimeline` component | `N/A` | `[ ]` | `components/jobs/job-timeline.tsx`. Day headers: "Today" / "Yesterday" / `Mon 20 Apr`. Event row: `HH:MM` pill · icon · description · optional chip (duration, photo tag, status arrow `→`). Icon colors: photos=green, clock=blue, status=amber, notes=purple, tasks=muted, docs=cobalt. Empty state with prompt card. |
+| F-2004 | Timeline card on job detail page | `[ ]` | `[ ]` | New "Timeline" Card at bottom of left column in `app/[locale]/(dashboard)/jobs/[id]/page.tsx`. Fetch `getJobTimeline(id, userId)` in the existing parallel Promise.all. |
+| F-2005 | `/timeline` global page | `[ ]` | `[ ]` | `app/[locale]/(dashboard)/timeline/page.tsx`. Searchable combobox: job number + title + customer name. URL param `?job=[id]` drives server-side load. No job selected → illustrated prompt card. |
+
+---
+
+→ Feature details: `project-context/features/` (JOBS, QUOTES, INVOICES, CUSTOMERS, AI_RECORDING, AUTH_PROFILE, EMAIL_TEMPLATES)
 → Database schema: `project-context/architecture/DATABASE.md`
 → Known issues: `project-context/context/KNOWN_ISSUES.md`

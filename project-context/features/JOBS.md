@@ -96,4 +96,37 @@ The right-column customer card on the job detail page (`app/[locale]/(dashboard)
 
 ---
 
+---
+
+## Job Activity Timeline (F-2000–F-2005)
+
+A chronological, day-grouped audit trail showing every meaningful action taken on a job.
+
+**New table:** `job_events`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `jobId` | uuid fk → jobs | |
+| `userId` | uuid fk → users | |
+| `eventType` | text | see event types in FEATURES.md Phase 20 |
+| `metadata` | jsonb | event-specific payload (tag, duration, status values, etc.) |
+| `createdAt` | timestamp | |
+
+Append-only — never soft-delete. Row inserted by `insertJobEvent()` helper called at the end of each relevant Server Action.
+
+**Key query:** `getJobTimeline(jobId, userId)` in `lib/db/queries/job-events.ts`
+- Fetches real `job_events` rows
+- Builds synthetic events from `createdAt` on `job_photos`, `job_tasks`, `time_entries`, linked `quotes`, linked `invoices`
+- Real event beats synthetic duplicate (matched by type + timestamp proximity)
+- Returns `Array<{ date: string; events: TimelineEvent[] }>` grouped by local date, descending
+
+**Component:** `components/jobs/job-timeline.tsx`
+
+**Access points:**
+1. "Timeline" Card at the bottom of the job detail left column (`app/[locale]/(dashboard)/jobs/[id]/page.tsx`)
+2. `/timeline` global page — searchable job combobox, URL param `?job=[id]`, server-side data load
+
+---
+
 → Related: `features/INVOICES.md`, `features/QUOTES.md`, `features/AI_RECORDING.md`, `architecture/DATABASE.md`

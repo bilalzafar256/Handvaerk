@@ -35,7 +35,7 @@ export async function getJobsByCustomer(customerId: string, userId: string) {
 export async function getJobById(id: string, userId: string) {
   return db.query.jobs.findFirst({
     where: and(eq(jobs.id, id), eq(jobs.userId, userId), isNull(jobs.deletedAt)),
-    with: { customer: true, photos: true },
+    with: { customer: true, photos: true, tasks: { orderBy: (t, { asc }) => [asc(t.sortOrder), asc(t.createdAt)] } },
   })
 }
 

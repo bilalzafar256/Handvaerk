@@ -19,14 +19,20 @@ import {
 import { TIER_LIMITS } from "@/lib/utils/tier"
 
 const jobSchema = z.object({
-  customerId:    z.string().uuid("Invalid customer"),
-  title:         z.string().min(1, "Title is required"),
-  description:   z.string().optional(),
-  jobType:       z.enum(["service", "project", "recurring"]).default("service"),
-  status:        z.enum(["new", "scheduled", "in_progress", "done", "invoiced", "paid"]).default("new"),
-  scheduledDate: z.string().optional(),
-  endDate:       z.string().optional(),
-  notes:         z.string().optional(),
+  customerId:      z.string().uuid("Invalid customer"),
+  title:           z.string().min(1, "Title is required"),
+  description:     z.string().optional(),
+  jobType:         z.enum(["service", "project", "recurring"]).default("service"),
+  status:          z.enum(["new", "scheduled", "in_progress", "done", "invoiced", "paid"]).default("new"),
+  priority:        z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+  scheduledDate:   z.string().optional(),
+  endDate:         z.string().optional(),
+  estimatedHours:  z.string().optional(),
+  locationAddress: z.string().optional(),
+  locationZip:     z.string().optional(),
+  locationCity:    z.string().optional(),
+  tags:            z.string().optional(),
+  notes:           z.string().optional(),
 })
 
 export type JobFormData = z.infer<typeof jobSchema>
@@ -75,16 +81,22 @@ export async function createJobAction(data: JobFormData) {
   const jobNumber = String(total + 1)
 
   const job = await createJob({
-    userId:        user.id,
-    customerId:    validated.customerId,
+    userId:          user.id,
+    customerId:      validated.customerId,
     jobNumber,
-    title:         validated.title,
-    description:   validated.description || null,
-    jobType:       validated.jobType,
-    status:        validated.status,
-    scheduledDate: validated.scheduledDate || null,
-    endDate:       validated.endDate || null,
-    notes:         validated.notes || null,
+    title:           validated.title,
+    description:     validated.description || null,
+    jobType:         validated.jobType,
+    status:          validated.status,
+    priority:        validated.priority,
+    scheduledDate:   validated.scheduledDate || null,
+    endDate:         validated.endDate || null,
+    estimatedHours:  validated.estimatedHours || null,
+    locationAddress: validated.locationAddress || null,
+    locationZip:     validated.locationZip || null,
+    locationCity:    validated.locationCity || null,
+    tags:            validated.tags || null,
+    notes:           validated.notes || null,
   })
 
   revalidatePath("/jobs")
@@ -103,14 +115,20 @@ export async function updateJobAction(id: string, data: JobFormData) {
   if (!user) throw new Error("User not found")
 
   await updateJob(id, user.id, {
-    customerId:    validated.customerId,
-    title:         validated.title,
-    description:   validated.description || null,
-    jobType:       validated.jobType,
-    status:        validated.status,
-    scheduledDate: validated.scheduledDate || null,
-    endDate:       validated.endDate || null,
-    notes:         validated.notes || null,
+    customerId:      validated.customerId,
+    title:           validated.title,
+    description:     validated.description || null,
+    jobType:         validated.jobType,
+    status:          validated.status,
+    priority:        validated.priority,
+    scheduledDate:   validated.scheduledDate || null,
+    endDate:         validated.endDate || null,
+    estimatedHours:  validated.estimatedHours || null,
+    locationAddress: validated.locationAddress || null,
+    locationZip:     validated.locationZip || null,
+    locationCity:    validated.locationCity || null,
+    tags:            validated.tags || null,
+    notes:           validated.notes || null,
   })
 
   revalidatePath("/jobs")
@@ -168,14 +186,14 @@ export async function deleteJobAction(id: string) {
   redirect("/jobs")
 }
 
-export async function addJobPhotoAction(jobId: string, fileUrl: string, caption?: string) {
+export async function addJobPhotoAction(jobId: string, fileUrl: string, tag?: string | null) {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
 
-  const photo = await addJobPhoto({ jobId, fileUrl, caption: caption || null })
+  const photo = await addJobPhoto({ jobId, fileUrl, caption: null, tag: tag || null })
   revalidatePath(`/jobs/${jobId}`)
   return { id: photo.id }
 }

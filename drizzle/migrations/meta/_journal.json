@@ -134,6 +134,13 @@
       "when": 1776894957520,
       "tag": "0018_young_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1776897222668,
+      "tag": "0019_outstanding_darkstar",
+      "breakpoints": true
     }
   ]
 }

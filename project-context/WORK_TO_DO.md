@@ -53,6 +53,9 @@
 | 30 | MobilePay Erhverv Integration | Low | High |
 | 31 | Time Tracking | **High** | Medium |
 | 32 | E-conomic / Accounting Integration | **High** | High |
+| 33 | Email Template Manager | Medium | Medium |
+| 34 | Jobs Revamp | **High** | Medium |
+| 35 | Job Activity Timeline | Medium | Medium |
 
 ---
 
@@ -784,6 +787,265 @@ expenses: +economicId TEXT, +economicSyncedAt TIMESTAMP
 
 ---
 
+## Phase 33 — Email Template Manager
+
+**Goal:** Let tradespeople fully customise every outbound email — subject, body, header image, and attachment behaviour — using `[[variable]]` placeholders that resolve to real DB values at send time. Currently all emails use hardcoded Resend templates. This adds per-user overrides with a clean fallback to defaults.
+
+**Competitive context:** Ordrestyring.dk, Minuba, and Jobber all allow email template customisation. Branded, personalised emails increase customer trust and reduce "this looks spammy" drop-off.
+
+**Architecture:**
+```
+New `email_templates` table (userId + emailType UNIQUE)
+  → On any email send:
+      getActiveEmailTemplate(userId, emailType)
+        → null  → use existing hardcoded template (zero regression)
+        → found → substituteVariables(template.subject/body, vars)
+                → send via Resend with custom subject + HTML body
+
+Variable substitution: pure string replace of [[key]] → resolved value.
+No templating engine — just String.replaceAll per key.
+Unresolved vars resolve to '' (never left as [[...]]).
+```
+
+**7 template types:**
+
+| Key | Triggered by |
+|---|---|
+| `invoice_sent` | `sendInvoiceAction` |
+| `invoice_reminder_1` | Inngest `invoice-reminder.ts` (reminder #1) |
+| `invoice_reminder_2` | Inngest `invoice-reminder.ts` (reminder #2) |
+| `invoice_paid` | `markInvoicePaidAction` |
+| `quote_sent` | `sendQuoteAction` |
+| `quote_accepted` | `acceptQuoteByTokenAction` |
+| `quote_rejected` | `rejectQuoteByTokenAction` |
+
+**Available variables — see `project-context/features/EMAIL_TEMPLATES.md` for full list.**
+
+Universal: `[[company_name]]`, `[[customer_name]]`, `[[current_date]]`, `[[company_phone]]`, `[[company_address]]`, `[[customer_email]]`
+
+Invoice: `[[invoice_number]]`, `[[invoice_amount]]`, `[[invoice_due_date]]`, `[[payment_details]]`, `[[mobilepay_number]]`
+
+Quote: `[[quote_number]]`, `[[quote_amount]]`, `[[quote_valid_until]]`, `[[quote_link]]`, `[[job_description]]`
+
+Review: `[[google_review_link]]` (invoice_paid only)
+
+**Schema:**
+```
+email_templates: id (uuid pk), userId (text fk), emailType (text), subject (text),
+                 body (text HTML), headerImageUrl (text nullable),
+                 includeAttachment (bool default true), isActive (bool default true),
+                 createdAt, updatedAt, deletedAt
+
+UNIQUE (userId, emailType)
+```
+Run `npx drizzle-kit generate` after adding `lib/db/schema/email-templates.ts`.
+
+**Key files to create:**
+```
+lib/db/schema/email-templates.ts
+lib/db/queries/email-templates.ts          — getActiveEmailTemplate, getUserEmailTemplates
+lib/actions/email-templates.ts             — upsert, delete, list, sendTestEmail
+lib/email/substitute-variables.ts          — pure substituteVariables(str, vars): string
+lib/email/resolve-template-vars.ts         — assembles vars Record<string,string> per email type
+components/email-templates/template-list.tsx
+components/email-templates/template-editor.tsx
+app/[locale]/(app)/profile/email-templates/page.tsx
+```
+
+**Send-path wiring — 7 existing functions to update:**
+- `lib/actions/invoices.ts`: `sendInvoiceAction` → `invoice_sent`
+- `lib/inngest/invoice-reminder.ts`: reminder #1 → `invoice_reminder_1`, reminder #2 → `invoice_reminder_2`
+- `lib/actions/invoices.ts`: `markInvoicePaidAction` → `invoice_paid`
+- `lib/actions/quotes.ts`: `sendQuoteAction` → `quote_sent`
+- `lib/actions/quotes.ts`: `acceptQuoteByTokenAction` → `quote_accepted`
+- `lib/actions/quotes.ts`: `rejectQuoteByTokenAction` → `quote_rejected`
+
+**UI — `/profile/email-templates`:**
+- List of 7 type cards — "Customised" (primary badge) / "Using default" (muted)
+- Per-card editor: subject input + contenteditable body with mini toolbar + variable picker sidebar (click to insert at cursor) + header image upload (Vercel Blob, same pattern as logo) + attachment toggle
+- Preview tab: template rendered with static sample data substituted in
+- "Send test email" button → sends preview to user's own inbox within 10s
+- "Reset to default" → soft-deletes the custom template, falls back to hardcoded
+
+**Tier gate:** Free — subject line editable only. Pro — full editor (body + header image + attachment toggle).
+
+→ Detailed spec: `project-context/features/EMAIL_TEMPLATES.md`
+
+**Success criteria:**
+- Custom `invoice_sent` template with `[[customer_name]]` + `[[invoice_number]]` substitutes correctly in delivered email.
+- Missing variables render as `''`, never as `[[variable_name]]`.
+- Users with no custom template receive exactly the same email as today — zero regression.
+- Test email arrives within 10 seconds.
+- Header image appears at the top of the email HTML when uploaded.
+- PDF attachment is included or excluded per the toggle.
+- Variable picker inserts at cursor in the body editor.
+
+---
+
+## Phase 34 — Jobs Revamp
+
+**Goal:** Bring the Jobs feature to competitive parity with Jobber, Ordrestyring, and Minuba. Six focused additions that solve real tradesperson pain without scope creep.
+
+**Research baseline:** Jobber (job-specific property address, site inspection checklists), Ordrestyring (QA checklists per job type), Minuba (budget vs actual monitoring), Apacta (photo documentation folders), Simpro (estimated vs actual hours).
+
+**Excluded by design:** GPS tracking (churn trigger for solo tradespeople), embedded maps (API billing), customer signature capture (post-MVP), barcode scanning.
+
+→ FEATURES.md tracking: Phase 18 — Jobs Revamp (F-1800 through F-1805)
+
+---
+
+### Phase A — Job Site Location (F-1800) `[S: 2–3 hrs]`
+
+**Pain:** A plumber with 3 jobs for the same housing company works at 3 different addresses — the current Maps link always points to the customer's billing address.
+
+**Schema** (all nullable text, add to `jobs` table — batch with B + C):
+```
+locationAddress  text("location_address")
+locationZip      text("location_zip")
+locationCity     text("location_city")
+```
+
+**Files to change:**
+- `lib/db/schema/jobs.ts` — add 3 columns
+- `lib/actions/jobs.ts` — extend `jobSchema` with optional location fields
+- `components/forms/job-form.tsx` — collapsible "Different site address?" toggle; hidden by default, reveals 3 inputs
+- `app/[locale]/(dashboard)/jobs/[id]/page.tsx` — "Site location" card in right column; uses job address if set, falls back to customer address for Maps link
+- `components/jobs/job-list.tsx` — `MapPin` icon on rows with a custom location
+- `messages/en.json` + `messages/da.json`
+
+**Success criteria:** Job with customer in Copenhagen, work site in Aarhus → Maps link navigates to Aarhus.
+
+---
+
+### Phase B — Priority (F-1801) `[S: 2–3 hrs]`
+
+**Pain:** Tradespeople with 8+ active jobs need a fast triage signal on mobile — currently all jobs look identical in the list.
+
+**Schema** (add to `jobs` table — batch with A + C):
+```
+priority  text("priority").default("normal")   -- low | normal | high | urgent
+```
+
+**Files to change:**
+- `lib/db/schema/jobs.ts` — add `priority`
+- `lib/actions/jobs.ts` — extend `jobSchema`
+- `components/forms/job-form.tsx` — `<select>` between jobType and scheduledDate
+- New `components/jobs/priority-badge.tsx` — colour-coded pill (urgent=red, high=amber, normal=blue, low=muted)
+- `components/jobs/job-list.tsx` — badge on rows/cards; priority filter dropdown
+- `app/[locale]/(dashboard)/jobs/[id]/page.tsx` — badge in job header
+- `messages/en.json` + `messages/da.json`
+
+**Success criteria:** New jobs default to `normal`. Priority filter on list shows only selected-priority jobs. Badge visible on detail header.
+
+---
+
+### Phase C — Estimated Hours (F-1802) `[S: 2–3 hrs]`
+
+**Pain:** No way to compare planned scope vs actual time logged — tradespeople are flying blind on how jobs track to estimate.
+
+**Schema** (add to `jobs` table — batch with A + B):
+```
+estimatedHours  numeric("estimated_hours", { precision: 6, scale: 2 })
+```
+
+**Files to change:**
+- `lib/db/schema/jobs.ts` — add `estimatedHours`
+- `lib/actions/jobs.ts` — `estimatedHours: z.string().optional()`
+- `components/forms/job-form.tsx` — `type="number"` input, `step="0.5"`, before Notes
+- `components/time-tracking/time-log-panel.tsx` — accept `estimatedHours` prop; render progress bar; red when over estimate
+
+**Migration note:** Edit A + B + C in `jobs.ts` together, then run one `npx drizzle-kit generate`.
+
+**Success criteria:** Progress bar at 37.5% when 3h logged against 8h estimated. Bar turns red when over. No bar shown when `estimatedHours` is null.
+
+---
+
+### Phase D — Job Site Checklists (F-1803) `[M: 5–7 hrs]`
+
+**Pain:** No task-level progress tracking. Jobber and Ordrestyring both have site inspection forms/checklists. Ours is lightweight and mobile-first — ad-hoc tasks, no templates.
+
+**Schema** (new `job_tasks` table — separate migration):
+```
+id           uuid pk defaultRandom()
+jobId        uuid notNull FK → jobs.id
+userId       uuid notNull FK → users.id
+text         text notNull
+isCompleted  boolean default false notNull
+sortOrder    integer default 0 notNull
+createdAt    timestamp defaultNow()
+```
+Hard delete (no soft delete).
+
+**Files to create:**
+- `lib/db/queries/job-tasks.ts`
+- `lib/actions/job-tasks.ts` — `createJobTaskAction`, `updateJobTaskAction`, `deleteJobTaskAction`
+- `components/jobs/job-checklist.tsx` — inline checklist on detail page, between Notes and Photos
+
+**Files to change:**
+- `lib/db/schema/jobs.ts` — add `jobTasks` table + exports
+- `lib/db/schema/relations.ts` — `jobTasksRelations`; extend `jobsRelations` and `usersRelations`
+- `lib/db/queries/jobs.ts` — `getJobById` with `tasks: true`
+- `app/[locale]/(dashboard)/jobs/[id]/page.tsx` — render `<JobChecklist>`
+- `messages/en.json` + `messages/da.json`
+
+**Success criteria:** Add task → row in DB. Check off → strikethrough. Delete → hard-deleted. Tasks join via `getJobById` — no extra round-trip.
+
+---
+
+### Phase E — Photo Tagging (F-1804) `[S: 2–3 hrs]`
+
+**Pain:** Photos are a flat unorganised grid. Apacta uses documentation folders; Minuba emphasises photo documentation quality.
+
+**Schema** (alter `job_photos` — separate migration):
+```
+tag  text("tag")   -- nullable: 'before' | 'during' | 'after' | 'document'
+```
+
+**Files to change:**
+- `lib/db/schema/jobs.ts` — add `tag` to `jobPhotos`
+- `lib/actions/jobs.ts` — `addJobPhotoAction(jobId, fileUrl, caption?, tag?)`
+- `lib/db/queries/jobs.ts` — pass `tag` through
+- `components/jobs/photo-upload.tsx` — tag selector after file selection; filter chips on grid; tag badge on each tile
+
+**Success criteria:** Upload with "Before" stores `tag = 'before'`. Filter chip "Before" shows only before-photos. Existing `null`-tag photos appear only under "All".
+
+---
+
+### Phase F — Job Tags / Categories (F-1805) `[M: 4–6 hrs]`
+
+**Pain:** `jobType` (service/project/recurring) is too coarse. Tradespeople can't group by "electrical", "warranty", "repeat-client", etc.
+
+**Schema** (add to `jobs` — separate migration):
+```
+tags  text("tags")   -- nullable, comma-separated: e.g. "electrical,warranty"
+```
+
+**Files to create:**
+- `components/jobs/tag-input.tsx` — chip input; Enter or comma adds; `×` removes
+
+**Files to change:**
+- `lib/db/schema/jobs.ts` — add `tags`
+- `lib/actions/jobs.ts` — `tags: z.string().optional()`; normalize empty → null
+- `components/forms/job-form.tsx` — `<TagInput>` at bottom of form
+- `components/jobs/job-list.tsx` — "Tags" filter dropdown; pill chips on rows
+- `app/[locale]/(dashboard)/jobs/[id]/page.tsx` — pill chips in header
+- `messages/en.json` + `messages/da.json`
+
+**Success criteria:** Tags "electrical,warranty" saved as comma string. 2 pill chips on detail. Tag filter on list works. Empty tags → null in DB.
+
+---
+
+### Migration sequencing
+
+| Phases | What to do |
+|---|---|
+| A + B + C | Edit `jobs.ts` for all three, run ONE `npx drizzle-kit generate` |
+| D | Separate `npx drizzle-kit generate` (new table) |
+| E | Separate `npx drizzle-kit generate` (alter `job_photos`) |
+| F | Separate `npx drizzle-kit generate` (alter `jobs`) |
+
+---
+
 ## Permanently Excluded Features
 
 These will not be built regardless of timeline:
@@ -813,4 +1075,4 @@ These will not be built regardless of timeline:
 
 ---
 
-*Last updated: 2026-04-21 — Phase 31 extended: F-3112 (status-based access control) + F-3113 (enhanced time-tracking page) added and shipped. Phase 31 original complete: time tracking fully shipped. Phase 15 complete: AI follow-up drafts (Inngest cron, Groq, quote detail card, notification bell, dismiss + send actions). Phase 20 complete: flat-rate pricebook (schema, server actions, CRUD list, /pricebook page, sidebar nav, i18n, GDPR, "From pricebook" picker in QuoteForm + InvoiceForm). Phase 22 complete: job profitability card (invoiced vs quoted revenue, wired to job detail). Phase 2 complete. Phase 1: 11/15 bugs resolved, 4 remain open (KI-005, KI-009, KI-011, KI-012).*
+*Last updated: 2026-04-23 — Phase 33 (Email Template Manager) specced and added to roadmap. Phase 31 extended: F-3112 (status-based access control) + F-3113 (enhanced time-tracking page) added and shipped. Phase 31 original complete: time tracking fully shipped. Phase 15 complete: AI follow-up drafts (Inngest cron, Groq, quote detail card, notification bell, dismiss + send actions). Phase 20 complete: flat-rate pricebook (schema, server actions, CRUD list, /pricebook page, sidebar nav, i18n, GDPR, "From pricebook" picker in QuoteForm + InvoiceForm). Phase 22 complete: job profitability card (invoiced vs quoted revenue, wired to job detail). Phase 2 complete. Phase 1: 11/15 bugs resolved, 4 remain open (KI-005, KI-009, KI-011, KI-012).*

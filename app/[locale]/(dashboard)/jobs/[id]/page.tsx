@@ -11,6 +11,9 @@ import { getEntriesByJob, getActiveEntry, getBillingStatusForJob } from "@/lib/d
 import { getJobProfitability } from "@/lib/db/queries/profitability"
 import { TimeLogPanel } from "@/components/time-tracking/time-log-panel"
 import { ProfitabilityCard } from "@/components/jobs/profitability-card"
+import { PriorityBadge } from "@/components/jobs/priority-badge"
+import { JobChecklist } from "@/components/jobs/job-checklist"
+import { JobLocationMap } from "@/components/jobs/job-location-map"
 import { formatDKK } from "@/lib/utils/currency"
 import { Topbar } from "@/components/shared/topbar"
 import { StatusChanger } from "@/components/jobs/status-changer"
@@ -19,8 +22,8 @@ import { PhotoUpload } from "@/components/jobs/photo-upload"
 import { InlineNotes } from "@/components/jobs/inline-notes"
 import { Link } from "@/i18n/navigation"
 import {
-  ChevronLeft, Pencil, User, Calendar, CalendarCheck,
-  FileText, Receipt, Plus, ChevronRight, Phone, Mail, MapPin, ExternalLink,
+  ChevronLeft, Pencil, Calendar, CalendarCheck,
+  FileText, Receipt, Plus, ChevronRight, MapPin, Tag,
 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -63,6 +66,8 @@ export default async function JobDetailPage({ params }: Props) {
 
   const customerAddress = [job.customer.addressLine1, job.customer.addressZip, job.customer.addressCity]
     .filter(Boolean).join(", ")
+  const siteAddress = [job.locationAddress, job.locationZip, job.locationCity].filter(Boolean).join(", ")
+  const mapsAddress = siteAddress || customerAddress
 
   return (
     <>
@@ -99,12 +104,31 @@ export default async function JobDetailPage({ params }: Props) {
 
           {/* Job header */}
           <div className="pb-3 border-b" style={{ borderColor: "var(--border)" }}>
-            <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
-              {job.title}
-            </h1>
+            <div className="flex items-start gap-2 flex-wrap">
+              <h1 className="text-xl font-bold flex-1 min-w-0" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
+                {job.title}
+              </h1>
+              {job.priority && job.priority !== "normal" && (
+                <PriorityBadge priority={job.priority} />
+              )}
+            </div>
             <p className="text-sm mt-0.5" style={{ fontFamily: "var(--font-mono)", color: "var(--muted-foreground)" }}>
               #{job.jobNumber} · {t(JOB_TYPE_KEYS[job.jobType ?? "service"])}
             </p>
+            {job.tags && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {job.tags.split(",").map(tag => tag.trim()).filter(Boolean).map(tag => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 h-5 px-2 rounded-md text-[11px] font-medium"
+                    style={{ backgroundColor: "var(--accent-light)", color: "var(--primary)", fontFamily: "var(--font-body)" }}
+                  >
+                    <Tag className="w-3 h-3" />
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Two-column layout */}
@@ -150,6 +174,11 @@ export default async function JobDetailPage({ params }: Props) {
                 <InlineNotes jobId={job.id} initialNotes={job.notes} />
               </Card>
 
+              {/* Checklist (F-1803) */}
+              <Card title={t("checklistSection")} accent="blue">
+                <JobChecklist jobId={job.id} initialTasks={job.tasks ?? []} />
+              </Card>
+
               {/* Photos */}
               <Card title={t("photosSection")} accent="green">
                 <PhotoUpload jobId={job.id} photos={job.photos} />
@@ -166,6 +195,7 @@ export default async function JobDetailPage({ params }: Props) {
                 invoices={jobInvoices}
                 billingStatus={billingStatus}
                 hourlyRate={user.hourlyRate}
+                estimatedHours={job.estimatedHours ?? null}
               />
 
               {/* Profitability */}
@@ -214,6 +244,25 @@ export default async function JobDetailPage({ params }: Props) {
                 </div>
               </div>
 
+              {/* Map (F-1800) — site address takes priority over customer address */}
+              {mapsAddress && (
+                <div>
+                  {siteAddress && (
+                    <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+                      <MapPin className="w-3 h-3" style={{ color: "var(--primary)" }} />
+                      <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                        {t("siteLocationSection")}
+                      </p>
+                    </div>
+                  )}
+                  <JobLocationMap
+                    address={mapsAddress}
+                    mapsUrl={`https://maps.google.com/?q=${encodeURIComponent(mapsAddress)}`}
+                    height={200}
+                  />
+                </div>
+              )}
+
               {/* Customer card */}
               <div>
                 <Link
@@ -237,19 +286,6 @@ export default async function JobDetailPage({ params }: Props) {
                   </div>
                   <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
                 </Link>
-                {customerAddress && (
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(customerAddress)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium hover:bg-[var(--accent)] transition-colors mt-1"
-                    style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-body)" }}
-                  >
-                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
-                    <span className="truncate flex-1">{customerAddress}</span>
-                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                  </a>
-                )}
               </div>
 
               {/* Quotes */}

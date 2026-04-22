@@ -36,6 +36,7 @@ interface TimeLogPanelProps {
   invoices: Invoice[]
   billingStatus: BillingStatus
   hourlyRate: string | null
+  estimatedHours?: string | null
 }
 
 export function TimeLogPanel({
@@ -48,6 +49,7 @@ export function TimeLogPanel({
   invoices,
   billingStatus,
   hourlyRate,
+  estimatedHours,
 }: TimeLogPanelProps) {
   const [showManualForm, setShowManualForm] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -58,6 +60,17 @@ export function TimeLogPanel({
 
   const hasBillableHours = billingStatus.totalBillableMinutes > 0
   const hasDocuments = eligibleQuotes.length > 0 || eligibleInvoices.length > 0
+
+  const totalLoggedMinutes = entries.reduce((sum, e) => {
+    if (e.durationMinutes !== null && e.durationMinutes !== undefined) return sum + e.durationMinutes
+    const end = e.endedAt ? new Date(e.endedAt) : new Date()
+    return sum + Math.floor((end.getTime() - new Date(e.startedAt).getTime()) / 60000)
+  }, 0)
+  const loggedHours = totalLoggedMinutes / 60
+  const estHours = estimatedHours ? parseFloat(estimatedHours) : null
+  const showProgress = estHours !== null && estHours > 0
+  const progressPct = showProgress ? Math.min((loggedHours / estHours!) * 100, 100) : 0
+  const isOverBudget = showProgress && loggedHours > estHours!
 
   return (
     <div
@@ -94,6 +107,31 @@ export function TimeLogPanel({
       </div>
 
       <div className="px-4 py-3 space-y-3" style={{ backgroundColor: "var(--card)" }}>
+        {/* Estimated hours progress (F-1802) */}
+        {showProgress && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <p className="text-xs" style={{ fontFamily: "var(--font-body)", color: "var(--muted-foreground)" }}>
+                {loggedHours.toFixed(1)} hrs logged · {estHours!.toFixed(1)} hrs estimated
+              </p>
+              {isOverBudget && (
+                <span className="text-[11px] font-semibold" style={{ color: "var(--error)", fontFamily: "var(--font-body)" }}>
+                  Over budget
+                </span>
+              )}
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--border)" }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${progressPct}%`,
+                  backgroundColor: isOverBudget ? "var(--error)" : "var(--primary)",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Clock in/out */}
         <ClockPanel
           jobId={jobId}

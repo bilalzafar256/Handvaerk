@@ -73,6 +73,7 @@ export function JobRecordingFlow({ customers, initialData }: Props) {
         description: jobDescription || undefined,
         jobType,
         status: "new",
+        priority: "normal",
         scheduledDate: scheduledDate || undefined,
         notes: jobNotes || undefined,
       })
