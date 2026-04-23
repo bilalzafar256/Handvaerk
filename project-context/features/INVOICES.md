@@ -73,6 +73,8 @@ Timestamps tracked: `sentAt`, `viewedAt`, `paidAt`, `reminder1SentAt`, `reminder
 4. Updates `status → "sent"`, `sentAt = now()`
 5. Sends Inngest event `"invoice/sent"` to trigger reminder workflow (non-blocking, wrapped in try/catch)
 
+**Auto-resend on edit:** `updateInvoiceAction` fetches the current status before saving. If the invoice is `"sent"`, `"viewed"`, or `"overdue"`, it calls `sendInvoiceAction` automatically after saving — the customer receives an updated PDF with no manual step required. This also re-triggers the Inngest reminder workflow from the new `sentAt`. Invoices in `draft`, `paid`, or `merged` status are not auto-resent.
+
 ---
 
 ## Payment Reminder Workflow (Inngest)

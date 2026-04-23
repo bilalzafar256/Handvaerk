@@ -57,6 +57,8 @@ State timestamps:
 3. Sends via Resend with `QuoteSentEmail` template
 4. Updates `quote.status = "sent"`, `sentAt = now()`
 
+**Auto-resend on edit:** `updateQuoteAction` fetches the current status before saving. If the quote is already `"sent"`, it calls `sendQuoteEmailAction` automatically after saving — the customer receives an updated copy with no manual step required. Quotes in any other status (`draft`, `accepted`, `rejected`, `expired`, `merged`) are not auto-resent.
+
 Accept/Reject callbacks send non-blocking confirmation emails:
 - Accept → `QuoteAcceptedEmail` to customer
 - Reject → `QuoteRejectedEmail` to customer

@@ -112,6 +112,8 @@ export async function updateQuoteAction(id: string, data: QuoteFormData) {
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
 
+  const existing = await getQuoteById(id, user.id)
+
   await updateQuote(id, user.id, {
     customerId:    validated.customerId,
     jobId:         validated.jobId ?? null,
@@ -129,6 +131,11 @@ export async function updateQuoteAction(id: string, data: QuoteFormData) {
     markupPercent: item.markupPercent ?? null,
     sortOrder:     i,
   })))
+
+  if (existing?.status === "sent" && existing.customer.email) {
+    await sendQuoteEmailAction(id)
+    return
+  }
 
   revalidatePath("/quotes")
   revalidatePath(`/quotes/${id}`)

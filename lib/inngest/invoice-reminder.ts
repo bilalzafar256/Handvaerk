@@ -10,7 +10,11 @@ type Step = {
 }
 
 export const invoiceReminder = inngest.createFunction(
-  { id: "invoice-reminder", triggers: [{ event: "invoice/sent" }] },
+  {
+    id: "invoice-reminder",
+    triggers: [{ event: "invoice/sent" }],
+    cancelOn: [{ event: "invoice/sent", match: "data.invoiceId" }],
+  },
   async ({ event, step }: { event: { data: { invoiceId: string; userId: string; customerEmail: string; dueDate: string; amount: string } }; step: Step }) => {
     const { invoiceId, userId, customerEmail, dueDate, amount } = event.data
 

@@ -406,6 +406,7 @@
 | F-1702 | Timeline (Gantt) view | `[x]` | `[x]` | Horizontal bar chart; sticky job column; month+day header; today line; weekend shading; auto-scroll to today |
 | F-1703 | Sidebar filters + mini-calendar | `N/A` | `[x]` | 196px collapsible sidebar; entity toggles (Jobs/Invoices/Quotes); job status chips; mini date navigator |
 | F-1704 | Unscheduled jobs panel | `[x]` | `[x]` | Collapsible right panel listing jobs without a `scheduledDate`; links to job detail |
+| F-1705 | Full-height layout + fullscreen toggle | `N/A` | `[x]` | Page container uses `calc(100dvh - 3.5rem)` (fixes `h-full` collapse against `min-h-screen` parent). `Maximize2`/`Minimize2` button in toolbar toggles `isFullscreen` state; when on, shell gets `position: fixed; inset: 0; z-index: 50` — overlays sidebar, topbar, and everything. |
 
 ---
 

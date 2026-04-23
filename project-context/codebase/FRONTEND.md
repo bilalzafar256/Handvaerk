@@ -42,7 +42,9 @@ app/
 │   │   │   ├── new/page.tsx
 │   │   │   ├── [id]/page.tsx
 │   │   │   └── [id]/edit/page.tsx
-│   │   ├── calendar/page.tsx           Calendar — jobs/invoices/quotes on one view
+│   │   ├── calendar/page.tsx           Calendar — jobs/invoices/quotes (month/week/day/agenda/timeline views)
+│   │   ├── time-tracking/page.tsx      Time tracking — 3-zone shell (StatsSidebar + TimerHero + WeekBars + DayView + UnbilledPanel)
+│   │   ├── pricebook/page.tsx          Flat-rate pricebook catalog (CRUD, filters, favourites)
 │   │   └── profile/page.tsx
 │   └── q/[token]/page.tsx              Public shareable quote view (no auth)
 ├── api/                                API routes (see BACKEND.md)
@@ -101,7 +103,7 @@ Loaded in `app/[locale]/layout.tsx` via `next/font/google`:
 - Bottom navigation: `components/shared/bottom-nav.tsx` — Overview, Jobs, Invoices, Profile
 
 ### Nav Items
-**Sidebar:** Overview, Jobs, Customers, Quotes, Invoices, Calendar | Profile (settings section)  
+**Sidebar:** Overview, Jobs, Customers, Quotes, Invoices, Calendar, Time Tracking, Pricebook | Profile (settings section)  
 **Bottom nav:** Overview, Jobs, Invoices, Profile
 
 ---
@@ -138,7 +140,9 @@ components/
 ├── pdf/          PDF templates for @react-pdf/renderer (invoice-pdf, quote-pdf)
 ├── notifications/ Notification bell + sheet
 ├── profile/      Profile sections (bank-accounts-section, google-review-section)
-└── calendar/     Calendar feature (calendar-shell, calendar-filters, timeline-view, event-chip, event-popover, unscheduled-panel, types, rbc.css)
+├── calendar/     Calendar feature (calendar-shell, calendar-filters, timeline-view, event-chip, event-popover, unscheduled-panel, types, rbc.css)
+├── time-tracking/ Time tracking feature — shell layout: time-tracking-shell (server), timer-hero, week-bars, stats-sidebar (desktop left 200px), unbilled-panel (desktop right 220px), day-view, month-calendar, clock-panel, time-log-panel, time-entry-list, manual-entry-form, add-to-document-modal
+└── pricebook/    Pricebook catalog (pricebook-list)
 ```
 
 ---

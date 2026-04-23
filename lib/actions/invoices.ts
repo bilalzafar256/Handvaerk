@@ -341,6 +341,8 @@ export async function updateInvoiceAction(id: string, data: InvoiceFormData) {
   const user = await getDbUser(clerkId)
   if (!user) throw new Error("User not found")
 
+  const existing = await getInvoiceById(id, user.id)
+
   const totals = calcTotals(validated.items)
 
   await updateInvoice(id, user.id, {
@@ -375,6 +377,12 @@ export async function updateInvoiceAction(id: string, data: InvoiceFormData) {
       sortOrder:     i,
     }
   }))
+
+  const sentStatuses = ["sent", "viewed", "overdue"]
+  if (existing?.status && sentStatuses.includes(existing.status) && existing.customer.email) {
+    await sendInvoiceAction(id)
+    return
+  }
 
   revalidatePath(`/invoices/${id}`)
   revalidatePath("/invoices")
